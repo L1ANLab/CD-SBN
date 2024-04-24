@@ -56,7 +56,15 @@ build/main -i <initial-graph-path> -l <item-label-list-path> -u <update-stream-p
 
 For example,
 
-## 3. Temporal Graph
+## 3. Dataset
+All of used dataset is from [KONECT](http://konect.cc/). To decompress the dataset zip file, run the commands:
+
+```bash
+cd dataset/<dir>
+tar -xjf <filename>
+```
+
+## Graph Structure
 
 ```text/plain
 v1 <user-vertex-id> <bv> <ub-sup-M> <X-list> <Y-list>
@@ -70,4 +78,5 @@ e 2 3
 
 ## Reference
 Command line parser: [CLI11](https://github.com/CLIUtils/CLI11)
+Dataset: [KONECT](http://konect.cc/)
 
