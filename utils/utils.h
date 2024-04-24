@@ -9,6 +9,17 @@
 #include <sys/stat.h> /* For stat() */
 #include "utils/types.h"
 
+namespace ErrorControl {
+    inline void assert_error(bool condition, std::string error_info)
+    {
+        if (condition)
+        {
+            std::cout << error_info << std::endl;
+            exit(-1);
+        }
+    }
+}
+
 namespace io {
     inline size_t file_exists(const char *path) {
         struct stat st;
