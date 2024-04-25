@@ -51,10 +51,14 @@ Note that `<user-vertex-id> ` represents the id of vertex in the upper layer (us
 After the preparation of executable file and input data, our method can be executed by:
 
 ```bash
-build/main -i <initial-graph-path> -l <item-label-list-path> -u <update-stream-path> -t <query-timestamp> -Q <query-keywords-set> -k <query-support-threshold> -r <query-maximum-radius> -s <query-score-threshold>
+build/cdsbn -i <initial-graph-path> -l <item-label-list-path> -u <update-stream-path> -t <query-timestamp> -Q <query-keywords-set> -k <query-support-threshold> -r <query-maximum-radius> -s <query-score-threshold>
 ```
 
 For example,
+
+```bash
+build/cdsbn -i dataset/BS/initial_graph.txt -l dataset/BS/label_list.txt -u dataset/BS/update_stream.txt -t 867333955 -Q 18 5 17 8 16 -k 4 -r 2 -s 2
+```
 
 ## 3. Dataset
 All of used dataset is from [KONECT](http://konect.cc/). To decompress the dataset zip file, run the commands:
