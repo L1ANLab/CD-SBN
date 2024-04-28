@@ -25,6 +25,14 @@ struct EdgeData
     EdgeData(): weight(0), ub_sup(0) {}
 };
 
+struct UserDataComparer
+{
+    bool operator() (const UserData* u1, const UserData* u2)
+    {
+        return u1->user_id < u2->user_id;
+    }
+};
+
 class Graph
 {
 protected:
@@ -32,15 +40,16 @@ protected:
     std::vector<std::vector<uint>> user_neighbors; // Each item is a list of user neighbors
     std::vector<uint> user_bvs; // the list of support upper bound bu_sup for each user
     std::vector<uint> user_ub_sups; // the list of support upper bound bu_sup for each user
-    std::vector<std::vector<UserData>> user_neighbor_datas; // the list of X and Y data for each user
+    std::vector<std::vector<UserData*>> user_neighbor_datas; // the list of X and Y data for each user
 
     // item
+    uint label_size;
     std::vector<std::vector<uint>> item_neighbors; // Each item is a list of item neighbors
     std::vector<uint> item_bvs; // the list of keyword bit vector bv for each item 
     
     // edge
     uint edge_count_;  // The number of edges
-    std::vector<std::vector<uint>> edge_weights;  // edge_weights[i] is the data for edge from u_i
+    std::vector<std::vector<EdgeData*>> edges_;  // edges_[i] is the data for edge from u_i
     
     void SetItemLabels(uint item_id, std::string label_str);
 
@@ -50,6 +59,7 @@ public:
 
 public:
     Graph();
+    ~Graph();
 
     virtual uint UserVerticesNum() const { return user_neighbors.size(); }
     virtual uint ItemVerticesNum() const { return item_neighbors.size(); }
@@ -58,12 +68,16 @@ public:
     void AddUserVertex(uint user_id);
     void AddItemVertex(uint item_id);
     uint InsertEdge(uint user_id, uint item_id);
+    void MaintainAfterInsertion(uint user_id, uint item_id, uint type);
     uint ExpireEdge(uint user_id, uint item_id);
+    void MaintainAfterExpiration(uint user_id, uint item_id, uint type);
 
     const std::vector<uint>& GetUserNeighbors(uint user_id) const;
     const std::vector<uint>& GetItemNeighbors(uint item_id) const;
     uint GetUserDegree(uint v) const;
-    uint GetEdgeWeight(uint user_id, uint item_id) const;
+    EdgeData* GetEdgeData(uint user_id, uint item_id) const;
+    UserData* GetNeighborUserData(uint user_id, uint n_user_id) const;
+    size_t InsertNeighborUserData(uint user_id, uint n_user_id);
 
     void LoadInitialGraph(const std::string &path);
     void LoadItemLabel(const std::string &path);

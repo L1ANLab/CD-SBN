@@ -10,16 +10,39 @@
 #include "graph/graph.h"
 
 Graph::Graph()
-: edge_count_(0)
-, user_neighbors{}
-, item_neighbors{}
-, edge_weights{}
-, updates_{}
+: user_neighbors{}
 , user_bvs{}
-, item_bvs{}
 , user_ub_sups{}
 , user_neighbor_datas{}
+, label_size(0)
+, item_neighbors{}
+, item_bvs{}
+, edge_count_(0)
+, edges_{}
+, updates_{}
 {}
+Graph::~Graph()
+{
+    for(size_t i=0;i<user_neighbor_datas.size();i++)
+    {
+        for (size_t j=0;j<user_neighbor_datas[i].size();j++)
+        {
+            delete user_neighbor_datas[i][j];
+        }
+        std::vector<UserData*>().swap(user_neighbor_datas[i]);
+    }
+    std::vector<std::vector<UserData*>>().swap(user_neighbor_datas);
+
+    for(size_t i=0;i<edges_.size();i++)
+    {
+        for (size_t j=0;j<edges_[i].size();j++)
+        {
+            delete edges_[i][j];
+        }
+        std::vector<EdgeData*>().swap(edges_[i]);
+    }
+    std::vector<std::vector<EdgeData*>>().swap(edges_);
+}
 
 /// @brief add a new user vertex into graph
 /// @param user_id 
@@ -28,7 +51,7 @@ void Graph::AddUserVertex(uint user_id)
     if (user_id >= user_neighbors.size())
     {
         user_neighbors.resize(user_id + 1);
-        edge_weights.resize(user_id + 1);
+        edges_.resize(user_id + 1);
         user_bvs.resize(user_id + 1);
         user_ub_sups.resize(user_id + 1);
         user_neighbor_datas.resize(user_id + 1);
@@ -47,6 +70,77 @@ void Graph::AddItemVertex(uint item_id)
 }
 
 
+/// @brief maintain auxiliary data (BV, ub_sup, X, Y) after edge insertion
+/// @param user_id 
+/// @param item_id 
+/// @param addition_flag 
+void Graph::MaintainAfterInsertion(uint user_id, uint item_id, uint addition_flag)
+{
+    EdgeData* inserted_edge = GetEdgeData(user_id, item_id);
+
+    // 1. re-compute user relationship score
+    for(size_t i = 0;i < item_neighbors[item_id].size();i++)
+    {   
+        uint n_user_id = item_neighbors[item_id][i];
+        if (n_user_id == user_id) continue;  // delete the user of <user_id>
+        // 1.1. make sure new user neighbor has data
+        size_t n_user_data_index = InsertNeighborUserData(user_id, n_user_id);
+        size_t user_data_index = InsertNeighborUserData(n_user_id, user_id);
+        uint lambda = 0;
+        uint wedge_score = GetEdgeData(n_user_id, item_id)->weight;
+        if (inserted_edge->weight < wedge_score)
+        {
+            lambda = 1;
+            wedge_score = inserted_edge->weight;
+        }
+        // 1.2. apply the increment
+        user_neighbor_datas[user_id][n_user_data_index]->x_data += lambda;
+        user_neighbor_datas[user_id][n_user_data_index]->y_data += (2*lambda*wedge_score+lambda*lambda);
+    
+        user_neighbor_datas[n_user_id][user_data_index]->x_data += lambda;
+        user_neighbor_datas[n_user_id][user_data_index]->y_data += (2*lambda*wedge_score+lambda*lambda);
+    }
+
+    // 2. if new edge was added (addition_flag == 1)
+    if (addition_flag == 1)
+    {
+        // 2.1. add item.BV to user.BV
+        ErrorControl::assert_error(
+            item_bvs.size() <= item_id,
+            "Item Entity Error: No such item BV."
+        );
+        user_bvs[user_id] = user_bvs[user_id] | item_bvs[item_id];
+        
+        // 2.2. re-compute the support 
+        for(size_t i = 0;i < item_neighbors[item_id].size();i++)
+        {   
+            uint n_user_id = item_neighbors[item_id][i];
+            if (n_user_id == user_id) continue;  // delete the user of <user_id>
+            std::vector<uint> common_neighbors(
+                user_neighbors[user_id].size() + user_neighbors[n_user_id].size()
+            );
+            std::vector<uint>::iterator it = std::set_intersection(
+                user_neighbors[user_id].begin(), user_neighbors[user_id].end(),
+                user_neighbors[n_user_id].begin(), user_neighbors[n_user_id].end(),
+                common_neighbors.begin()
+            );
+            common_neighbors.resize(it - common_neighbors.begin());
+            size_t cn_num = common_neighbors.size() - 1;  // delete the item of <item_id>
+            inserted_edge->ub_sup += uint(cn_num);
+            GetEdgeData(n_user_id, item_id)->ub_sup += uint(cn_num);
+            for(size_t j = 0; j < common_neighbors.size(); j++)
+            {
+                uint cn_item_id = common_neighbors[j];
+                if (cn_item_id == item_id) continue;
+                GetEdgeData(user_id, cn_item_id)->ub_sup += 1;
+                GetEdgeData(n_user_id, cn_item_id)->ub_sup += 1;
+            }
+        }
+    }
+
+    return;
+}
+
 /// @brief insert an edge into graph
 /// @param user_id 
 /// @param item_id 
@@ -62,12 +156,12 @@ uint Graph::InsertEdge(uint user_id, uint item_id)
     // 3.1 if inserting an existing edge, weight++ and return
     if (lower != user_neighbors[user_id].end() && *lower == item_id)
     {
-        edge_weights[user_id][dis] ++;
+        edges_[user_id][dis]->weight =  edges_[user_id][dis]->weight + 1;
         return 0;
     }
     // 3.2 else add edge into the user neighbors and item neighbors
     user_neighbors[user_id].insert(lower, item_id);
-    edge_weights[user_id].insert(edge_weights[user_id].begin() + dis, 1);
+    edges_[user_id].insert(edges_[user_id].begin() + dis, new EdgeData(1, 0));
 
     lower = std::lower_bound(item_neighbors[item_id].begin(), item_neighbors[item_id].end(), user_id);
     item_neighbors[item_id].insert(lower, user_id);
@@ -75,6 +169,68 @@ uint Graph::InsertEdge(uint user_id, uint item_id)
     return 1;
 }
 
+void Graph::MaintainAfterExpiration(uint user_id, uint item_id, uint removal_flag)
+{
+    EdgeData* inserted_edge = GetEdgeData(user_id, item_id);
+
+    // 1. re-compute user relationship score
+    for(size_t i = 0;i < item_neighbors[item_id].size();i++)
+    {   
+        uint n_user_id = item_neighbors[item_id][i];
+        if (n_user_id == user_id) continue;  // delete the user of <user_id>
+        // 1.1. make sure new user neighbor has data
+        size_t n_user_data_index = InsertNeighborUserData(user_id, n_user_id);
+        uint lambda = 0;
+        uint wedge_score = GetEdgeData(n_user_id, item_id)->weight;
+        if (inserted_edge->weight < wedge_score)
+        {
+            lambda = 1;
+            wedge_score = inserted_edge->weight;
+        }
+        // 1.2. apply the increment
+        user_neighbor_datas[user_id][n_user_data_index]->x_data += lambda;
+        user_neighbor_datas[user_id][n_user_data_index]->y_data += (2*lambda*wedge_score+lambda*lambda);
+    }
+
+    // 2. if new edge was added (removal_flag == 1)
+    if (removal_flag == 1)
+    {
+        // 2.1. add item.BV to user.BV
+        ErrorControl::assert_error(
+            item_bvs.size() <= item_id,
+            "Item Entity Error: No such item BV."
+        );
+        user_bvs[user_id] = user_bvs[user_id] | item_bvs[item_id];
+        
+        // 2.2. re-compute the support 
+        for(size_t i = 0;i < item_neighbors[item_id].size();i++)
+        {   
+            uint n_user_id = item_neighbors[item_id][i];
+            if (n_user_id == user_id) continue;  // delete the user of <user_id>
+            std::vector<uint> common_neighbors(
+                user_neighbors[user_id].size() + user_neighbors[item_id].size()
+            );
+            std::vector<uint>::iterator it = std::set_intersection(
+                user_neighbors[user_id].begin(), user_neighbors[user_id].end(),
+                user_neighbors[item_id].begin(), user_neighbors[item_id].end(),
+                common_neighbors.begin()
+            );
+            common_neighbors.resize(it - common_neighbors.begin());
+            size_t cn_num = common_neighbors.size() - 1;  // delete the item of <item_id>
+            inserted_edge->ub_sup += uint(cn_num);
+            GetEdgeData(n_user_id, item_id)->ub_sup += uint(cn_num);
+            for(size_t j = 0; j < common_neighbors.size(); j++)
+            {
+                uint cn_item_id = common_neighbors[j];
+                if (cn_item_id == item_id) continue;
+                GetEdgeData(user_id, cn_item_id)->ub_sup += 1;
+                GetEdgeData(n_user_id, cn_item_id)->ub_sup += 1;
+            }
+        }
+    }
+
+    return;
+}
 /// @brief expire an edge from graph
 /// @param user_id 
 /// @param item_id 
@@ -84,35 +240,32 @@ uint Graph::ExpireEdge(uint user_id, uint item_id)
     // 1. change the weight of edge
     // 1.1. search the pos of the item in the neighbor list of the user
     auto lower = std::lower_bound(user_neighbors[user_id].begin(), user_neighbors[user_id].end(), item_id);
-    if (lower == user_neighbors[user_id].end() || *lower != item_id)
-    {
-        std::cout << "Edge Deletion Error: The edge to be deleted does not exist!" << std::endl;
-        exit(-1);
-    }
+    ErrorControl::assert_error(
+        lower == user_neighbors[user_id].end() || *lower != item_id,
+        "Edge Deletion Error: The edge does not exist in user_neighbors!"
+    );
     // 1.2. weight-- if weight > 1
-    size_t dis = std::distance(edge_weights[user_id].begin(), lower);
-    edge_weights[user_id][dis] = edge_weights[user_id][dis] - 1;
-    // edge_weights[user_id].erase(edge_weights[user_id].begin() + );
-    if (edge_weights[user_id][dis] > 0)
+    size_t dis = std::distance(user_neighbors[user_id].begin(), lower);
+    edges_[user_id][dis]->weight = edges_[user_id][dis]->weight - 1;
+    // edges_[user_id].erase(edges_[user_id].begin() + );
+    if (edges_[user_id][dis]->weight > 0)
     {
         return 0;
     }
-    else if (edge_weights[user_id][dis] < 0)
-    {
-        std::cout << "Edge Deletion Error: The edge to be deleted with weight 0!" << std::endl;
-        exit(-1);
-    }
+    ErrorControl::assert_error(
+        edges_[user_id][dis]->weight < 0,
+        "Edge Deletion Error: The edge to be deleted with weight 0!"
+    );
     // 2. remove the edge if weight == 1
     // 2.1. delete the item from user neighbor list
     user_neighbors[user_id].erase(lower);
     
     // 2.2 delete the user from item neighbor list
     lower = std::lower_bound(item_neighbors[item_id].begin(), item_neighbors[item_id].end(), user_id);
-    if (lower == item_neighbors[item_id].end() || *lower != user_id)
-    {
-        std::cout << "deletion error" << std::endl;
-        exit(-1);
-    }
+    ErrorControl::assert_error(
+        lower == item_neighbors[item_id].end() || *lower != user_id,
+        "Edge Deletion Error: The edge does not exist in item_neighbors!"
+    );
     item_neighbors[item_id].erase(lower);
 
     // 2.2 delete the user from item neighbor list
@@ -136,10 +289,14 @@ uint Graph::GetUserDegree(uint user_id) const
     return user_neighbors[user_id].size();
 }
 
-uint Graph::GetEdgeWeight(uint user_id, uint item_id) const
+/// @brief get the edge data of edge[user_id][item_id]
+/// @param user_id 
+/// @param item_id 
+/// @return return a EdgeData of edge[user_id][item_id]
+EdgeData* Graph::GetEdgeData(uint user_id, uint item_id) const
 {
     const std::vector<uint> *nbrs = &GetUserNeighbors(user_id);
-    const std::vector<uint> *user_edge_weights = &edge_weights[user_id];
+    const std::vector<EdgeData*> *user_edge_weights = &edges_[user_id];
     uint other = item_id;
     
     long start = 0, end = nbrs->size() - 1, mid;
@@ -159,9 +316,65 @@ uint Graph::GetEdgeWeight(uint user_id, uint item_id) const
             return user_edge_weights->at(mid);
         }
     }
-    return -1;
+    return nullptr;
 }
 
+/// @brief get the edge data of edge[user_id][item_id]
+/// @param user_id 
+/// @param item_id 
+/// @return return a EdgeData of edge[user_id][item_id]
+UserData* Graph::GetNeighborUserData(uint user_id, uint n_user_id) const
+{
+    const std::vector<UserData*> nbrs = user_neighbor_datas[user_id];
+    uint other = n_user_id;
+    
+    long start = 0, end = nbrs.size() - 1, mid;
+    while (start <= end)
+    {
+        mid = (start + end) / 2;
+        if (nbrs.at(mid)->user_id < other)
+        {
+            start = mid + 1;
+        }
+        else if (nbrs.at(mid)->user_id  > other)
+        {
+            end = mid - 1;
+        }
+        else
+        {
+            return nbrs.at(mid);
+        }
+    }
+    return nullptr;
+}
+
+/// @brief insert an UserData into user_neighbor_datas
+/// @param user_id 
+/// @param n_user_id 
+/// @return the index of inserted user data
+size_t Graph::InsertNeighborUserData(uint user_id, uint n_user_id)
+{
+    const UserData* other = new UserData(n_user_id, 0, 0);
+    auto lower = std::lower_bound(
+        user_neighbor_datas[user_id].begin(),
+        user_neighbor_datas[user_id].end(),
+        other,
+        [] (const UserData* u1, const UserData* u2)
+        {
+            return u1->user_id < u2->user_id;
+        }
+    );
+    delete other;
+    // insert new user data if not
+    if (lower == user_neighbor_datas[user_id].end() || (*lower)->user_id != n_user_id)
+    {
+        lower = user_neighbor_datas[user_id].insert(lower, new UserData(n_user_id, 0, 0));
+    }
+    // uint temp = user_neighbor_datas[user_id][0]->user_id;
+    // return the index of inserted user data
+    size_t index = std::distance(user_neighbor_datas[user_id].begin(), lower);
+    return index;
+}
 void Graph::SetItemLabels(uint item_id, std::string label_str)
 {
     uint bitvector = 0;
@@ -179,26 +392,32 @@ void Graph::SetItemLabels(uint item_id, std::string label_str)
     item_bvs[item_id] = bitvector;
 }
 
-
 void Graph::LoadInitialGraph(const std::string &path)
 {
-    if (!io::file_exists(path.c_str()))
-    {
-        std::cout << "Unknown File Error: The input <" << path  << "> file does not exists"<< std::endl;
-        exit(-1);
-    }
+    ErrorControl::assert_error(
+        !io::file_exists(path.c_str()),
+        "Unknown File Error: The input <" + path  + "> file does not exists"
+    );
     std::ifstream ifs(path);
-    if (!ifs)
-    {
-        std::cout << "File Stream Error: The input file stream open failed" << std::endl;
-        exit(-1);
-    }
+    ErrorControl::assert_error(
+        !ifs,
+        "File Stream Error: The input file stream open failed"
+    );
     while (!ifs.eof())
     {
         {
             uint from_id, to_id;
             ifs >> from_id >> to_id;
-            uint result = InsertEdge(from_id, to_id);
+            uint addition_flag = InsertEdge(from_id, to_id);
+            if (addition_flag == 1)
+            {
+                std::cout << "Added new edge: (" << from_id << "," << to_id << ")" << "\n";
+            }
+            else
+            {
+                std::cout << "Inserted new edge: (" << from_id << "," << to_id << ")" << "\n";
+            }
+            MaintainAfterInsertion(from_id, to_id, addition_flag);
         }
     }
     ifs.close();
@@ -206,17 +425,16 @@ void Graph::LoadInitialGraph(const std::string &path)
 
 void Graph::LoadItemLabel(const std::string &path)
 {
-    if (!io::file_exists(path.c_str()))
-    {
-        std::cout << "Unknown File Error: The input <" << path  << "> file does not exists"<< std::endl;
-        exit(-1);
-    }
+    ErrorControl::assert_error(
+        !io::file_exists(path.c_str()),
+        "Unknown File Error: The input <" + path  + "> file does not exists"
+    );
     std::ifstream ifs(path);
-    if (!ifs)
-    {
-        std::cout << "File Stream Error: The input file stream open failed" << std::endl;
-        exit(-1);
-    }
+    ErrorControl::assert_error(
+        !ifs,
+        "File Stream Error: The input file stream open failed"
+    );
+    ifs >> this->label_size;
     while (!ifs.eof())
     {
         {
@@ -231,17 +449,15 @@ void Graph::LoadItemLabel(const std::string &path)
 
 void Graph::LoadUpdateStream(const std::string &path)
 {
-    if (!io::file_exists(path.c_str()))
-    {
-        std::cout << "Unknown File Error: The input <" << path  << "> file does not exists"<< std::endl;
-        exit(-1);
-    }
+    ErrorControl::assert_error(
+        !io::file_exists(path.c_str()),
+        "Unknown File Error: The input <" + path  + "> file does not exists"
+    );
     std::ifstream ifs(path);
-    if (!ifs)
-    {
-        std::cout << "File Stream Error: The input file stream open failed" << std::endl;
-        exit(-1);
-    }
+    ErrorControl::assert_error(
+        !ifs,
+        "File Stream Error: The input file stream open failed"
+    );
     while (!ifs.eof())
     {
         uint from_id, to_id, timestamp;
@@ -253,6 +469,7 @@ void Graph::LoadUpdateStream(const std::string &path)
 
 void Graph::PrintMetaData() const
 {
-    std::cout << "# vertices = " << UserVerticesNum() <<
-        "\n# edges = " << NumEdges() << std::endl;
+    std::cout << "# user vertices = " << UserVerticesNum() << "\n" <<
+        "# item vertices = " << ItemVerticesNum() << "\n" <<
+        "# edges = " << NumEdges() << std::endl;
 }
