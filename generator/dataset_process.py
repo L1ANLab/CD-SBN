@@ -4,6 +4,9 @@ import numpy as np
 from scipy.stats import zipf
 from tqdm import tqdm
 
+ALL_KEYWORD_NUM = 20
+KEYWORDS_PER_VERTEX_NUM = 3
+
 
 class EdgeRawData:
     def __init__(self, user, item, weight, tstamp):
@@ -37,8 +40,8 @@ if __name__ == "__main__":
     dir_name = "BibSonomy(BS)"
     file_path = os.path.join(dir_name, "bibsonomy-2ui/out.bibsonomy-2ui")
     distribution = "uniform"
-    all_keyword_num = 20
-    keywords_per_vertex_num = 3
+    all_keyword_num = ALL_KEYWORD_NUM
+    keywords_per_vertex_num = KEYWORDS_PER_VERTEX_NUM
 
     # 1. File read
     full_file_path = (os.path.join(os.getcwd(), "dataset", file_path))
