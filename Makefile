@@ -23,17 +23,20 @@ $(BUILD)/cdsbn: $(OBJ)/main.o \
 		$(OBJ)/snapshot.o \
 		$(OBJ)/continuous.o \
 		$(OBJ)/graph.o $(OBJ)/induced_graph.o \
+		$(OBJ)/statistic.o \
 		$(OBJ)/globals.o
 	$(CC) $(FLAGS) $(OBJ)/main.o \
 		$(OBJ)/snapshot.o \
 		$(OBJ)/continuous.o \
 		$(OBJ)/graph.o $(OBJ)/induced_graph.o \
+		$(OBJ)/statistic.o \
 		$(OBJ)/globals.o \
 		-o $(BUILD)/cdsbn $(LIBS)
 
 $(OBJ)/main.o: $(ALGORITHM)/main.cpp \
 		$(UTILS)/CLI11.hpp \
 		$(UTILS)/globals.h $(UTILS)/types.h \
+		$(UTILS)/statistic.h \
 		$(GRAPH)/graph.h \
 		$(ALGORITHM)/snapshot.h \
 		$(ALGORITHM)/continuous.h
@@ -75,6 +78,11 @@ $(OBJ)/induced_graph.o: $(GRAPH)/induced_graph.cpp \
 $(OBJ)/globals.o: $(UTILS)/globals.cpp $(UTILS)/globals.h
 	$(CC) -c $(FLAGS) $(UTILS)/globals.cpp \
 		-o $(OBJ)/globals.o
+
+$(OBJ)/statistic.o: $(UTILS)/statistic.cpp \
+		$(UTILS)/types.h $(UTILS)/statistic.h 
+	$(CC) -c $(FLAGS) $(UTILS)/statistic.cpp \
+		-o $(OBJ)/statistic.o
 
 #################### end ####################
 
