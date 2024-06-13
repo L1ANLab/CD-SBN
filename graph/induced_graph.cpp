@@ -7,14 +7,14 @@
 #include "graph/induced_graph.h"
 
 InducedGraph::InducedGraph()
-: graph()
+: graph{}
 , user_map{}
 , item_map{}
 , e_lists{}
 {}
 
 InducedGraph::InducedGraph(const Graph& g, uint user1, uint user2, uint item1, uint item2)
-: graph(&g)
+: graph(g)
 , user_map{std::min(user1, user2), std::max(user1, user2)}
 , item_map{std::min(item1, item2), std::max(item1, item2)}
 , e_lists{{user1, item1}, {user1, item2}, {user2, item1}, {user2, item2}}
@@ -73,6 +73,16 @@ InducedGraph::InducedGraph(InducedGraph& g1, InducedGraph& g2, bool is_union)
         e_lists.resize(it3 - e_lists.begin());
     }
 }
+
+InducedGraph::InducedGraph(
+    const Graph& g,
+    std::vector<uint> user_map_,
+    std::vector<uint> item_map_
+): graph(g)
+, user_map(user_map_)
+, item_map(item_map_)
+, e_lists{}
+{}
 
 uint InducedGraph::GetDegree(uint v)
 {
