@@ -8,6 +8,11 @@
 
 #define NOT_EXIST UINT_MAX
 #define UNMATCHED UINT_MAX
+#define MAX_LEVEL UINT_MAX
+
+#define MAX_LABEL 100
+#define SYNOPSIS_SIZE 32
+#define R_MAX 3
 
 // Time counting
 #define Get_Time() std::chrono::high_resolution_clock::now()
