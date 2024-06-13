@@ -8,6 +8,13 @@ With the C++17 environment and GCC 11.4 compiler, run the commands to compile as
 ```bash
 make
 ```
+!!!Warning: make sure the global settings are appropriate in `/utils/types.h`. For example,
+
+```cpp
+#define MAX_LABEL 100       // maximum label value
+#define SYNOPSIS_SIZE 32    // the size of children list in a synopsis node
+#define R_MAX 3             // the maximum value of query radius
+```
 
 ## 1. Input Data Format
 The input data consists of an initial graph, a bipartite streaming graph and a item label list.
@@ -25,9 +32,10 @@ An initial graph is formatted as a series of edges with two end-vertices in two 
 ```
 
 ### 1.2 Item Label List
-A item label list is list of labels for each item vertex. It is a text file containing multiple lines, where each line is in the form of `<item-vertex-id> <label-id-list>`. Note that each label in `<label-id-list>` is separated by a comma. For example,
+A item label list is list of labels for each item vertex. It is a text file containing multiple lines, where the first line is the size of keyword domain and  each following line is in the form of `<item-vertex-id> <label-id-list>`. Note that each label in `<label-id-list>` is separated by a comma. For example,
 
 ```text/plain
+20
 0 2,4,7,8,9
 1 1,2,6,8
 2 0,1,2,5
@@ -57,7 +65,7 @@ build/cdsbn -i <initial-graph-path> -l <item-label-list-path> -u <update-stream-
 For example,
 
 ```bash
-build/cdsbn -i dataset/BS/initial_graph.txt -l dataset/BS/label_list.txt -u dataset/BS/update_stream.txt -t 867333955 -Q 18 5 17 8 16 -k 4 -r 2 -s 2
+build/cdsbn -i dataset/BS/20-3/uni/initial_graph.txt -l dataset/BS/20-3/uni/label_list.txt -u dataset/BS/20-3/uni/update_stream.txt -t 867333955 -Q 18 5 17 8 16 -k 4 -r 2 -s 2
 ```
 
 ## 3. Dataset
