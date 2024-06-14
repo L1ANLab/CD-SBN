@@ -20,7 +20,7 @@ SynopsisNode::SynopsisNode(
 ):id(ID_COUNTER), level(level_)
 {
     children_entries = children_entries_;
-    for (int r=1;r<=R_MAX;r++)
+    for (int r=0;r<R_MAX;r++)
     {
         SynopsisData* data_r = new SynopsisData();
         for(size_t i=0;i<children_entries_.size();i++)
@@ -54,7 +54,7 @@ SynopsisNode::SynopsisNode(
 ):id(ID_COUNTER), level(level_), user_set{user_id}
 , children_entries(0)
 {
-    for (int r=1;r<=R_MAX;r++)
+    for (int r=0;r<R_MAX;r++)
     {
         data[r] = data_[r];
     }
@@ -66,10 +66,6 @@ SynopsisNode::~SynopsisNode()
     for (size_t i=0; i<R_MAX;i++)
     {
         delete data[i];
-    }
-    for(size_t i=0;i<children_entries.size();i++)
-    {
-        delete children_entries[i];
     }
     std::vector<SynopsisNode*>().swap(children_entries);
     std::unordered_set<uint>().swap(user_set);
@@ -85,6 +81,7 @@ uint SynopsisNode::GetUbSupM(uint r) const { return data[r]->ub_sup_M; }
 
 void SynopsisNode::SetUbScore(uint ub_score_, uint r) { data[r]->ub_score = ub_score_; }
 uint SynopsisNode::GetUbScore(uint r) const { return data[r]->ub_score; }
+SynopsisData* SynopsisNode::GetSynopsisData(uint r) const { return data[r]; }
 uint SynopsisNode::GetLevel() const { return level; }
 
 std::unordered_set<uint> SynopsisNode::GetUserSet() const { return user_set; }
@@ -103,6 +100,10 @@ bool SynopsisNode::IsVertexEntry() const { return (children_entries.size() == 0 
 Synopsis::Synopsis(): root(nullptr), inv_list{}
 {}
 
+Synopsis::~Synopsis()
+{
+    DestroySynopsis(root);
+}
 
 SynopsisNode* Synopsis::GetRoot() const { return root; }
 
@@ -131,7 +132,7 @@ SynopsisNode* Synopsis::BuildSynopsis(Graph& graph)
         {
             uint left_score = 0;
             uint right_score = 0;
-            for (int r=1;r<=R_MAX;r++)
+            for (int r=0;r<R_MAX;r++)
             {
                 left_score += left->GetUbScore(r);
                 right_score += right->GetUbScore(r);
@@ -171,7 +172,7 @@ bool Synopsis::UpdateSynopsisAfterInsertion(uint user_id, uint item_id, uint add
 
     std::bitset<MAX_LABEL> u_i_BV = graph.GetUserBv(user_id);
     // 1. for all possible radii r
-    for (int r=1; r<=R_MAX; r++)
+    for (int r=0; r<R_MAX; r++)
     {
         auto [affected_user_list, affected_item_list] = graph.Get2rHopOfUser(user_id, r);
         // 2. for each affected vertex
@@ -282,7 +283,7 @@ bool Synopsis::UpdateSynopsisAfterExpiration(uint user_id, uint item_id, uint re
 
     std::bitset<MAX_LABEL> u_i_BV = graph.GetUserBv(user_id);
     // 1. for all possible radii r
-    for (int r=1; r<=R_MAX; r++)
+    for (int r=0; r<R_MAX; r++)
     {
         auto [affected_user_list, affected_item_list] = graph.Get2rHopOfUser(user_id, r);
         // 2. for each affected vertex
@@ -365,7 +366,7 @@ bool Synopsis::UpdateSynopsisAfterExpiration(uint user_id, uint item_id, uint re
 SynopsisNode* Synopsis::CreateVertexEntry(uint user_id, Graph& graph)
 {
     SynopsisData* data_[R_MAX];
-    for (int r=1; r<=R_MAX; r++)
+    for (int r=0; r<R_MAX; r++)
     {
         auto [user_list, item_list] = graph.Get2rHopOfUser(user_id, r);
         // 0.1. compute BV_r
@@ -458,7 +459,7 @@ void Synopsis::InsertVertexEntry(uint user_id, SynopsisNode* new_vertex_entry)
 {
     
     uint new_vertex_entry_score = 0;
-    for (int r=1;r<=R_MAX;r++)
+    for (int r=0;r<R_MAX;r++)
     {
         new_vertex_entry_score += new_vertex_entry->GetUbScore(r);
     }
@@ -484,7 +485,7 @@ void Synopsis::SearchSynopsisTrace(uint user_id, SynopsisNode* now_node_pointer,
         [](const SynopsisNode* child, uint new_vertex_entry_score)
         {
             uint child_score = 0;
-            for (int r=1;r<=R_MAX;r++)
+            for (int r=0;r<R_MAX;r++)
             {
                 child_score += child->GetUbScore(r);
             }
@@ -495,5 +496,16 @@ void Synopsis::SearchSynopsisTrace(uint user_id, SynopsisNode* now_node_pointer,
     inv_list[user_id].emplace_back(*child_iter);
     SearchSynopsisTrace(user_id, *child_iter, new_vertex_entry_score);
     return;
+}
+
+void Synopsis::DestroySynopsis(SynopsisNode* now_node_pointer)
+{
+    if (now_node_pointer != nullptr) {
+        for (SynopsisNode* child : now_node_pointer->GetChildren())
+        {
+            DestroySynopsis(now_node_pointer);
+        }
+        delete now_node_pointer;
+    }
 }
 #pragma endregion Synopsis

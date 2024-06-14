@@ -47,6 +47,7 @@ public:
         SynopsisData* data_[],
         uint user_id
     ); // Vertex entry construct
+    ~SynopsisNode();
 
     uint GetID();
     void SetBvR(std::bitset<MAX_LABEL> bv_r_, uint r);
@@ -55,14 +56,13 @@ public:
     uint GetUbSupM(uint r) const;
     void SetUbScore(uint ub_score_, uint r);
     uint GetUbScore(uint r) const;
+    SynopsisData* GetSynopsisData(uint r) const;
     uint GetLevel() const;
     std::unordered_set<uint> GetUserSet() const;
     const std::vector<SynopsisNode*>& GetChildren() const;
     bool IsTreeNode() const;
     bool IsLeafNode() const;
     bool IsVertexEntry() const;
-
-
 };
 
 
@@ -82,9 +82,11 @@ private:
 
     void InsertVertexEntry(uint user_id, SynopsisNode* new_vertex_entry);
     void SearchSynopsisTrace(uint user_id, SynopsisNode* now_node_pointer, uint new_vertex_entry_score);
+    void DestroySynopsis(SynopsisNode* now_node_pointer);
     
 public:
     Synopsis();
+    ~Synopsis();
 
     SynopsisNode* GetRoot() const;
 
