@@ -9,6 +9,24 @@
 
 namespace fs=std::filesystem;
 
+Statistic::Statistic(
+    std::string initial_graph_path_str_,
+    std::string item_label_list_path_str_,
+    std::string update_stream_path_str_,
+    std::vector<uint> query_keywords_,
+    uint query_support_threshold_,
+    uint query_radius_,
+    uint query_score_threshold_
+)
+: initial_graph_path_str(initial_graph_path_str_)
+, item_label_list_path_str(item_label_list_path_str_)
+, update_stream_path_str{update_stream_path_str_}
+, query_keywords(query_keywords_)
+, query_support_threshold(query_support_threshold_)
+, query_radius(query_radius_)
+, query_score_threshold(query_score_threshold_)
+{}
+
 std::string Statistic::GenerateStatisticResult()
 {
     fs::path initial_graph_folder = fs::path(initial_graph_path_str).parent_path();

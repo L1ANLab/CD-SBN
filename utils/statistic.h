@@ -13,6 +13,15 @@ private:
     uint query_score_threshold;
 
 public:
+    Statistic(
+        std::string initial_graph_path_str_,
+        std::string item_label_list_path_str_,
+        std::string update_stream_path_str_,
+        std::vector<uint> query_keywords_,
+        uint query_support_threshold_,
+        uint query_radius_,
+        uint query_score_threshold_
+    );
     uint node_num;
     uint edge_num;
 
