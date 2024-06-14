@@ -73,7 +73,7 @@ private:
     std::vector<std::vector<SynopsisNode*>> inv_list;  
     // Store a list of synopsis pointer which contains the vertex whose ID is index (from bottom to top)
 
-    SynopsisNode* CreateVertexEntry(uint user_id, Graph& graph);
+    SynopsisNode* CreateVertexEntry(uint user_id, Graph* graph);
 
     SynopsisNode* BuildSynopsisRecursively(
         std::vector<SynopsisNode*> vertex_entry_list,
@@ -90,11 +90,11 @@ public:
 
     SynopsisNode* GetRoot() const;
 
-    SynopsisNode* BuildSynopsis(Graph& graph);
+    SynopsisNode* BuildSynopsis(Graph* graph);
 
-    bool UpdateSynopsisAfterInsertion(uint user_id, uint item_id, uint addition_flag, Graph& Graph);
+    bool UpdateSynopsisAfterInsertion(uint user_id, uint item_id, uint addition_flag, Graph* Graph);
 
-    bool UpdateSynopsisAfterExpiration(uint user_id, uint item_id, uint removal_flag, Graph& Graph);
+    bool UpdateSynopsisAfterExpiration(uint user_id, uint item_id, uint removal_flag, Graph* Graph);
 };
 
 #endif //CDSBN_SYNOPSIS_H

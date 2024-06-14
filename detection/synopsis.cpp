@@ -111,14 +111,14 @@ SynopsisNode* Synopsis::GetRoot() const { return root; }
 /// @brief build a synopsis $Syn$ of graph
 /// @param graph 
 /// @return a pointer to the root node of synopsis
-SynopsisNode* Synopsis::BuildSynopsis(Graph& graph)
+SynopsisNode* Synopsis::BuildSynopsis(Graph* graph)
 {
     // 0. initialize a inverted list to store the node index for each vertex
-    inv_list.resize(graph.UserVerticesNum());
+    inv_list.resize(graph->UserVerticesNum());
 
     // 1. package the vertex into synopsis vertex entry
     std::vector<SynopsisNode*> vertex_entry_list(0);
-    for (size_t i=0;i<graph.UserVerticesNum();i++)
+    for (size_t i=0;i<graph->UserVerticesNum();i++)
     {
         SynopsisNode* node_pointer = node_pointer = CreateVertexEntry(i, graph);
         vertex_entry_list.push_back(node_pointer);
@@ -154,11 +154,11 @@ SynopsisNode* Synopsis::BuildSynopsis(Graph& graph)
 /// @param addition_flag 1 if new edge was added, else 0
 /// @param graph the graph
 /// @return 
-bool Synopsis::UpdateSynopsisAfterInsertion(uint user_id, uint item_id, uint addition_flag, Graph& graph)
+bool Synopsis::UpdateSynopsisAfterInsertion(uint user_id, uint item_id, uint addition_flag, Graph* graph)
 {
-    EdgeData* inserted_edge = graph.GetEdgeData(user_id, item_id);
-    const std::vector<uint> item_v_a_neighbor_list = graph.GetItemNeighbors(item_id);
-    const std::vector<uint> user_u_x_neighbor_list = graph.GetUserNeighbors(user_id);
+    EdgeData* inserted_edge = graph->GetEdgeData(user_id, item_id);
+    const std::vector<uint> item_v_a_neighbor_list = graph->GetItemNeighbors(item_id);
+    const std::vector<uint> user_u_x_neighbor_list = graph->GetUserNeighbors(user_id);
 
     // 0. insert the new user into synopsis node
     if (inv_list.size() <= user_id) inv_list.resize(user_id + 1);
@@ -170,15 +170,15 @@ bool Synopsis::UpdateSynopsisAfterInsertion(uint user_id, uint item_id, uint add
         InsertVertexEntry(user_id, node_pointer);
     }
 
-    std::bitset<MAX_LABEL> u_i_BV = graph.GetUserBv(user_id);
+    std::bitset<MAX_LABEL> u_i_BV = graph->GetUserBv(user_id);
     // 1. for all possible radii r
     for (int r=0; r<R_MAX; r++)
     {
-        auto [affected_user_list, affected_item_list] = graph.Get2rHopOfUser(user_id, r);
+        auto [affected_user_list, affected_item_list] = graph->Get2rHopOfUser(user_id, r);
         // 2. for each affected vertex
         for (auto affected_user_id : affected_user_list)
         {
-            auto [affected_user_2r_list, affected_item_2r_list] = graph.Get2rHopOfUser(affected_user_id, r);
+            auto [affected_user_2r_list, affected_item_2r_list] = graph->Get2rHopOfUser(affected_user_id, r);
             // 3. for each affected nodes (from bottom to top)
             for (auto affected_node : inv_list[user_id])
             {
@@ -208,7 +208,7 @@ bool Synopsis::UpdateSynopsisAfterInsertion(uint user_id, uint item_id, uint add
                         std::vector<uint> common_neighbors(
                             user_u_x_neighbor_list.size() + user_u_x_neighbor_list.size()
                         );
-                        std::vector<uint> user_u_n_neighbor_list = graph.GetUserNeighbors(n_user_id);
+                        std::vector<uint> user_u_n_neighbor_list = graph->GetUserNeighbors(n_user_id);
                         std::vector<uint>::iterator it = std::set_intersection(
                             user_u_x_neighbor_list.begin(), user_u_x_neighbor_list.end(),
                             user_u_n_neighbor_list.begin(), user_u_n_neighbor_list.end(),
@@ -216,14 +216,14 @@ bool Synopsis::UpdateSynopsisAfterInsertion(uint user_id, uint item_id, uint add
                         );
                         common_neighbors.resize(it - common_neighbors.begin());
 
-                        new_max_sup = std::max(new_max_sup, graph.GetEdgeData(n_user_id, item_id)->ub_sup);
+                        new_max_sup = std::max(new_max_sup, graph->GetEdgeData(n_user_id, item_id)->ub_sup);
 
                         for(size_t j = 0; j < common_neighbors.size(); j++)
                         {
                             uint cn_item_id = common_neighbors[j];
                             if (cn_item_id == item_id) continue;
-                            new_max_sup = std::max(new_max_sup, graph.GetEdgeData(user_id, cn_item_id)->ub_sup);
-                            new_max_sup = std::max(new_max_sup, graph.GetEdgeData(n_user_id, cn_item_id)->ub_sup);
+                            new_max_sup = std::max(new_max_sup, graph->GetEdgeData(user_id, cn_item_id)->ub_sup);
+                            new_max_sup = std::max(new_max_sup, graph->GetEdgeData(n_user_id, cn_item_id)->ub_sup);
                         }
                     }
                     if (affected_node->GetUbSupM(r) < new_max_sup)
@@ -235,7 +235,7 @@ bool Synopsis::UpdateSynopsisAfterInsertion(uint user_id, uint item_id, uint add
                 // 3.3. re-compute ub_score_M
                 uint new_max_ub_score = 0;
 
-                std::vector<UserData*> neighbor_datas = graph.GetNeighborUserData(user_id);
+                std::vector<UserData*> neighbor_datas = graph->GetNeighborUserData(user_id);
                 for (UserData* user_data: neighbor_datas)
                 {
                     if (!std::binary_search(affected_user_2r_list.begin(), affected_user_2r_list.end(), user_data->user_id))
@@ -264,11 +264,11 @@ bool Synopsis::UpdateSynopsisAfterInsertion(uint user_id, uint item_id, uint add
 /// @param addition_flag 1 if new edge was removed, else 0
 /// @param graph the graph
 /// @return 
-bool Synopsis::UpdateSynopsisAfterExpiration(uint user_id, uint item_id, uint removal_flag, Graph& graph)
+bool Synopsis::UpdateSynopsisAfterExpiration(uint user_id, uint item_id, uint removal_flag, Graph* graph)
 {
-    EdgeData* inserted_edge = graph.GetEdgeData(user_id, item_id);
-    const std::vector<uint> item_v_a_neighbor_list = graph.GetItemNeighbors(item_id);
-    const std::vector<uint> user_u_x_neighbor_list = graph.GetUserNeighbors(user_id);
+    EdgeData* inserted_edge = graph->GetEdgeData(user_id, item_id);
+    const std::vector<uint> item_v_a_neighbor_list = graph->GetItemNeighbors(item_id);
+    const std::vector<uint> user_u_x_neighbor_list = graph->GetUserNeighbors(user_id);
 
     // 0. insert the new user into synopsis node
     if (inv_list.size() <= user_id) inv_list.resize(user_id + 1);
@@ -281,15 +281,15 @@ bool Synopsis::UpdateSynopsisAfterExpiration(uint user_id, uint item_id, uint re
     //     InsertVertexEntry(user_id, node_pointer);
     // }
 
-    std::bitset<MAX_LABEL> u_i_BV = graph.GetUserBv(user_id);
+    std::bitset<MAX_LABEL> u_i_BV = graph->GetUserBv(user_id);
     // 1. for all possible radii r
     for (int r=0; r<R_MAX; r++)
     {
-        auto [affected_user_list, affected_item_list] = graph.Get2rHopOfUser(user_id, r);
+        auto [affected_user_list, affected_item_list] = graph->Get2rHopOfUser(user_id, r);
         // 2. for each affected vertex
         for (auto affected_user_id : affected_user_list)
         {
-            auto [affected_user_2r_list, affected_item_2r_list] = graph.Get2rHopOfUser(affected_user_id, r);
+            auto [affected_user_2r_list, affected_item_2r_list] = graph->Get2rHopOfUser(affected_user_id, r);
             // 3. for each affected nodes (from bottom to top)
             for (auto affected_node : inv_list[user_id])
             {
@@ -302,7 +302,7 @@ bool Synopsis::UpdateSynopsisAfterExpiration(uint user_id, uint item_id, uint re
                     std::bitset<MAX_LABEL> new_BV_r;
                     for(uint affect_hop_user_id: affected_user_2r_list)
                     {
-                        new_BV_r |= graph.GetUserBv(affect_hop_user_id);
+                        new_BV_r |= graph->GetUserBv(affect_hop_user_id);
                     }
                     if (node_BV_r != new_BV_r)
                     {
@@ -314,10 +314,10 @@ bool Synopsis::UpdateSynopsisAfterExpiration(uint user_id, uint item_id, uint re
                     uint new_max_sup = 0;
                     for (uint affect_hop_user_id: affected_user_2r_list)
                     {
-                        auto user_neighbor_item_list = graph.GetUserNeighbors(affect_hop_user_id);
+                        auto user_neighbor_item_list = graph->GetUserNeighbors(affect_hop_user_id);
                         for (uint neighbor_item_id: user_neighbor_item_list)
                         {
-                            EdgeData* edge_data = graph.GetEdgeData(affect_hop_user_id, neighbor_item_id);
+                            EdgeData* edge_data = graph->GetEdgeData(affect_hop_user_id, neighbor_item_id);
                             if (edge_data != nullptr)
                             {
                                 new_max_sup = std::max(new_max_sup, edge_data->ub_sup);
@@ -334,7 +334,7 @@ bool Synopsis::UpdateSynopsisAfterExpiration(uint user_id, uint item_id, uint re
                 uint new_max_ub_score = 0;
                 for (uint affect_hop_user_id: affected_user_2r_list)
                 {
-                    std::vector<UserData*> neighbor_datas = graph.GetNeighborUserData(affect_hop_user_id);
+                    std::vector<UserData*> neighbor_datas = graph->GetNeighborUserData(affect_hop_user_id);
                     for (UserData* user_data: neighbor_datas)
                     {
                         if (!std::binary_search(affected_user_2r_list.begin(), affected_user_2r_list.end(), user_data->user_id))
@@ -363,26 +363,26 @@ bool Synopsis::UpdateSynopsisAfterExpiration(uint user_id, uint item_id, uint re
 /// @param user_id 
 /// @param graph 
 /// @return a vertex entry of the <user_id> with aggregates
-SynopsisNode* Synopsis::CreateVertexEntry(uint user_id, Graph& graph)
+SynopsisNode* Synopsis::CreateVertexEntry(uint user_id, Graph* graph)
 {
     SynopsisData* data_[R_MAX];
     for (int r=0; r<R_MAX; r++)
     {
-        auto [user_list, item_list] = graph.Get2rHopOfUser(user_id, r);
+        auto [user_list, item_list] = graph->Get2rHopOfUser(user_id, r);
         // 0.1. compute BV_r
         std::bitset<MAX_LABEL> bv_r_;
         for(uint hop_user_id: user_list)
         {
-            bv_r_ |= graph.GetUserBv(hop_user_id);
+            bv_r_ |= graph->GetUserBv(hop_user_id);
         }
         uint ub_sup_M_ = 0;
         // 0.2. compute ub_sup_M
         for (uint hop_user_id: user_list)
         {
-            auto user_neighbor_item_list = graph.GetUserNeighbors(hop_user_id);
+            auto user_neighbor_item_list = graph->GetUserNeighbors(hop_user_id);
             for (uint hop_item_id: user_neighbor_item_list)
             {
-                EdgeData* edge_data = graph.GetEdgeData(hop_user_id, hop_item_id);
+                EdgeData* edge_data = graph->GetEdgeData(hop_user_id, hop_item_id);
                 if (edge_data != nullptr)
                 {
                     ub_sup_M_ = std::max(ub_sup_M_, edge_data->ub_sup);
@@ -393,7 +393,7 @@ SynopsisNode* Synopsis::CreateVertexEntry(uint user_id, Graph& graph)
         uint ub_score = 0;
         for (uint hop_user_id: user_list)
         {
-            std::vector<UserData*> neighbor_datas = graph.GetNeighborUserData(hop_user_id);
+            std::vector<UserData*> neighbor_datas = graph->GetNeighborUserData(hop_user_id);
             for (UserData* user_data: neighbor_datas)
             {
                 if (!std::binary_search(user_list.begin(), user_list.end(), user_data->user_id))
