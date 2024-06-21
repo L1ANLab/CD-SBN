@@ -16,7 +16,8 @@ Statistic::Statistic(
     std::vector<uint> query_keywords_,
     uint query_support_threshold_,
     uint query_radius_,
-    uint query_score_threshold_
+    uint query_score_threshold_,
+    uint query_timestamp_
 )
 : initial_graph_path_str(initial_graph_path_str_)
 , item_label_list_path_str(item_label_list_path_str_)
@@ -25,6 +26,7 @@ Statistic::Statistic(
 , query_support_threshold(query_support_threshold_)
 , query_radius(query_radius_)
 , query_score_threshold(query_score_threshold_)
+, query_timestamp(query_timestamp_)
 {}
 
 std::string Statistic::GenerateStatisticResult()

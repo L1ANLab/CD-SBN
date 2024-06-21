@@ -1,3 +1,6 @@
+#ifndef STATISTIC_H
+#define STATISTIC_H
+
 #include <string>
 #include <vector>
 
@@ -11,6 +14,7 @@ private:
     uint query_support_threshold;
     uint query_radius;
     uint query_score_threshold;
+    uint query_timestamp;
 
 public:
     Statistic(
@@ -20,7 +24,8 @@ public:
         std::vector<uint> query_keywords_,
         uint query_support_threshold_,
         uint query_radius_,
-        uint query_score_threshold_
+        uint query_score_threshold_,
+        uint query_timestamp_
     );
     uint node_num;
     uint edge_num;
@@ -50,3 +55,6 @@ public:
 
     std::string GenerateStatisticResult();
 };
+
+
+#endif // STATISTIC_H
