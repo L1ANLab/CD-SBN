@@ -22,12 +22,14 @@ $(OBJ) :
 $(BUILD)/cdsbn: $(OBJ)/main.o \
 		$(OBJ)/snapshot.o \
 		$(OBJ)/continuous.o \
+		$(OBJ)/synopsis.o \
 		$(OBJ)/graph.o $(OBJ)/induced_graph.o \
 		$(OBJ)/statistic.o \
 		$(OBJ)/globals.o
 	$(CC) $(FLAGS) $(OBJ)/main.o \
 		$(OBJ)/snapshot.o \
 		$(OBJ)/continuous.o \
+		$(OBJ)/synopsis.o \
 		$(OBJ)/graph.o $(OBJ)/induced_graph.o \
 		$(OBJ)/statistic.o \
 		$(OBJ)/globals.o \
@@ -39,7 +41,8 @@ $(OBJ)/main.o: $(ALGORITHM)/main.cpp \
 		$(UTILS)/statistic.h \
 		$(GRAPH)/graph.h \
 		$(ALGORITHM)/snapshot.h \
-		$(ALGORITHM)/continuous.h
+		$(ALGORITHM)/continuous.h \
+		$(ALGORITHM)/synopsis.h
 	$(CC) -c $(FLAGS) $(ALGORITHM)/main.cpp -o $(OBJ)/main.o
 
 #################### detection ####################
@@ -47,17 +50,24 @@ $(OBJ)/main.o: $(ALGORITHM)/main.cpp \
 
 $(OBJ)/snapshot.o: $(ALGORITHM)/snapshot.cpp \
 		$(UTILS)/types.h $(UTILS)/globals.h \
-		$(GRAPH)/graph.h \
+		$(GRAPH)/graph.h $(OBJ)/induced_graph.o \
 		$(ALGORITHM)/snapshot.h
 	$(CC) -c $(FLAGS) $(ALGORITHM)/snapshot.cpp \
 		-o $(OBJ)/snapshot.o
 
 $(OBJ)/continuous.o: $(ALGORITHM)/continuous.cpp \
 		$(UTILS)/types.h $(UTILS)/globals.h \
-		$(GRAPH)/graph.h \
+		$(GRAPH)/graph.h $(OBJ)/induced_graph.o \
 		$(ALGORITHM)/continuous.h
 	$(CC) -c $(FLAGS) $(ALGORITHM)/continuous.cpp \
 		-o $(OBJ)/continuous.o
+
+$(OBJ)/synopsis.o: $(ALGORITHM)/synopsis.cpp \
+		$(UTILS)/types.h $(UTILS)/globals.h \
+		$(GRAPH)/graph.h $(OBJ)/induced_graph.o \
+		$(ALGORITHM)/synopsis.h
+	$(CC) -c $(FLAGS) $(ALGORITHM)/synopsis.cpp \
+		-o $(OBJ)/synopsis.o
 
 #################### graph ####################
 
