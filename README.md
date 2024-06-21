@@ -59,7 +59,7 @@ Note that `<user-vertex-id> ` represents the id of vertex in the upper layer (us
 After the preparation of executable file and input data, our method can be executed by:
 
 ```bash
-build/cdsbn -i <initial-graph-path> -l <item-label-list-path> -u <update-stream-path> -t <query-timestamp> -Q <query-keywords-set> -k <query-support-threshold> -r <query-maximum-radius> -s <query-score-threshold>
+build/cdsbn <-c> -i <initial-graph-path> -l <item-label-list-path> -u <update-stream-path> -t <query-timestamp> -Q <query-keywords-set> -k <query-support-threshold> -r <query-maximum-radius> -s <query-score-threshold>
 ```
 
 For example,
