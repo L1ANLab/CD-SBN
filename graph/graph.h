@@ -62,9 +62,9 @@ public:
     Graph();
     ~Graph();
 
-    virtual uint UserVerticesNum() const { return user_neighbors.size(); }
-    virtual uint ItemVerticesNum() const { return item_neighbors.size(); }
-    virtual uint NumEdges() const { return edge_count_; }
+    uint UserVerticesNum() const { return user_neighbors.size(); }
+    uint ItemVerticesNum() const { return item_neighbors.size(); }
+    uint NumEdges() const { return edge_count_; }
 
     void AddUserVertex(uint user_id);
     void AddItemVertex(uint item_id);
