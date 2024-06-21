@@ -6,8 +6,6 @@
 #include "utils/types.h"
 #include "detection/synopsis.h"
 
-
-
 #pragma region SynopsisNode
 
 uint SynopsisNode::ID_COUNTER = 0;
@@ -120,7 +118,7 @@ SynopsisNode* Synopsis::BuildSynopsis(Graph* graph)
     std::vector<SynopsisNode*> vertex_entry_list(0);
     for (size_t i=0;i<graph->UserVerticesNum();i++)
     {
-        SynopsisNode* node_pointer = node_pointer = CreateVertexEntry(i, graph);
+        SynopsisNode* node_pointer = CreateVertexEntry(i, graph);
         vertex_entry_list.push_back(node_pointer);
         inv_list[i].emplace_back(node_pointer);
     }
@@ -266,7 +264,7 @@ bool Synopsis::UpdateSynopsisAfterInsertion(uint user_id, uint item_id, uint add
 /// @return 
 bool Synopsis::UpdateSynopsisAfterExpiration(uint user_id, uint item_id, uint removal_flag, Graph* graph)
 {
-    EdgeData* inserted_edge = graph->GetEdgeData(user_id, item_id);
+    // EdgeData* inserted_edge = graph->GetEdgeData(user_id, item_id);
     const std::vector<uint> item_v_a_neighbor_list = graph->GetItemNeighbors(item_id);
     const std::vector<uint> user_u_x_neighbor_list = graph->GetUserNeighbors(user_id);
 
@@ -281,7 +279,7 @@ bool Synopsis::UpdateSynopsisAfterExpiration(uint user_id, uint item_id, uint re
     //     InsertVertexEntry(user_id, node_pointer);
     // }
 
-    std::bitset<MAX_LABEL> u_i_BV = graph->GetUserBv(user_id);
+    // std::bitset<MAX_LABEL> u_i_BV = graph->GetUserBv(user_id);
     // 1. for all possible radii r
     for (int r=0; r<R_MAX; r++)
     {
@@ -431,7 +429,7 @@ SynopsisNode* Synopsis::BuildSynopsisRecursively(
 
     size_t partition_num = ceil(vertex_entry_list.size() / SYNOPSIS_SIZE);
     std::vector<SynopsisNode*> children_entries_;
-    for (int i=0;i<partition_num;i++)
+    for (size_t i=0;i<partition_num;i++)
     {
         size_t start_idx = i*partition_num;
         size_t end_idx = std::min(i*partition_num + partition_num, vertex_entry_list.size());
@@ -463,7 +461,7 @@ void Synopsis::InsertVertexEntry(uint user_id, SynopsisNode* new_vertex_entry)
     {
         new_vertex_entry_score += new_vertex_entry->GetUbScore(r);
     }
-    SynopsisNode* now_node_pointer = root;
+    // SynopsisNode* now_node_pointer = root;
     SearchSynopsisTrace(user_id, root, new_vertex_entry_score);
 }
 
@@ -503,7 +501,7 @@ void Synopsis::DestroySynopsis(SynopsisNode* now_node_pointer)
     if (now_node_pointer != nullptr) {
         for (SynopsisNode* child : now_node_pointer->GetChildren())
         {
-            DestroySynopsis(now_node_pointer);
+            DestroySynopsis(child);
         }
         delete now_node_pointer;
     }

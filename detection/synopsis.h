@@ -5,7 +5,6 @@
 #include <unordered_set>
 #include <bitset>
 
-#include "utils/types.h"
 #include "graph/graph.h"
 
 struct SynopsisData
