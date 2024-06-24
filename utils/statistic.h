@@ -36,7 +36,7 @@ public:
     float leaf_node_traverse_time;
     float nonleaf_node_traverse_time;
     float compute_r_hop_time;
-    float compute_k_truss_time;
+    float compute_k_bitruss_time;
     float compute_influential_score_time;
     float modify_result_set_time;
     float obtainment_time;

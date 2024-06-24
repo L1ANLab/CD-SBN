@@ -84,7 +84,7 @@ std::string Statistic::GenerateStatisticResult()
     result += "Leaf Node Traverse time: " + std::to_string(leaf_node_traverse_time) + "\n";
     result += "NonLeaf Node Traverse time: " + std::to_string(nonleaf_node_traverse_time) + "\n";
     result += "Compute R-Hop time: " + std::to_string(compute_r_hop_time) + "\n";
-    result += "Compute K-Truss time: " + std::to_string(compute_k_truss_time) + "\n";
+    result += "Compute K-Truss time: " + std::to_string(compute_k_bitruss_time) + "\n";
     result += "Compute Influential Score time: " + std::to_string(compute_influential_score_time) + "\n";
     result += "Modify Result Set time: " + std::to_string(modify_result_set_time) + "\n";
     result += "-------------REFINE TIME INFO-------------\n";
