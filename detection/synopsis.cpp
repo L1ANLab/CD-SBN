@@ -32,7 +32,11 @@ SynopsisNode::SynopsisNode(
                 data_r->ub_score,
                 children_entries_[i]->data[r]->ub_score
             );
-            this->user_set.merge(children_entries_[i]->user_set);
+            std::merge(
+                this->user_set.begin(), this->user_set.end(),
+                children_entries_[i]->user_set.begin(), children_entries_[i]->user_set.end(),
+                this->user_set.begin()
+            );
         }
     }
 
@@ -66,7 +70,7 @@ SynopsisNode::~SynopsisNode()
         delete data[i];
     }
     std::vector<SynopsisNode*>().swap(children_entries);
-    std::unordered_set<uint>().swap(user_set);
+    std::vector<uint>().swap(user_set);
 }
 
 uint SynopsisNode::GetID() { return id; }
@@ -82,7 +86,7 @@ uint SynopsisNode::GetUbScore(uint r) const { return data[r]->ub_score; }
 SynopsisData* SynopsisNode::GetSynopsisData(uint r) const { return data[r]; }
 uint SynopsisNode::GetLevel() const { return level; }
 
-std::unordered_set<uint> SynopsisNode::GetUserSet() const { return user_set; }
+std::vector<uint> SynopsisNode::GetUserSet() const { return user_set; }
 
 const std::vector<SynopsisNode*>& SynopsisNode::GetChildren() const { return children_entries; }
 bool SynopsisNode::IsTreeNode() const { return (children_entries.size() < user_set.size());}

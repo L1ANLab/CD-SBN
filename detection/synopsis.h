@@ -33,7 +33,7 @@ protected:
     uint id;
     uint level;
     SynopsisData* data[R_MAX];
-    std::unordered_set<uint> user_set;
+    std::vector<uint> user_set;
 
     std::vector<SynopsisNode*> children_entries;
 public:
@@ -57,7 +57,7 @@ public:
     uint GetUbScore(uint r) const;
     SynopsisData* GetSynopsisData(uint r) const;
     uint GetLevel() const;
-    std::unordered_set<uint> GetUserSet() const;
+    std::vector<uint> GetUserSet() const;
     const std::vector<SynopsisNode*>& GetChildren() const;
     bool IsTreeNode() const;
     bool IsLeafNode() const;
