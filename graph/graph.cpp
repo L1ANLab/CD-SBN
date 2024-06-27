@@ -236,7 +236,7 @@ void Graph::MaintainAfterExpiration(uint user_id, uint item_id, uint removal_fla
             );
             std::vector<uint>::iterator it = std::set_intersection(
                 user_neighbors[user_id].begin(), user_neighbors[user_id].end(),
-                user_neighbors[item_id].begin(), user_neighbors[item_id].end(),
+                user_neighbors[n_user_id].begin(), user_neighbors[n_user_id].end(),
                 common_neighbors.begin()
             );
             common_neighbors.resize(it - common_neighbors.begin());
@@ -317,6 +317,10 @@ uint Graph::GetUserDegree(uint user_id) const
 const std::bitset<MAX_LABEL>& Graph::GetUserBv(uint user_id) const
 {
     return user_bvs[user_id];
+}
+const std::bitset<MAX_LABEL>& Graph::GetItemBv(uint item_id) const
+{
+    return item_bvs[item_id];
 }
 
 /// @brief get the edge data of edge[user_id][item_id]
@@ -454,6 +458,55 @@ std::tuple<std::vector<uint>, std::vector<uint>>  Graph::Get2rHopOfUser(uint cen
     std::vector<uint> item_map_;
     item_map_.assign(visited_items.begin(), visited_items.end());
 
+    return {user_map_, item_map_};
+}
+
+std::tuple<std::vector<uint>, std::vector<uint>>  Graph::Get2rHopOfUserByBV(uint center_user_id, uint r, std::bitset<MAX_LABEL> bv)
+{
+    std::queue<uint> to_visit_users;
+    std::set<uint> visited_users;
+    std::set<uint> qualified_user_set;
+    std::queue<uint> to_visit_items;
+    std::set<uint> visited_items;
+    std::set<uint> qualified_item_set;
+
+    to_visit_users.emplace(center_user_id);
+    for (uint i=0;i < r; i++)
+    {
+        while (!to_visit_users.empty())
+        {
+            uint visit_user = to_visit_users.front();
+            to_visit_users.pop();
+            if (visited_users.find(visit_user) == visited_users.end()) continue;
+            for (size_t j = 0; j < user_neighbors[visit_user].size(); j++)
+            {
+                to_visit_items.push(user_neighbors[visit_user][j]);
+            }
+            visited_users.emplace(visit_user);
+            if ((bv & this->GetUserBv(visit_user)).any())
+                qualified_user_set.emplace(visit_user);
+        }
+
+        while (!to_visit_items.empty())
+        {
+            uint visit_item = to_visit_items.front();
+            to_visit_items.pop();
+            if (visited_items.find(visit_item) == visited_items.end()) continue;
+            
+            for (size_t j = 0; j < item_neighbors[visit_item].size(); j++)
+            {
+                to_visit_users.push(item_neighbors[visit_item][j]);
+            }
+            visited_items.emplace(visit_item);
+            if ((bv & this->GetItemBv(visit_item)).any())
+                qualified_item_set.emplace(visit_item);
+        }
+    }
+
+    std::vector<uint> user_map_;
+    user_map_.assign(qualified_user_set.begin(), qualified_user_set.end());
+    std::vector<uint> item_map_;
+    item_map_.assign(qualified_item_set.begin(), qualified_item_set.end());
 
     return {user_map_, item_map_};
 }

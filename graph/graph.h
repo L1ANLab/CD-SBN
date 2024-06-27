@@ -77,11 +77,17 @@ public:
     const std::vector<uint>& GetItemNeighbors(uint item_id) const;
     uint GetUserDegree(uint v) const;
     const std::bitset<MAX_LABEL>& GetUserBv(uint user_id) const;
+    const std::bitset<MAX_LABEL>& GetItemBv(uint item_id) const;
     EdgeData* GetEdgeData(uint user_id, uint item_id) const;
     const std::vector<UserData*>& GetNeighborUserData(uint user_id) const;
     UserData* GetNeighborUserData(uint user_id, uint n_user_id) const;
     size_t InsertNeighborUserData(uint user_id, uint n_user_id);
     std::tuple<std::vector<uint>, std::vector<uint>> Get2rHopOfUser(uint center_user_id, uint r);
+    std::tuple<std::vector<uint>, std::vector<uint>> Get2rHopOfUserByBV(
+        uint center_user_id,
+        uint r,
+        std::bitset<MAX_LABEL> bv
+    );
 
     void LoadInitialGraph(const std::string &path);
     void LoadItemLabel(const std::string &path);
