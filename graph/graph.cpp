@@ -108,10 +108,10 @@ void Graph::MaintainAfterInsertion(uint user_id, uint item_id, uint addition_fla
         size_t user_data_index = InsertNeighborUserData(n_user_id, user_id);
         uint lambda = 0;
         uint wedge_score = GetEdgeData(n_user_id, item_id)->weight;
-        if (inserted_edge->weight < wedge_score)
+        if (inserted_edge->weight <= wedge_score)
         {
             lambda = 1;
-            wedge_score = inserted_edge->weight;
+            wedge_score = inserted_edge->weight - 1;
         }
         // 1.2. apply the increment
         user_neighbor_datas[user_id][n_user_data_index]->x_data += lambda;
@@ -208,8 +208,8 @@ void Graph::MaintainAfterExpiration(uint user_id, uint item_id, uint removal_fla
         uint wedge_score = GetEdgeData(n_user_id, item_id)->weight;
         if (inserted_edge->weight < wedge_score)
         {
-            lambda = 1;
-            wedge_score = inserted_edge->weight;
+            lambda = -1;
+            wedge_score = inserted_edge->weight + 1;
         }
         // 1.2. apply the increment
         user_neighbor_datas[user_id][n_user_data_index]->x_data += lambda;
