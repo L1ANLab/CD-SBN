@@ -35,9 +35,9 @@ public:
     float select_greatest_entry_in_H_time;
     float leaf_node_traverse_time;
     float nonleaf_node_traverse_time;
-    float compute_r_hop_time;
+    float compute_2r_hop_time;
     float compute_k_bitruss_time;
-    float compute_influential_score_time;
+    float compute_user_relationship_score_time;
     float modify_result_set_time;
     float obtainment_time;
     float refinement_time;

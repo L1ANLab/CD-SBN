@@ -83,9 +83,9 @@ std::string Statistic::GenerateStatisticResult()
     result += "Select Greatest Entry in Heap time: " + std::to_string(select_greatest_entry_in_H_time) + "\n";
     result += "Leaf Node Traverse time: " + std::to_string(leaf_node_traverse_time) + "\n";
     result += "NonLeaf Node Traverse time: " + std::to_string(nonleaf_node_traverse_time) + "\n";
-    result += "Compute R-Hop time: " + std::to_string(compute_r_hop_time) + "\n";
-    result += "Compute K-Truss time: " + std::to_string(compute_k_bitruss_time) + "\n";
-    result += "Compute Influential Score time: " + std::to_string(compute_influential_score_time) + "\n";
+    result += "Compute 2R-Hop time: " + std::to_string(compute_2r_hop_time) + "\n";
+    result += "Compute K-Bitruss time: " + std::to_string(compute_k_bitruss_time) + "\n";
+    result += "Compute Relationship Score time: " + std::to_string(compute_user_relationship_score_time) + "\n";
     result += "Modify Result Set time: " + std::to_string(modify_result_set_time) + "\n";
     result += "-------------REFINE TIME INFO-------------\n";
     result += "Select Greatest Increment Entry in Heap time: " + std::to_string(select_greatest_increment_entry_time) + "\n";
