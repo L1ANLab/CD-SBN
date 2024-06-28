@@ -188,19 +188,21 @@ std::vector<InducedGraph*> Snapshot::ExecuteSnapshotQuery(Statistic* stat)
                     // (2) compute k-bitruss from r-hop
                     compute_k_bitruss_start_timestamp = Get_Time();
                     // compute k-bitruss function
-                    InducedGraph* bitruss_subgraph = r_hop_subgraph->ComputeBitruss(query_support_threshold);
+                    InducedGraph* bitruss_subgraph = r_hop_subgraph->ComputeKBitruss(query_support_threshold);
                     // delete the r-hop subgraph
                     delete r_hop_subgraph;
                     stat->compute_k_bitruss_time += Duration(compute_k_bitruss_start_timestamp);
                     
                     // (3) compute the (k,r,σ)-bitruss
                     compute_score_start_timestamp = Get_Time();
-                    InducedGraph* k_r_sigma_bitruss_subgraph;
+                    InducedGraph* k_r_sigma_bitruss_subgraph = bitruss_subgraph->ComputeKRSigmaBitruss(query_score_threshold);
                     delete bitruss_subgraph;
                     stat->compute_user_relationship_score_time += Duration(compute_score_start_timestamp);
                     // (4) add subgraph into P if exists
                     if (!k_r_sigma_bitruss_subgraph->user_map.empty())
                         candidate_set_P.emplace(k_r_sigma_bitruss_subgraph);
+                    else
+                        delete k_r_sigma_bitruss_subgraph;
                 }
             }
             stat->leaf_node_traverse_time += Duration(leaf_node_start_timestamp);
@@ -209,5 +211,8 @@ std::vector<InducedGraph*> Snapshot::ExecuteSnapshotQuery(Statistic* stat)
         delete now_heap_entry;
     }
 
+    std::vector<InducedGraph*> result_set_R;
+    result_set_R.assign(candidate_set_P.begin(), candidate_set_P.end());
+    return result_set_R;
 }
 
