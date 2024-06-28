@@ -109,6 +109,31 @@ InducedGraph::InducedGraph(
 , e_lists(e_lists_)
 { }
 
+
+bool InducedGraph::operator < (const InducedGraph& subgraph) const
+{
+    if (this->NumUsers() == subgraph.NumUsers())
+    {
+        if (this->NumItems() == subgraph.NumItems())
+        {
+            return this->NumEdges() < subgraph.NumEdges();
+        }
+        return this->NumItems() < subgraph.NumItems();
+    }
+    return this->NumUsers() < subgraph.NumUsers();
+}
+
+bool InducedGraph::operator == (const InducedGraph& subgraph) const
+{
+    return (
+        this->user_map == subgraph.user_map &&
+        this->item_map == subgraph.item_map &&
+        this->e_lists == subgraph.e_lists
+    );
+}
+
+
+
 uint InducedGraph::GetUserDegree(uint user_id)
 {
     uint degree = 0u;

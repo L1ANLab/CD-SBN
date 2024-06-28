@@ -26,6 +26,9 @@ public:
         std::vector<std::pair<uint, uint>> e_lists_
     );
 
+    bool operator<(const InducedGraph& subgraph) const;
+    bool operator == (const InducedGraph& subgraph) const;
+
     uint NumUsers() const { return user_map.size(); }
     uint NumItems() const { return item_map.size(); }
     uint NumEdges() const { return e_lists.size(); }
