@@ -121,7 +121,10 @@ uint InducedGraph::GetUserDegree(uint user_id)
 }
 
 
-InducedGraph* InducedGraph::ComputeBitruss(uint k)
+/// @brief obtain a K-bitruss from current subgraph
+/// @param k uint type: the order of the bitruss
+/// @return InducedGraph type: a maximal k-bitruss of current subgraph
+InducedGraph* InducedGraph::ComputeKBitruss(uint k)
 {
     // std::vector<uint> user_list;
     // for (uint user : this->user_map)
@@ -157,7 +160,7 @@ InducedGraph* InducedGraph::ComputeBitruss(uint k)
     std::vector<std::vector<std::pair<uint, uint>>> new_edge_list;
     new_edge_list.resize(*std::max_element(user_list.begin(), user_list.end()));
     
-    for (auto edge : e_lists)
+    for (auto edge : this->e_lists)
     {
         new_edge_list[edge.first].emplace_back(std::pair{edge.second, 0});
     }
@@ -229,7 +232,6 @@ InducedGraph* InducedGraph::ComputeBitruss(uint k)
     {
         drop_edge_num = 0;
         std::vector<std::pair<uint, uint>> drop_edge_list;
-        std::set<uint> visited_user;
         // (1) detect all unqualified edge
         for (size_t user=0;user< user_list.size(); user++)
         {
@@ -309,4 +311,113 @@ InducedGraph* InducedGraph::ComputeBitruss(uint k)
     item_list.assign(item_set.begin(), item_set.end());
 
     return new InducedGraph(this->graph, user_list, item_list, new_e_list);
+}
+
+
+/// @brief obtain a (K, r, \sigma)-bitruss from current subgraph
+/// @param sigma 
+/// @return 
+InducedGraph* InducedGraph::ComputeKRSigmaBitruss(uint sigma)
+{
+    std::vector<uint> user_list(this->user_map);
+    // 0.use adjacency list to save the edges
+    std::vector<std::vector<std::pair<uint, uint>>> user_relationship_score_list;
+    user_relationship_score_list.resize((*std::max_element(user_list.begin(), user_list.end()))+1);
+
+    std::vector<std::vector<uint>> user_neighbor_list;
+    user_neighbor_list.resize((*std::max_element(user_list.begin(), user_list.end()))+1);
+    
+    for (auto edge : e_lists)
+    {
+        auto insert_pos = std::lower_bound(
+            user_neighbor_list[edge.first].begin(),
+            user_neighbor_list[edge.first].end(),
+            edge.second
+        );
+        user_neighbor_list[edge.first].insert(insert_pos, edge.second);
+    }
+
+    // 1. compute the user relationship score for each edge in the subgraph
+    for (size_t i = 0; i< user_list.size(); i++)
+    {
+        uint user1 = user_list[i];
+        for (size_t j = i+1;j<user_list.size();j++)
+        {
+            // 1.1. for the choosed two item, find common neighbor users
+            uint user2 = user_list[j];
+            std::vector<uint> raw_common_neighbors;
+            std::set_intersection(
+                user_neighbor_list[user1].begin(),
+                user_neighbor_list[user1].end(),
+                user_neighbor_list[user2].begin(),
+                user_neighbor_list[user2].end(),
+                raw_common_neighbors.begin()
+            );
+            raw_common_neighbors.shrink_to_fit();
+            // skip to next user if not common neighbor
+            if (raw_common_neighbors.empty()) continue;
+            // 1.2. compute the user relationship score
+            uint sum = 0, square_sum = 0;
+            for (uint common_item : raw_common_neighbors)
+            {
+                uint wedge_score = std::min(
+                    this->graph.GetEdgeData(user1, common_item)->weight,
+                    this->graph.GetEdgeData(user2, common_item)->weight
+                );
+                sum += wedge_score;
+                square_sum += wedge_score*wedge_score;
+            }
+            // user_relationship_score_list[user1].emplace_back(
+            //     std::pair(user2, (sum*sum-square_sum)/2)
+            // );
+            // user_relationship_score_list[user2].emplace_back(
+            //     std::pair(user1, (sum*sum-square_sum)/2)
+            // );
+            if ((sum*sum-square_sum)/2 < sigma)
+            {
+                return new InducedGraph(this->graph, {}, {}, {});
+            }
+        }
+    }
+
+    /*
+    // 2. compute the bitruss
+    // 2.1. remove and update edges until qualified
+    uint drop_user_num = 1;
+    while(drop_user_num > 0)
+    {
+        drop_user_num = 0;
+        std::vector<uint> drop_user_list;
+        // (1) detect all unqualified edge
+        for (size_t user=0;user<user_relationship_score_list.size(); user++)
+        {
+            for (size_t idx=0; idx<user_relationship_score_list[user].size();idx++)
+            {
+                if (user_relationship_score_list[user][idx].second < sigma)
+                {
+                    drop_user_list.emplace_back(std::pair(user, idx));
+                }
+            }
+        }
+        // (2) remove the detection edges and update the related edges
+        // (3) update drop_num
+        drop_user_num = drop_user_list.size();
+    }
+
+    std::set<uint> item_set;
+    std::vector<std::pair<uint, uint>> new_e_list;
+    for (size_t i=0; i<new_edge_list.size();i++)
+    {
+        for (auto edge : new_edge_list[i])
+        {
+            item_set.emplace(edge.first);
+            new_e_list.emplace_back(std::pair(i, edge.first));
+        }
+    }
+    new_e_list.shrink_to_fit();
+    std::vector<uint> item_list;
+    item_list.assign(item_set.begin(), item_set.end());
+    */
+
+    return new InducedGraph(this->graph, this->user_map, this->item_map, this->e_lists);
 }

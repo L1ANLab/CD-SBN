@@ -31,7 +31,8 @@ public:
     uint NumEdges() const { return e_lists.size(); }
     uint GetUserDegree(uint user_id);
     
-    InducedGraph* ComputeBitruss(uint k);
+    InducedGraph* ComputeKBitruss(uint k);
+    InducedGraph* ComputeKRSigmaBitruss(uint sigma);
 };
 
 #endif //GRAPH_INDUCEDGRAPH
