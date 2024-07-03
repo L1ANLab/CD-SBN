@@ -26,8 +26,8 @@ struct InsertUnit {
     uint user_id;   // vertex id or edge source id
     uint item_id;   // edge target id
     uint timestamp; // vertex or edge label
-    InsertUnit(uint id1_arg, uint id2_arg, uint label_arg)
-    : user_id(id1_arg), item_id(id2_arg), timestamp(label_arg) {}
+    InsertUnit(uint user_id_, uint item_id_, uint timestamp_)
+    : user_id(user_id_), item_id(item_id_), timestamp(timestamp_) {}
 };
 
 // from boost (functional/hash):
