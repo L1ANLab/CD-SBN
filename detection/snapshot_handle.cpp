@@ -3,7 +3,7 @@
 #include <set>
 #include <algorithm>
 
-#include "detection/snapshot.h"
+#include "detection/snapshot_handle.h"
 
 
 struct HeapEntry
@@ -41,8 +41,7 @@ bool CompareHeapEntry(const HeapEntry &left, const HeapEntry &right)
 
 
 
-Snapshot::Snapshot(
-    uint query_timestamp_,
+SnapshotHandle::SnapshotHandle(
     std::vector<uint> query_keywords_,
     uint query_support_threshold_,
     uint query_radius_,
@@ -50,8 +49,7 @@ Snapshot::Snapshot(
     Graph* data_graph_,
     Synopsis* syn_
 )
-: query_timestamp(query_timestamp_)
-, query_keywords(query_keywords_)
+: query_keywords(query_keywords_)
 , query_support_threshold(query_support_threshold_)
 , query_radius(query_radius_)
 , query_score_threshold(query_score_threshold_)
@@ -68,10 +66,10 @@ Snapshot::Snapshot(
     this->query_radius_idx = this->query_radius - 1;
 }
 
-Snapshot::~Snapshot() {}
+SnapshotHandle::~SnapshotHandle() {}
 
 
-bool Snapshot::CheckPruningConditions(SynopsisNode* node)
+bool SnapshotHandle::CheckPruningConditions(SynopsisNode* node)
 {
     // (Index-Level) Keyword Pruning
     if ((node->GetBvR(this->query_radius_idx) & this->query_BV) == 0)
@@ -86,7 +84,7 @@ bool Snapshot::CheckPruningConditions(SynopsisNode* node)
 }
 
 
-std::vector<InducedGraph*> Snapshot::ExecuteSnapshotQuery(Statistic* stat)
+std::vector<InducedGraph*> SnapshotHandle::ExecuteSnapshotQuery(Statistic* stat)
 {
     // 0. initialization:
     std::chrono::high_resolution_clock::time_point start_timestamp,
