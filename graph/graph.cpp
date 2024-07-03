@@ -12,7 +12,8 @@
 #include <set>
 
 Graph::Graph()
-: user_neighbors{}
+: graph_timestamp(0)
+, user_neighbors{}
 , user_bvs{}
 , user_ub_sups{}
 , user_neighbor_datas{}
@@ -23,6 +24,7 @@ Graph::Graph()
 , edges_{}
 , updates_{}
 {}
+
 Graph::~Graph()
 {
     for(size_t i=0;i<user_neighbor_datas.size();i++)
@@ -45,6 +47,10 @@ Graph::~Graph()
     }
     std::vector<std::vector<EdgeData*>>().swap(edges_);
 }
+
+uint Graph::GetGraphTimestamp() const { return graph_timestamp; }
+
+void Graph::SetGraphTimestamp(uint new_timestamp) { this->graph_timestamp = new_timestamp; }
 
 void Graph::SetItemLabels(uint item_id, std::string label_str)
 {
@@ -511,6 +517,9 @@ std::tuple<std::vector<uint>, std::vector<uint>>  Graph::Get2rHopOfUserByBV(uint
     return {user_map_, item_map_};
 }
 
+
+std::vector<InsertUnit> Graph::GetUpdateStream() const { return this->updates_; }
+
 void Graph::LoadInitialGraph(const std::string &path)
 {
     ErrorControl::assert_error(
@@ -522,11 +531,12 @@ void Graph::LoadInitialGraph(const std::string &path)
         !ifs,
         "File Stream Error: The input file stream open failed"
     );
+    uint initial_timestamp = 0;
     while (!ifs.eof())
     {
         {
-            uint from_id, to_id;
-            ifs >> from_id >> to_id;
+            uint from_id, to_id, initial_timestamp;
+            ifs >> from_id >> to_id >> initial_timestamp;
             uint addition_flag = InsertEdge(from_id, to_id);
             if (addition_flag == 1)
             {
@@ -540,6 +550,7 @@ void Graph::LoadInitialGraph(const std::string &path)
         }
     }
     ifs.close();
+    this->graph_timestamp = initial_timestamp;
 }
 
 void Graph::LoadItemLabel(const std::string &path)
@@ -581,9 +592,11 @@ void Graph::LoadUpdateStream(const std::string &path)
     {
         uint from_id, to_id, timestamp;
         ifs >> from_id >> to_id >> timestamp;
-        updates_.emplace_front(from_id, to_id, timestamp);
+        updates_.emplace_back(from_id, to_id, timestamp);
     }
     ifs.close();
+
+    updates_.shrink_to_fit();
 }
 
 void Graph::PrintMetaData() const

@@ -37,6 +37,8 @@ struct UserDataComparer
 class Graph
 {
 protected:
+    // time
+    uint graph_timestamp;
     // user
     std::vector<std::vector<uint>> user_neighbors; // Each item is a list of user neighbors
     std::vector<std::bitset<MAX_LABEL>> user_bvs; // the list of support upper bound bu_sup for each user
@@ -55,13 +57,15 @@ protected:
     void SetItemLabels(uint item_id, std::string label_str);
 
 public:
-    std::deque<InsertUnit> updates_;
+    std::vector<InsertUnit> updates_;
 
 
 public:
     Graph();
     ~Graph();
 
+    uint GetGraphTimestamp() const;
+    void SetGraphTimestamp(uint new_timestamp);
     uint UserVerticesNum() const { return user_neighbors.size(); }
     uint ItemVerticesNum() const { return item_neighbors.size(); }
     uint NumEdges() const { return edge_count_; }
@@ -88,6 +92,7 @@ public:
         uint r,
         std::bitset<MAX_LABEL> bv
     );
+    std::vector<InsertUnit> GetUpdateStream() const;
 
     void LoadInitialGraph(const std::string &path);
     void LoadItemLabel(const std::string &path);
