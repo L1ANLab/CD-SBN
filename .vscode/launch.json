@@ -20,6 +20,13 @@
                 "-r", "2",
                 "-s", "2"
             ],
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ],
             "externalConsole": false,
             "MIMode": "gdb",
             "preLaunchTask": "build"
