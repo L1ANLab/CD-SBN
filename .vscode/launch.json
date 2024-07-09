@@ -1,0 +1,28 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "(gdb) Launch",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceRoot}/build/cdsbn",
+            "stopAtEntry": true, 
+            "cwd": "${workspaceRoot}",
+            "environment": [],
+            "args": [
+                "-i", "dataset/BS/20-3/uni/initial_graph.txt",
+                "-l", "dataset/BS/20-3/uni/label_list.txt",
+                "-u", "dataset/BS/20-3/uni/update_stream.txt",
+                "-t", "867333955",
+                "-w", "1000",
+                "-Q", "18","5","17","8","16",
+                "-k", "4",
+                "-r", "2",
+                "-s", "2"
+            ],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "preLaunchTask": "build"
+        }
+    ]
+}
