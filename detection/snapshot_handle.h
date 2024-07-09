@@ -1,26 +1,11 @@
 #ifndef SNAPSHOTHANDLE_H
 #define SNAPSHOTHANDLE_H
 
-#include "graph/induced_graph.h"
-#include "detection/synopsis.h"
-#include "utils/statistic.h"
+#include "detection/query_handle.h"
 
-
-class SnapshotHandle
+class SnapshotHandle: public QueryHandle
 {
 private:
-    /* data */
-    std::vector<uint> query_keywords;
-    uint query_support_threshold;
-    uint query_radius;
-    uint query_score_threshold;
-    Graph* data_graph;
-    Synopsis* syn;
-
-    std::bitset<MAX_LABEL>  query_BV;
-    uint query_radius_idx;
-    
-    bool CheckPruningConditions(SynopsisNode* node);
 
 public:
     SnapshotHandle(
@@ -33,7 +18,7 @@ public:
     );
     ~SnapshotHandle();
 
-    std::vector<InducedGraph*> ExecuteSnapshotQuery(Statistic* stat);
+    std::vector<InducedGraph*> ExecuteQuery(Statistic* stat);
 };
 
 

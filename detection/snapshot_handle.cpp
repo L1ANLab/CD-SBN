@@ -5,42 +5,6 @@
 
 #include "detection/snapshot_handle.h"
 
-
-struct HeapEntry
-{
-    SynopsisNode* node;
-    uint score;
-
-    HeapEntry(SynopsisNode* node_, uint score_): node(node_), score(score_) {}
-
-    bool operator < (const HeapEntry &right) const
-    {
-        if (this->node->GetLevel() == right.node->GetLevel())
-        {
-            return this->score < right.score; 
-        }
-        
-        return this->node->GetLevel() < right.node->GetLevel();
-    }
-
-    bool operator > (const HeapEntry &right) const
-    {
-        if (this->node->GetLevel() == right.node->GetLevel())
-        {
-            return this->score > right.score; 
-        }
-        
-        return this->node->GetLevel() > right.node->GetLevel();
-    }
-};
-
-bool CompareHeapEntry(const HeapEntry &left, const HeapEntry &right)
-{
-    return left > right;
-}
-
-
-
 SnapshotHandle::SnapshotHandle(
     std::vector<uint> query_keywords_,
     uint query_support_threshold_,
@@ -49,42 +13,18 @@ SnapshotHandle::SnapshotHandle(
     Graph* data_graph_,
     Synopsis* syn_
 )
-: query_keywords(query_keywords_)
-, query_support_threshold(query_support_threshold_)
-, query_radius(query_radius_)
-, query_score_threshold(query_score_threshold_)
-, data_graph(data_graph_)
-, syn(syn_)
-{
-    // hash the query keywords set to query_BV
-    for (uint keyword : this->query_keywords)
-    {
-        this->query_BV.set(keyword);
-    }
-    
-    // transform the query radius
-    this->query_radius_idx = this->query_radius - 1;
-}
+: QueryHandle(
+    query_keywords_,
+    query_support_threshold_,
+    query_radius_,
+    query_score_threshold_,
+    data_graph_,
+    syn_
+) {}
 
 SnapshotHandle::~SnapshotHandle() {}
 
-
-bool SnapshotHandle::CheckPruningConditions(SynopsisNode* node)
-{
-    // (Index-Level) Keyword Pruning
-    if ((node->GetBvR(this->query_radius_idx) & this->query_BV) == 0)
-        return false;
-    // (Index-Level) Support Pruning
-    if (node->GetUbSupM(this->query_radius_idx) < query_support_threshold)
-        return false;
-    // (Index-Level) User Relationship Score Pruning
-    if (node->GetUbScore(this->query_radius_idx) < query_score_threshold)
-        return false;
-    return true;
-}
-
-
-std::vector<InducedGraph*> SnapshotHandle::ExecuteSnapshotQuery(Statistic* stat)
+std::vector<InducedGraph*> SnapshotHandle::ExecuteQuery(Statistic* stat)
 {
     // 0. initialization:
     std::chrono::high_resolution_clock::time_point start_timestamp,
@@ -105,11 +45,11 @@ std::vector<InducedGraph*> SnapshotHandle::ExecuteSnapshotQuery(Statistic* stat)
     std::make_heap(maximum_heap_H.begin(), maximum_heap_H.end(), CompareHeapEntry);
 
     
-    uint vertex_pruning_counter = 0;
+    // uint vertex_pruning_counter = 0;
     uint leaf_node_visit_counter = 0;
     uint entry_pruning_counter = 0;
     uint max_k_truss_cost = 0;
-    uint max_influential_score_cost = 0;
+    uint max_score_cost = 0;
 
     // 1. traverse the index
     while(maximum_heap_H.size() > 0)
@@ -189,13 +129,17 @@ std::vector<InducedGraph*> SnapshotHandle::ExecuteSnapshotQuery(Statistic* stat)
                     InducedGraph* bitruss_subgraph = r_hop_subgraph->ComputeKBitruss(query_support_threshold);
                     // delete the r-hop subgraph
                     delete r_hop_subgraph;
-                    stat->compute_k_bitruss_time += Duration(compute_k_bitruss_start_timestamp);
+                    float k_bitruss_time = Duration(compute_k_bitruss_start_timestamp);
+                    stat->compute_k_bitruss_time += k_bitruss_time;
+                    if (max_k_truss_cost < k_bitruss_time) max_k_truss_cost = k_bitruss_time;
                     
                     // (3) compute the (k,r,σ)-bitruss
                     compute_score_start_timestamp = Get_Time();
                     InducedGraph* k_r_sigma_bitruss_subgraph = bitruss_subgraph->ComputeKRSigmaBitruss(query_score_threshold);
                     delete bitruss_subgraph;
-                    stat->compute_user_relationship_score_time += Duration(compute_score_start_timestamp);
+                    float score_time = Duration(compute_score_start_timestamp);
+                    stat->compute_user_relationship_score_time += score_time;
+                    if (max_score_cost < score_time) max_score_cost = score_time;
                     // (4) add subgraph into P if exists
                     if (!k_r_sigma_bitruss_subgraph->user_map.empty())
                         candidate_set_P.emplace(k_r_sigma_bitruss_subgraph);
