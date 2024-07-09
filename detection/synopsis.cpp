@@ -3,7 +3,6 @@
 #include <iostream>
 #include <cmath>
 
-#include "utils/types.h"
 #include "detection/synopsis.h"
 
 #pragma region SynopsisNode
