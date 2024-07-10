@@ -131,10 +131,11 @@ if __name__ == "__main__":
             wf.write("{} {} {}\n".format(data.user, data.item, data.tstamp))
 
     with open(os.path.join(os.getcwd(), "dataset", dir_name, item_label_list_file), "w") as wf:
+        wf.write("{}\n".format(ALL_KEYWORD_NUM))
         for item_id, labels in tqdm(enumerate(item_label_list)):
             wf.write("{} {}\n".format(item_id, ",".join([str(label) for label in labels])))
 
     with open(os.path.join(os.getcwd(), "dataset", dir_name, update_stream_file), "w") as wf:
-        wf.write("% max timestamp{} {}\n".format(min_tstamp, max_tstamp))
+        wf.write("% max:{} min:{}\n".format(min_tstamp, max_tstamp))
         for data in tqdm(update_stream):
             wf.write("{} {} {}\n".format(data.user, data.item, data.tstamp))
