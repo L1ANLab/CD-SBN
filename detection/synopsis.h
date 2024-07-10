@@ -13,7 +13,7 @@ struct SynopsisData
     uint ub_sup_M;
     uint ub_score;
 
-    SynopsisData(): bv_r(0), ub_sup_M(0), ub_score(0){}
+    SynopsisData(): bv_r{}, ub_sup_M(0), ub_score(0){}
 
     SynopsisData(
         std::bitset<MAX_LABEL> bv_r_,

@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <iostream>
 #include <cmath>
+#include <iomanip>
 
 #include "detection/synopsis.h"
 
@@ -14,7 +15,7 @@ uint SynopsisNode::ID_COUNTER = 0;
 SynopsisNode::SynopsisNode(
     uint level_,
     std::vector<SynopsisNode*>& children_entries_
-):id(ID_COUNTER), level(level_)
+):id(ID_COUNTER), level(level_), user_set{}
 {
     children_entries = children_entries_;
     for (int r=0;r<R_MAX;r++)
@@ -31,14 +32,20 @@ SynopsisNode::SynopsisNode(
                 data_r->ub_score,
                 children_entries_[i]->data[r]->ub_score
             );
-            std::merge(
-                this->user_set.begin(), this->user_set.end(),
-                children_entries_[i]->user_set.begin(), children_entries_[i]->user_set.end(),
-                this->user_set.begin()
-            );
         }
+        this->data[r] = data_r;
     }
-
+    std::vector<uint> temp_vec;
+    for(size_t i=0;i<children_entries_.size();i++)
+    {
+        temp_vec.resize(this->user_set.size()+children_entries_[i]->user_set.size());
+        std::merge(
+            this->user_set.begin(), this->user_set.end(),
+            children_entries_[i]->user_set.begin(), children_entries_[i]->user_set.end(),
+            temp_vec.begin()
+        );
+        this->user_set.assign(temp_vec.begin(), temp_vec.end());
+    }
     std::vector<SynopsisNode*>().swap(children_entries_);
     ID_COUNTER ++;
 }
@@ -119,12 +126,19 @@ SynopsisNode* Synopsis::BuildSynopsis(Graph* graph)
 
     // 1. package the vertex into synopsis vertex entry
     std::vector<SynopsisNode*> vertex_entry_list(0);
-    for (size_t i=0;i<graph->UserVerticesNum();i++)
+    uint vertices_num = graph->UserVerticesNum();
+    for (uint i=0;i<vertices_num;i++)
     {
+        if (i%50 == 0)
+        {
+            std::cout << i+1 << "/" << vertices_num;
+            std::cout << std::fixed << std::setprecision(2) << " ("  << (i+1)*100.0/vertices_num << "%)" << "\r";
+        }
         SynopsisNode* node_pointer = CreateVertexEntry(i, graph);
         vertex_entry_list.push_back(node_pointer);
         inv_list[i].emplace_back(node_pointer);
     }
+    std::cout << std::endl;
     // 2. sort the synopsis nodes
     std::sort(
         vertex_entry_list.begin(),
@@ -143,7 +157,7 @@ SynopsisNode* Synopsis::BuildSynopsis(Graph* graph)
         }
     );
     // 3. recusively call function to split and merge the synopsis nodes
-    SynopsisNode* root = BuildSynopsisRecursively(vertex_entry_list, 0);
+    this->root = BuildSynopsisRecursively(vertex_entry_list, 0);
     // 4. return the root node pointer
     return root;
 }
@@ -175,11 +189,12 @@ bool Synopsis::UpdateSynopsisAfterInsertion(uint user_id, uint item_id, uint add
     // 1. for all possible radii r
     for (int r=0; r<R_MAX; r++)
     {
-        auto [affected_user_list, affected_item_list] = graph->Get2rHopOfUser(user_id, r);
+        uint radius = r+1;
+        auto [affected_user_list, affected_item_list] = graph->Get2rHopOfUser(user_id, radius);
         // 2. for each affected vertex
         for (auto affected_user_id : affected_user_list)
         {
-            auto [affected_user_2r_list, affected_item_2r_list] = graph->Get2rHopOfUser(affected_user_id, r);
+            auto [affected_user_2r_list, affected_item_2r_list] = graph->Get2rHopOfUser(affected_user_id, radius);
             // 3. for each affected nodes (from bottom to top)
             for (auto affected_node : inv_list[user_id])
             {
@@ -286,11 +301,12 @@ bool Synopsis::UpdateSynopsisAfterExpiration(uint user_id, uint item_id, uint re
     // 1. for all possible radii r
     for (int r=0; r<R_MAX; r++)
     {
-        auto [affected_user_list, affected_item_list] = graph->Get2rHopOfUser(user_id, r);
+        uint radius = r+1;
+        auto [affected_user_list, affected_item_list] = graph->Get2rHopOfUser(user_id, radius);
         // 2. for each affected vertex
         for (auto affected_user_id : affected_user_list)
         {
-            auto [affected_user_2r_list, affected_item_2r_list] = graph->Get2rHopOfUser(affected_user_id, r);
+            auto [affected_user_2r_list, affected_item_2r_list] = graph->Get2rHopOfUser(affected_user_id, radius);
             // 3. for each affected nodes (from bottom to top)
             for (auto affected_node : inv_list[user_id])
             {
@@ -366,18 +382,20 @@ bool Synopsis::UpdateSynopsisAfterExpiration(uint user_id, uint item_id, uint re
 /// @return a vertex entry of the <user_id> with aggregates
 SynopsisNode* Synopsis::CreateVertexEntry(uint user_id, Graph* graph)
 {
-    SynopsisData* data_[R_MAX];
+    SynopsisData* data_[R_MAX] = {nullptr};
     for (int r=0; r<R_MAX; r++)
     {
-        auto [user_list, item_list] = graph->Get2rHopOfUser(user_id, r);
+        uint radius = r+1;
+        auto [user_list, item_list] = graph->Get2rHopOfUser(user_id, radius);
+        if (user_list.size() == 0) continue;
         // 0.1. compute BV_r
-        std::bitset<MAX_LABEL> bv_r_;
+        std::bitset<MAX_LABEL> bv_r_(0);
         for(uint hop_user_id: user_list)
         {
-            bv_r_ |= graph->GetUserBv(hop_user_id);
+            bv_r_ = bv_r_ | graph->GetUserBv(hop_user_id);
         }
-        uint ub_sup_M_ = 0;
         // 0.2. compute ub_sup_M
+        uint ub_sup_M_ = 0;
         for (uint hop_user_id: user_list)
         {
             auto user_neighbor_item_list = graph->GetUserNeighbors(hop_user_id);
@@ -403,10 +421,9 @@ SynopsisNode* Synopsis::CreateVertexEntry(uint user_id, Graph* graph)
                 ub_score = std::max(ub_score, now_score);
             }
         }
-        // 0.4. package a synopsis node 
-        data_[r]->bv_r = bv_r_;
-        data_[r]->ub_sup_M = ub_sup_M_;
-        data_[r]->ub_score = ub_score;
+        // 0.4. package a synopsis node
+        SynopsisData* data = new SynopsisData(bv_r_, ub_sup_M_, ub_score);
+        data_[r] = data;
     }
     return new SynopsisNode(MAX_LEVEL, data_, user_id);
 }
@@ -434,8 +451,8 @@ SynopsisNode* Synopsis::BuildSynopsisRecursively(
     std::vector<SynopsisNode*> children_entries_;
     for (size_t i=0;i<partition_num;i++)
     {
-        size_t start_idx = i*partition_num;
-        size_t end_idx = std::min(i*partition_num + partition_num, vertex_entry_list.size());
+        size_t start_idx = i*SYNOPSIS_SIZE;
+        size_t end_idx = std::min((i+1)*SYNOPSIS_SIZE, vertex_entry_list.size()-1);
         std::vector<SynopsisNode*> partition_vertex_entry_list(
             vertex_entry_list.begin()+start_idx,
             vertex_entry_list.begin()+end_idx
@@ -475,12 +492,12 @@ void Synopsis::InsertVertexEntry(uint user_id, SynopsisNode* new_vertex_entry)
 /// @param new_vertex_entry_score 
 void Synopsis::SearchSynopsisTrace(uint user_id, SynopsisNode* now_node_pointer, uint new_vertex_entry_score)
 {
-    std::vector<SynopsisNode*> children_list = now_node_pointer->GetChildren();
-
     if (now_node_pointer->GetLevel() == MAX_LEVEL)
     {
         return;
     }
+
+    std::vector<SynopsisNode*> children_list = now_node_pointer->GetChildren();
 
     auto child_iter = std::lower_bound(children_list.begin(), children_list.end(), new_vertex_entry_score,
         [](const SynopsisNode* child, uint new_vertex_entry_score)
