@@ -13,7 +13,7 @@
                 "-i", "dataset/BS/20-3/uni/initial_graph.txt",
                 "-l", "dataset/BS/20-3/uni/label_list.txt",
                 "-u", "dataset/BS/20-3/uni/update_stream.txt",
-                "-t", "867333955",
+                "-t", "599996400",
                 "-w", "1000",
                 "-Q", "18","5","17","8","16",
                 "-k", "4",
