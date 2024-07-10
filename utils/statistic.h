@@ -39,6 +39,9 @@ public:
     float update_stream_load_time;
     float synopsis_building_time;
 
+    float graph_synopsis_maintain_time;
+    float query_process_time;
+
     float select_greatest_entry_in_H_time;
     float leaf_node_traverse_time;
     float nonleaf_node_traverse_time;
@@ -46,8 +49,6 @@ public:
     float compute_k_bitruss_time;
     float compute_user_relationship_score_time;
     float modify_result_set_time;
-    float obtainment_time;
-    float refinement_time;
 
     float select_greatest_increment_entry_time;
     float refinement_increment_compute_time;

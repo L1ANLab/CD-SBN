@@ -21,7 +21,7 @@ int main(int argc, char *argv[])
 
     bool is_continuous_flag = false;
     std::string initial_graph_path = "", item_label_list_path = "", update_stream_path = "";
-    uint query_timestamp = -1, sliding_window_size = 0;
+    uint query_timestamp = 0, sliding_window_size = 0;
     std::vector<uint> query_keywords(0);
     uint query_support_threshold = 0, query_radius = 0, query_score_threshold = 0;
 
@@ -29,7 +29,7 @@ int main(int argc, char *argv[])
     app.add_option("-i,--initial", initial_graph_path, "initial graph path")->required();
     app.add_option("-l,--labels", item_label_list_path, "initial data graph path")->required();
     app.add_option("-u,--update", update_stream_path, "update stream path")->required();
-    app.add_option("-t,--qtime", query_timestamp, "query timestamp");
+    app.add_option("-t,--qtime", query_timestamp, "query timestamp")->capture_default_str();
     app.add_option("-w,--window", sliding_window_size, "the size of sliding window")->required();
     app.add_option("-Q,--qkeywords", query_keywords, "query keywords (a comma separated string)")->required();
     app.add_option("-k,--qsupport", query_support_threshold, "query support threshold")->required();
@@ -50,16 +50,30 @@ int main(int argc, char *argv[])
         query_timestamp
     );
 
-    std::cout << "----------- Loading graphs ------------" << std::endl;
+    // std::cout << "----------- Loading graphs -----------" << std::endl;
     start = Get_Time();
-    // statistic->start_timestamp = start;
+    statistic->start_timestamp = start;
     // 1. Load initial graph and item labels
     Graph* data_graph = new Graph();
+    std::cout << "----------- Loading initial graph -----------" << std::endl;
     data_graph->LoadInitialGraph(initial_graph_path);
+    
+    statistic->initial_graph_load_time = Duration(start);
+    Print_Time("Load initial Graph Time Cost: ", statistic->initial_graph_load_time);
+    std::cout << "----------- Loading label list -----------" << std::endl;
+    start = Get_Time();
     data_graph->LoadItemLabel(item_label_list_path);
-    data_graph->PrintMetaData();
+    statistic->label_list_load_time = Duration(start);
+    Print_Time("Load Label List Time Cost: ", statistic->label_list_load_time);
+    std::cout << "----------- Loading update stream -----------" << std::endl;
+    start = Get_Time();
+    data_graph->LoadUpdateStream(update_stream_path);
+    statistic->update_stream_load_time = Duration(start);
+    Print_Time("Load Update Stream Time Cost: ", statistic->update_stream_load_time);
+    // std::cout << "*********** Graph loading complete ***********" << std::endl;
+    // data_graph->PrintMetaData();
     // Print infos
-    Print_Time("Load Graphs: ", start);
+    Print_Time_Now("Load Graphs Time Cost: ", statistic->start_timestamp);
     std::cout << "* query_timestamp: " << query_timestamp << "\n";
     std::cout << "* query_keywords: " ;
     for (size_t i=0; i < query_keywords.size(); i++)
@@ -71,29 +85,38 @@ int main(int argc, char *argv[])
     std::cout << "* query_radius: " << query_radius << "\n";
     std::cout << "* query_score_threshold: " << query_score_threshold << "\n";
 
-    std::cout << "------------ Preprocessing ------------" << std::endl;
-    start = Get_Time();
-
+    std::cout << "------------ Building Synopsis ------------" << std::endl;
     // 2. build synopsis
+    start = Get_Time();
     Synopsis* syn = new Synopsis();
-
     syn->BuildSynopsis(data_graph);
+    statistic->synopsis_building_time = Duration(start);
+    Print_Time("Building Synopsis Time Cost: ", statistic->synopsis_building_time);
 
-    Print_Time("Synopsis Building: ", start);
+    std::cout << "*********** Preprocessing complete ***********" << std::endl;
+    Print_Time_Now("Offline Total Time: ", statistic->start_timestamp);
+    statistic->offline_finish_timestamp = Get_Time();
 
     // 3. execute query
-    statistic->start_timestamp = start;
+    std::cout << "------------ Start query processing ------------" << std::endl;
+    start = Get_Time();
     std::vector<InducedGraph*> result_list;
     if (!is_continuous_flag) // 3.1. for snapshot query
     {
         // 3.1.1. maintain the graph and synopsis until the query time
         if (query_timestamp > data_graph->GetGraphTimestamp())
         {
+            std::cout << "------------ Start graph&synopsis maintenance ------------" << std::endl;
             size_t start_idx = 0, end_idx = 0;
             std::vector<InsertUnit> update_stream = data_graph->GetUpdateStream();
+            ErrorControl::assert_error(
+                update_stream.size() <= 0,
+                "Initialization Error: The update stream has not been initialized!"
+            );
             while (query_timestamp <= update_stream[end_idx].timestamp)
             {
                 // add new edge if in query
+                std::cout << "Maintain timestamp" << update_stream[end_idx].timestamp << "to" << query_timestamp << "\r";
                 uint addition_flag = data_graph->InsertEdge(
                     update_stream[end_idx].user_id,
                     update_stream[end_idx].item_id
@@ -121,9 +144,13 @@ int main(int argc, char *argv[])
                 }
                 // move to next edge
                 end_idx += 1;
-            }   
+            }
+            std::cout << std::endl;
         }
+        statistic->graph_synopsis_maintain_time = Duration(start);
+        start = Get_Time();
         // 3.1.2. find the answer for the snapshot query
+        std::cout << "------------ Start query processing ------------" << std::endl;
         SnapshotHandle* snapshot_query = new SnapshotHandle(
             query_keywords,
             query_support_threshold,
@@ -132,11 +159,13 @@ int main(int argc, char *argv[])
             data_graph,
             syn
         );
+        statistic->query_process_time = Duration(start);
 
-        result_list = snapshot_query->ExecuteSnapshotQuery(statistic);
+        result_list = snapshot_query->ExecuteQuery(statistic);
     }
     else // 3.2. for continuous query
     {
+        statistic->start_timestamp = start;
         size_t start_idx = 0, end_idx = 0;
         std::vector<InsertUnit> update_stream = data_graph->GetUpdateStream();
         while (start_idx < update_stream.size())
@@ -183,9 +212,11 @@ int main(int argc, char *argv[])
             // move to next edge
             end_idx += 1;
         }
+        statistic->finish_timestamp = Get_Time();
     }
-    statistic->finish_timestamp = Get_Time();
 
+    statistic->finish_timestamp = Get_Time();
+    std::cout << "*********** Query processing complete ***********" << std::endl;
     // TODO: print result
     for (auto subgraph :result_list)
     {

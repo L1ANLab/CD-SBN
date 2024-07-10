@@ -85,8 +85,8 @@ std::string Statistic::GenerateStatisticResult()
     result += "Synopsis Building time: " + std::to_string(synopsis_building_time) + "\n";
     float total_online_time = Duration(offline_finish_timestamp) - Duration(finish_timestamp);
     result += "Total Online time: " + std::to_string(total_online_time) + "\n";
-    result += "Obtainment time: " + std::to_string(obtainment_time) + "\n";
-    result += "Refinement time: " + std::to_string(refinement_time) + "\n";
+    result += "Maintenance time: " + std::to_string(graph_synopsis_maintain_time) + "\n";
+    result += "Processing time: " + std::to_string(query_process_time) + "\n";
     result += "-------------OBTAIN TIME INFO-------------\n";
     result += "Select Greatest Entry in Heap time: " + std::to_string(select_greatest_entry_in_H_time) + "\n";
     result += "Leaf Node Traverse time: " + std::to_string(leaf_node_traverse_time) + "\n";
