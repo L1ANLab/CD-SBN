@@ -77,6 +77,14 @@ std::string Statistic::GenerateStatisticResult()
     // result += "Started at: " + std::to_string(start_timestamp) + " \tFinished at: " + std::to_string(finish_timestamp) + "\n";
     float total_time = Duration(start_timestamp) - Duration(finish_timestamp);
     result += "Total time: " + std::to_string(total_time) + "\n";
+    float total_offline_time = Duration(start_timestamp) - Duration(offline_finish_timestamp);
+    result += "Total Offline time: " + std::to_string(total_offline_time) + "\n";
+    result += "Initial Graph Load time: " + std::to_string(initial_graph_load_time) + "\n";
+    result += "Label List Load time: " + std::to_string(label_list_load_time) + "\n";
+    result += "Update Stream Load time: " + std::to_string(update_stream_load_time) + "\n";
+    result += "Synopsis Building time: " + std::to_string(synopsis_building_time) + "\n";
+    float total_online_time = Duration(offline_finish_timestamp) - Duration(finish_timestamp);
+    result += "Total Online time: " + std::to_string(total_online_time) + "\n";
     result += "Obtainment time: " + std::to_string(obtainment_time) + "\n";
     result += "Refinement time: " + std::to_string(refinement_time) + "\n";
     result += "-------------OBTAIN TIME INFO-------------\n";

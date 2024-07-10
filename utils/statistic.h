@@ -31,7 +31,14 @@ public:
     uint edge_num;
 
     std::chrono::high_resolution_clock::time_point start_timestamp;
+    std::chrono::high_resolution_clock::time_point offline_finish_timestamp;
     std::chrono::high_resolution_clock::time_point finish_timestamp;
+
+    float initial_graph_load_time;
+    float label_list_load_time;
+    float update_stream_load_time;
+    float synopsis_building_time;
+
     float select_greatest_entry_in_H_time;
     float leaf_node_traverse_time;
     float nonleaf_node_traverse_time;
