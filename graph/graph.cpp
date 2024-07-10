@@ -55,10 +55,10 @@ void Graph::SetGraphTimestamp(uint new_timestamp) { this->graph_timestamp = new_
 void Graph::SetItemLabels(uint item_id, std::string label_str)
 {
     std::bitset<MAX_LABEL> bitvector = 0;
-    std::stringstream ss(label_str); // 将input_str转换为stringstream格式
+    std::stringstream ss(label_str);
     std::stringstream trans;
     std::string label;
-    while (std::getline(ss, label, ',')) // 以逗号为分隔符提取子字符串
+    while (std::getline(ss, label, ','))
     {
         std::stringstream trans(label);
         uint label_num;
@@ -538,14 +538,14 @@ void Graph::LoadInitialGraph(const std::string &path)
             uint from_id, to_id, initial_timestamp;
             ifs >> from_id >> to_id >> initial_timestamp;
             uint addition_flag = InsertEdge(from_id, to_id);
-            if (addition_flag == 1)
-            {
-                std::cout << "Added new edge: (" << from_id << "," << to_id << ")" << "\n";
-            }
-            else
-            {
-                std::cout << "Inserted new edge: (" << from_id << "," << to_id << ")" << "\n";
-            }
+            // if (addition_flag == 1)
+            // {
+            //     std::cout << "Added new edge: (" << from_id << "," << to_id << ")" << "\n";
+            // }
+            // else
+            // {
+            //     std::cout << "Inserted new edge: (" << from_id << "," << to_id << ")" << "\n";
+            // }
             MaintainAfterInsertion(from_id, to_id, addition_flag);
         }
     }
@@ -565,14 +565,15 @@ void Graph::LoadItemLabel(const std::string &path)
         "File Stream Error: The input file stream open failed"
     );
     ifs >> this->label_size;
+    // int counter = 0;
     while (!ifs.eof())
     {
-        {
-            uint item_id;
-            std::string label_str;
-            ifs >> item_id >> label_str;
-            SetItemLabels(item_id, label_str);
-        }
+        uint item_id;
+        std::string label_str;
+        ifs >> item_id >> label_str;
+        // std::cout << "Item<" << item_id << "> has keywords (" << label_str << ")" << "\n";
+        SetItemLabels(item_id, label_str);
+        // counter++;
     }
     ifs.close();
 }
@@ -588,10 +589,13 @@ void Graph::LoadUpdateStream(const std::string &path)
         !ifs,
         "File Stream Error: The input file stream open failed"
     );
-    while (!ifs.eof())
+    std::string line_str;
+    while (std::getline(ifs, line_str))
     {
+        if (line_str.find('%')) continue;
+        std::stringstream ss(line_str);
         uint from_id, to_id, timestamp;
-        ifs >> from_id >> to_id >> timestamp;
+        ss >> from_id >> to_id >> timestamp;
         updates_.emplace_back(from_id, to_id, timestamp);
     }
     ifs.close();
