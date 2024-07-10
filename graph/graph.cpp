@@ -437,7 +437,7 @@ std::tuple<std::vector<uint>, std::vector<uint>>  Graph::Get2rHopOfUser(uint cen
         {
             uint visit_user = to_visit_users.front();
             to_visit_users.pop();
-            if (visited_users.find(visit_user) == visited_users.end()) continue;
+            if (visited_users.find(visit_user) != visited_users.end()) continue;
             for (size_t j = 0; j < user_neighbors[visit_user].size(); j++)
             {
                 to_visit_items.push(user_neighbors[visit_user][j]);
@@ -449,7 +449,7 @@ std::tuple<std::vector<uint>, std::vector<uint>>  Graph::Get2rHopOfUser(uint cen
         {
             uint visit_item = to_visit_items.front();
             to_visit_items.pop();
-            if (visited_items.find(visit_item) == visited_items.end()) continue;
+            if (visited_items.find(visit_item) != visited_items.end()) continue;
             
             for (size_t j = 0; j < item_neighbors[visit_item].size(); j++)
             {
@@ -483,7 +483,7 @@ std::tuple<std::vector<uint>, std::vector<uint>>  Graph::Get2rHopOfUserByBV(uint
         {
             uint visit_user = to_visit_users.front();
             to_visit_users.pop();
-            if (visited_users.find(visit_user) == visited_users.end()) continue;
+            if (visited_users.find(visit_user) != visited_users.end()) continue;
             for (size_t j = 0; j < user_neighbors[visit_user].size(); j++)
             {
                 to_visit_items.push(user_neighbors[visit_user][j]);
@@ -497,7 +497,7 @@ std::tuple<std::vector<uint>, std::vector<uint>>  Graph::Get2rHopOfUserByBV(uint
         {
             uint visit_item = to_visit_items.front();
             to_visit_items.pop();
-            if (visited_items.find(visit_item) == visited_items.end()) continue;
+            if (visited_items.find(visit_item) != visited_items.end()) continue;
             
             for (size_t j = 0; j < item_neighbors[visit_item].size(); j++)
             {
@@ -592,7 +592,7 @@ void Graph::LoadUpdateStream(const std::string &path)
     std::string line_str;
     while (std::getline(ifs, line_str))
     {
-        if (line_str.find('%')) continue;
+        if (line_str.find('%') != line_str.npos) continue;
         std::stringstream ss(line_str);
         uint from_id, to_id, timestamp;
         ss >> from_id >> to_id >> timestamp;
