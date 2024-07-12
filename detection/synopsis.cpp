@@ -6,7 +6,7 @@
 
 #include "detection/synopsis.h"
 
-#pragma region SynopsisNode
+// #pragma region SynopsisNode
 
 uint SynopsisNode::ID_COUNTER = 0;
 
@@ -17,7 +17,7 @@ SynopsisNode::SynopsisNode(
     std::vector<SynopsisNode*>& children_entries_
 ):id(ID_COUNTER), level(level_), user_set{}
 {
-    children_entries = children_entries_;
+    this->children_entries.assign(children_entries_.begin(), children_entries_.end());
     for (int r=0;r<R_MAX;r++)
     {
         SynopsisData* data_r = new SynopsisData();
@@ -45,8 +45,8 @@ SynopsisNode::SynopsisNode(
             temp_vec.begin()
         );
         this->user_set.assign(temp_vec.begin(), temp_vec.end());
+        std::vector<uint>().swap(temp_vec);
     }
-    std::vector<SynopsisNode*>().swap(children_entries_);
     ID_COUNTER ++;
 }
 
@@ -99,10 +99,10 @@ bool SynopsisNode::IsTreeNode() const { return (children_entries.size() < user_s
 bool SynopsisNode::IsLeafNode() const { return (children_entries.size() == user_set.size()); }
 bool SynopsisNode::IsVertexEntry() const { return (children_entries.size() == 0 && user_set.size() > 1); }
 
-#pragma endregion SynopsisNode
+// #pragma endregion SynopsisNode
 
 
-#pragma region Synopsis
+// #pragma region Synopsis
 // Synopsis
 
 Synopsis::Synopsis(): root(nullptr), inv_list{}
@@ -114,6 +114,16 @@ Synopsis::~Synopsis()
 }
 
 SynopsisNode* Synopsis::GetRoot() const { return root; }
+
+uint Synopsis::CountLeafNodes(SynopsisNode* now_node) const
+{
+    if (now_node->GetChildren().size() == 0) return 0;
+    if (now_node->GetChildren().front()->GetLevel() == MAX_LEVEL) return 1;
+    uint now_counter = 0;
+    for (SynopsisNode* child_node: now_node->GetChildren())
+        now_counter += CountLeafNodes(child_node);
+    return now_counter;
+}
 
 
 /// @brief build a synopsis $Syn$ of graph
@@ -131,8 +141,8 @@ SynopsisNode* Synopsis::BuildSynopsis(Graph* graph)
     {
         if (i%50 == 0)
         {
-            std::cout << i+1 << "/" << vertices_num;
-            std::cout << std::fixed << std::setprecision(2) << " ("  << (i+1)*100.0/vertices_num << "%)" << "\r";
+            std::cout << "\r" << i+1 << "/" << vertices_num;
+            std::cout << std::fixed << std::setprecision(2) << " ("  << (i+1)*100.0/vertices_num << "%)";
         }
         SynopsisNode* node_pointer = CreateVertexEntry(i, graph);
         vertex_entry_list.push_back(node_pointer);
@@ -447,20 +457,21 @@ SynopsisNode* Synopsis::BuildSynopsisRecursively(
         return leaf_node_pointer;
     }
 
-    size_t partition_num = ceil(vertex_entry_list.size() / SYNOPSIS_SIZE);
+    size_t partition_entry_num = ceil(vertex_entry_list.size()*1.0 / SYNOPSIS_SIZE);
     std::vector<SynopsisNode*> children_entries_;
-    for (size_t i=0;i<partition_num;i++)
+    for (size_t i=0;i<SYNOPSIS_SIZE;i++)
     {
-        size_t start_idx = i*SYNOPSIS_SIZE;
-        size_t end_idx = std::min((i+1)*SYNOPSIS_SIZE, vertex_entry_list.size()-1);
+        size_t start_idx = i*partition_entry_num;
+        size_t end_idx = std::min((i+1)*partition_entry_num, vertex_entry_list.size()-1);
         std::vector<SynopsisNode*> partition_vertex_entry_list(
-            vertex_entry_list.begin()+start_idx,
-            vertex_entry_list.begin()+end_idx
+            vertex_entry_list.begin() + start_idx,
+            vertex_entry_list.begin() + end_idx
         );
         SynopsisNode* child_entry = BuildSynopsisRecursively(partition_vertex_entry_list, level+1);
         children_entries_.push_back(child_entry);
+        if (end_idx == vertex_entry_list.size() - 1) break;
     }
-    children_entries_.resize(children_entries_.size());
+    children_entries_.shrink_to_fit();
 
     SynopsisNode* non_leaf_node_pointer = new SynopsisNode(level, vertex_entry_list);
     for (auto user_id: non_leaf_node_pointer->GetUserSet())
@@ -526,4 +537,4 @@ void Synopsis::DestroySynopsis(SynopsisNode* now_node_pointer)
         delete now_node_pointer;
     }
 }
-#pragma endregion Synopsis
+// # pragma endregion Synopsis

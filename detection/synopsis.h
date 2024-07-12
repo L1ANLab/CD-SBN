@@ -88,6 +88,7 @@ public:
     ~Synopsis();
 
     SynopsisNode* GetRoot() const;
+    uint CountLeafNodes(SynopsisNode* now_node) const;
 
     SynopsisNode* BuildSynopsis(Graph* graph);
 
