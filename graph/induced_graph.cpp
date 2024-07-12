@@ -182,8 +182,7 @@ InducedGraph* InducedGraph::ComputeKBitruss(uint k)
 
     std::vector<uint> user_list(this->user_map);
     // 0.use adjacency list to save the edges
-    std::vector<std::vector<std::pair<uint, uint>>> new_edge_list;
-    new_edge_list.resize(*std::max_element(user_list.begin(), user_list.end()));
+    std::vector<std::vector<std::pair<uint, uint>>> new_edge_list(user_list.back()+1);
     
     for (auto edge : this->e_lists)
     {
@@ -211,7 +210,10 @@ InducedGraph* InducedGraph::ComputeKBitruss(uint k)
             {
                 // 1.1, for the choosed two item, find common neighor user.
                 uint item_neighbor2 = new_edge_list[user][j].first;
-                std::vector<uint> raw_common_neighbors;
+                std::vector<uint> raw_common_neighbors(
+                    this->graph.GetItemNeighbors(item_neighbor1).size()+
+                    this->graph.GetItemNeighbors(item_neighbor2).size()
+                );
                 std::set_intersection(
                     this->graph.GetItemNeighbors(item_neighbor1).begin(),
                     this->graph.GetItemNeighbors(item_neighbor1).end(),
@@ -279,7 +281,10 @@ InducedGraph* InducedGraph::ComputeKBitruss(uint k)
                 uint item_neighbor = new_edge_list[user][i].first;
                 if (item_neighbor == item) continue;
 
-                std::vector<uint> raw_common_neighbors;
+                std::vector<uint> raw_common_neighbors(
+                    this->graph.GetItemNeighbors(item).size() +
+                    this->graph.GetItemNeighbors(item_neighbor).size()
+                );
                 std::set_intersection(
                     this->graph.GetItemNeighbors(item).begin(),
                     this->graph.GetItemNeighbors(item).end(),
@@ -370,7 +375,10 @@ InducedGraph* InducedGraph::ComputeKRSigmaBitruss(uint sigma)
         {
             // 1.1. for the choosed two item, find common neighbor users
             uint user2 = user_list[j];
-            std::vector<uint> raw_common_neighbors;
+            std::vector<uint> raw_common_neighbors(
+                user_neighbor_list[user1].size() +
+                user_neighbor_list[user2].size()
+            );
             std::set_intersection(
                 user_neighbor_list[user1].begin(),
                 user_neighbor_list[user1].end(),
@@ -445,4 +453,19 @@ InducedGraph* InducedGraph::ComputeKRSigmaBitruss(uint sigma)
     */
 
     return new InducedGraph(this->graph, this->user_map, this->item_map, this->e_lists);
+}
+
+
+void InducedGraph::PrintMetaData()
+{
+    std::cout << "User List[" << user_map.size() <<  "]: ";
+    for (uint user: user_map)
+        std::cout << user << " ";
+    std::cout << std::endl;
+    std::cout << "Item List[" << item_map.size() <<  "]: ";
+    for (uint item: item_map)
+        std::cout << item << " ";
+    std::cout << std::endl;
+    std::cout << "edge List[" << e_lists.size() <<  "]";
+    std::cout << std::endl;
 }

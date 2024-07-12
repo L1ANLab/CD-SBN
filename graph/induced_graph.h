@@ -36,6 +36,7 @@ public:
     
     InducedGraph* ComputeKBitruss(uint k);
     InducedGraph* ComputeKRSigmaBitruss(uint sigma);
+    void PrintMetaData();
 };
 
 #endif //GRAPH_INDUCEDGRAPH
