@@ -2,27 +2,27 @@
 
 bool HeapEntry::operator < (const HeapEntry &right) const
 {
-    if (this->node->GetLevel() == right.node->GetLevel())
+    if (this->score == right.score)
     {
-        return this->score < right.score; 
+    return this->node->GetLevel() < right.node->GetLevel();
     }
     
-    return this->node->GetLevel() < right.node->GetLevel();
+    return this->score < right.score; 
 }
 
 bool HeapEntry::operator > (const HeapEntry &right) const
 {
-    if (this->node->GetLevel() == right.node->GetLevel())
+    if (this->score == right.score)
     {
-        return this->score > right.score; 
+        return this->node->GetLevel() > right.node->GetLevel();
     }
     
-    return this->node->GetLevel() > right.node->GetLevel();
+    return this->score > right.score; 
 }
 
 bool CompareHeapEntry(const HeapEntry *left, const HeapEntry *right)
 {
-    return *left > *right;
+    return *left < *right;
 }
 
 
