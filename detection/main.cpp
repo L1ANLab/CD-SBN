@@ -55,16 +55,16 @@ int main(int argc, char *argv[])
     statistic->start_timestamp = start;
     // 1. Load initial graph and item labels
     Graph* data_graph = new Graph();
-    std::cout << "----------- Loading initial graph -----------" << std::endl;
-    data_graph->LoadInitialGraph(initial_graph_path);
-    
-    statistic->initial_graph_load_time = Duration(start);
-    Print_Time("Load initial Graph Time Cost: ", statistic->initial_graph_load_time);
     std::cout << "----------- Loading label list -----------" << std::endl;
     start = Get_Time();
     data_graph->LoadItemLabel(item_label_list_path);
     statistic->label_list_load_time = Duration(start);
     Print_Time("Load Label List Time Cost: ", statistic->label_list_load_time);
+    std::cout << "----------- Loading initial graph -----------" << std::endl;
+    data_graph->LoadInitialGraph(initial_graph_path);
+    
+    statistic->initial_graph_load_time = Duration(start);
+    Print_Time("Load initial Graph Time Cost: ", statistic->initial_graph_load_time);
     std::cout << "----------- Loading update stream -----------" << std::endl;
     start = Get_Time();
     data_graph->LoadUpdateStream(update_stream_path);
@@ -98,7 +98,7 @@ int main(int argc, char *argv[])
     statistic->offline_finish_timestamp = Get_Time();
 
     // 3. execute query
-    std::cout << "------------ Start query processing ------------" << std::endl;
+    std::cout << "------------ Start online processing ------------" << std::endl;
     start = Get_Time();
     std::vector<InducedGraph*> result_list;
     if (!is_continuous_flag) // 3.1. for snapshot query
@@ -113,10 +113,10 @@ int main(int argc, char *argv[])
                 update_stream.size() <= 0,
                 "Initialization Error: The update stream has not been initialized!"
             );
-            while (query_timestamp <= update_stream[end_idx].timestamp)
+            while (update_stream[end_idx].timestamp <= query_timestamp)
             {
                 // add new edge if in query
-                std::cout << "Maintain timestamp" << update_stream[end_idx].timestamp << "to" << query_timestamp << "\r";
+                std::cout << "Maintain timestamp " << update_stream[end_idx].timestamp << " to " << query_timestamp << std::endl;
                 uint addition_flag = data_graph->InsertEdge(
                     update_stream[end_idx].user_id,
                     update_stream[end_idx].item_id
@@ -159,9 +159,9 @@ int main(int argc, char *argv[])
             data_graph,
             syn
         );
-        statistic->query_process_time = Duration(start);
 
         result_list = snapshot_query->ExecuteQuery(statistic);
+        statistic->query_process_time = Duration(start);
     }
     else // 3.2. for continuous query
     {
@@ -217,7 +217,18 @@ int main(int argc, char *argv[])
 
     statistic->finish_timestamp = Get_Time();
     std::cout << "*********** Query processing complete ***********" << std::endl;
-    // TODO: print result
+    // print result
+    // for (InducedGraph* subgraph: result_list)
+    // {
+    //     subgraph->PrintMetaData();
+    //     std::cout << std::endl;
+    // }
+    statistic->user_node_num = data_graph->UserVerticesNum();
+    statistic->item_node_num = data_graph->ItemVerticesNum();
+    statistic->edge_num = data_graph->NumEdges();
+    statistic->leaf_node_counter = syn->CountLeafNodes(syn->GetRoot());
+
+    std::cout << statistic->GenerateStatisticResult() << std::endl;
     for (auto subgraph :result_list)
     {
         delete subgraph;
