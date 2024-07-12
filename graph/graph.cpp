@@ -531,11 +531,10 @@ void Graph::LoadInitialGraph(const std::string &path)
         !ifs,
         "File Stream Error: The input file stream open failed"
     );
-    uint initial_timestamp = 0;
+    uint from_id=0, to_id=0, initial_timestamp=0;
     while (!ifs.eof())
     {
         {
-            uint from_id, to_id, initial_timestamp;
             ifs >> from_id >> to_id >> initial_timestamp;
             uint addition_flag = InsertEdge(from_id, to_id);
             // if (addition_flag == 1)
