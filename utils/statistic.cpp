@@ -49,8 +49,9 @@ std::string Statistic::GenerateStatisticResult()
     result += "Mid Data File: " + mid_file_path.string() + "\n";
     result += "\n";
     result += "-------------SOLVER INFO-------------\n";
-    // result += "Result: {}\n".format([result[1] for result in self.solver_result]);
-    result += "Total Nodes: " + std::to_string(node_num) + "\n";
+    result += "Result["+ std::to_string(solver_result.size()) +"]\n";
+    result += "Total User Nodes: " + std::to_string(user_node_num) + "\n";
+    result += "Total Item Nodes: " + std::to_string(item_node_num) + "\n";
     result += "Total Edges: " + std::to_string(edge_num) + "\n";
     result += "All Keywords: " + all_keyword_num + "\n";
     result += "Keywords Per Vertex: "+ keywords_per_vertex_num +"\n";
@@ -87,6 +88,7 @@ std::string Statistic::GenerateStatisticResult()
     result += "Total Online time: " + std::to_string(total_online_time) + "\n";
     result += "Maintenance time: " + std::to_string(graph_synopsis_maintain_time) + "\n";
     result += "Processing time: " + std::to_string(query_process_time) + "\n";
+    result += "\n";
     result += "-------------OBTAIN TIME INFO-------------\n";
     result += "Select Greatest Entry in Heap time: " + std::to_string(select_greatest_entry_in_H_time) + "\n";
     result += "Leaf Node Traverse time: " + std::to_string(leaf_node_traverse_time) + "\n";
@@ -94,12 +96,13 @@ std::string Statistic::GenerateStatisticResult()
     result += "Compute 2R-Hop time: " + std::to_string(compute_2r_hop_time) + "\n";
     result += "Compute K-Bitruss time: " + std::to_string(compute_k_bitruss_time) + "\n";
     result += "Compute Relationship Score time: " + std::to_string(compute_user_relationship_score_time) + "\n";
-    result += "Modify Result Set time: " + std::to_string(modify_result_set_time) + "\n";
-    result += "-------------REFINE TIME INFO-------------\n";
-    result += "Select Greatest Increment Entry in Heap time: " + std::to_string(select_greatest_increment_entry_time) + "\n";
-    result += "Refinement Increment Compute Time: " + std::to_string(refinement_increment_compute_time);
-    result += " for " + std::to_string(refinement_increment_compute_counter) + " times\n";
-    result += "Refinement Graph Update Time: " + std::to_string(refinement_graph_update_time) + "\n";
-    result += "Refinement Graph Copy Time: " + std::to_string(refinement_grah_copy_time) + "\n";
+    // result += "Modify Result Set time: " + std::to_string(modify_result_set_time) + "\n";
+    result += "\n";
+    // result += "-------------REFINE TIME INFO-------------\n";
+    // result += "Select Greatest Increment Entry in Heap time: " + std::to_string(select_greatest_increment_entry_time) + "\n";
+    // result += "Refinement Increment Compute Time: " + std::to_string(refinement_increment_compute_time);
+    // result += " for " + std::to_string(refinement_increment_compute_counter) + " times\n";
+    // result += "Refinement Graph Update Time: " + std::to_string(refinement_graph_update_time) + "\n";
+    // result += "Refinement Graph Copy Time: " + std::to_string(refinement_grah_copy_time) + "\n";
     return result;
 }

@@ -4,6 +4,8 @@
 #include <string>
 #include <vector>
 
+#include "graph/induced_graph.h"
+
 class Statistic
 {
 private:
@@ -27,7 +29,9 @@ public:
         uint query_score_threshold_,
         uint query_timestamp_
     );
-    uint node_num;
+    std::vector<InducedGraph*> solver_result;
+    uint user_node_num;
+    uint item_node_num;
     uint edge_num;
 
     std::chrono::high_resolution_clock::time_point start_timestamp;
@@ -56,10 +60,10 @@ public:
     float refinement_graph_update_time;
     float refinement_grah_copy_time;
 
-    float vertex_pruning_counter;
-    float entry_pruning_counter;
-    float leaf_node_counter;
-    float leaf_node_visit_counter;
+    uint vertex_pruning_counter;
+    uint entry_pruning_counter;
+    uint leaf_node_counter;
+    uint leaf_node_visit_counter;
 
     std::string GenerateStatisticResult();
 };
