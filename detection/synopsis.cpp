@@ -1,6 +1,7 @@
 #include <vector>
 #include <algorithm>
 #include <iostream>
+#include <fstream>
 #include <cmath>
 #include <iomanip>
 
@@ -126,14 +127,47 @@ uint Synopsis::CountLeafNodes(SynopsisNode* now_node) const
 }
 
 
-/// @brief build a synopsis $Syn$ of graph
+
+/// @brief [TODO] Load synopsis entries from file
 /// @param graph 
-/// @return a pointer to the root node of synopsis
-SynopsisNode* Synopsis::BuildSynopsis(Graph* graph)
+/// @return a vector of vertex entries
+std::vector<SynopsisNode*> Synopsis::LoadSynopsisEntries(Graph* graph)
+{
+    std::vector<SynopsisNode*> vertex_entry_list(0);
+    return vertex_entry_list;
+}
+
+
+/// @brief [TODO] save the synopsis from root to file
+/// @param synopsis_file_path 
+/// @return true if file successfully saved, otherwise false
+bool Synopsis::SaveSynopsisEntries(std::string synopsis_file_path)
+{
+    ErrorControl::assert_error(
+        io::file_exists(synopsis_file_path.c_str()),
+        "File Error: The output <" + synopsis_file_path  + "> file exists"
+    );
+    std::ofstream of(synopsis_file_path.c_str(), std::ios::out);
+    ErrorControl::assert_error(
+        !of,
+        "File Stream Error: The output file stream open failed"
+    );
+
+    SaveSynopsisRecursively(of, this->root);
+
+
+    of.close();
+    return true;
+}
+
+
+/// @brief compute the vertex entries of synopsis.
+/// @param graph 
+/// @return a vector of vertex entries
+std::vector<SynopsisNode*> Synopsis::PrecomputeSynopsisEntries(Graph* graph)
 {
     // 0. initialize a inverted list to store the node index for each vertex
     inv_list.resize(graph->UserVerticesNum());
-
     // 1. package the vertex into synopsis vertex entry
     std::vector<SynopsisNode*> vertex_entry_list(0);
     uint vertices_num = graph->UserVerticesNum();
@@ -149,26 +183,19 @@ SynopsisNode* Synopsis::BuildSynopsis(Graph* graph)
         inv_list[i].emplace_back(node_pointer);
     }
     std::cout << std::endl;
-    // 2. sort the synopsis nodes
-    std::sort(
-        vertex_entry_list.begin(),
-        vertex_entry_list.end(),
-        [](SynopsisNode* left, SynopsisNode* right)
-        {
-            uint left_score = 0;
-            uint right_score = 0;
-            for (int r=0;r<R_MAX;r++)
-            {
-                left_score += left->GetUbScore(r);
-                right_score += right->GetUbScore(r);
-            }
+    return vertex_entry_list;
+}
 
-            return left_score > right_score;
-        }
-    );
-    // 3. recusively call function to split and merge the synopsis nodes
+/// @brief build a synopsis $syn$ of graph
+/// @param graph 
+/// @return a pointer to the root node of synopsis
+SynopsisNode* Synopsis::BuildSynopsis(Graph* graph, std::vector<SynopsisNode*> vertex_entry_list)
+{    
+    std::chrono::high_resolution_clock::time_point start = Get_Time();
+    // 1. recusively call function to split and merge the synopsis nodes
     this->root = BuildSynopsisRecursively(vertex_entry_list, 0);
-    // 4. return the root node pointer
+    // 2. return the root node pointer
+    Print_Time_Now("Build part takes ", start);
     return root;
 }
 
@@ -438,6 +465,7 @@ SynopsisNode* Synopsis::CreateVertexEntry(uint user_id, Graph* graph)
     return new SynopsisNode(MAX_LEVEL, data_, user_id);
 }
 
+
 /// @brief [Private] set the children of each synopsis node and build the synopsis tree
 /// @param vertex_entry_list 
 /// @param level 
@@ -481,6 +509,16 @@ SynopsisNode* Synopsis::BuildSynopsisRecursively(
     return non_leaf_node_pointer;
 }
 
+/// @brief [TODO][Private] save the current synopsis 
+/// @param of 
+/// @param now_node_pointer 
+void Synopsis::SaveSynopsisRecursively(
+    std::ofstream& of,
+    SynopsisNode* now_node_pointer
+)
+{
+    return;
+}
 
 /// @brief [Private] traverse the synopsis to insert a new vertex entry
 /// @param new_vertex_entry
@@ -527,6 +565,8 @@ void Synopsis::SearchSynopsisTrace(uint user_id, SynopsisNode* now_node_pointer,
     return;
 }
 
+/// @brief recursively destroy the synopsis nodes from the pointer
+/// @param now_node_pointer 
 void Synopsis::DestroySynopsis(SynopsisNode* now_node_pointer)
 {
     if (now_node_pointer != nullptr) {
@@ -537,4 +577,9 @@ void Synopsis::DestroySynopsis(SynopsisNode* now_node_pointer)
         delete now_node_pointer;
     }
 }
+
+
+
+
+
 // # pragma endregion Synopsis

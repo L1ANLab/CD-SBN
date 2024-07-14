@@ -79,6 +79,11 @@ private:
         uint level
     );
 
+    void SaveSynopsisRecursively(
+        std::ofstream& of,
+        SynopsisNode* now_node_pointer
+    );
+
     void InsertVertexEntry(uint user_id, SynopsisNode* new_vertex_entry);
     void SearchSynopsisTrace(uint user_id, SynopsisNode* now_node_pointer, uint new_vertex_entry_score);
     void DestroySynopsis(SynopsisNode* now_node_pointer);
@@ -90,10 +95,13 @@ public:
     SynopsisNode* GetRoot() const;
     uint CountLeafNodes(SynopsisNode* now_node) const;
 
-    SynopsisNode* BuildSynopsis(Graph* graph);
+    std::vector<SynopsisNode*> PrecomputeSynopsisEntries(Graph* graph);
+    std::vector<SynopsisNode*> LoadSynopsisEntries(Graph* graph);
+    SynopsisNode* BuildSynopsis(Graph* graph, std::vector<SynopsisNode*> vertex_entry_list);
+
+    bool SaveSynopsisEntries(std::string synopsis_file_path);
 
     bool UpdateSynopsisAfterInsertion(uint user_id, uint item_id, uint addition_flag, Graph* Graph);
-
     bool UpdateSynopsisAfterExpiration(uint user_id, uint item_id, uint removal_flag, Graph* Graph);
 };
 

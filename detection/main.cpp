@@ -39,10 +39,13 @@ int main(int argc, char *argv[])
     CLI11_PARSE(app, argc, argv);
     
     std::chrono::high_resolution_clock::time_point start;
+    fs::path initial_graph_folder = fs::path(initial_graph_path).parent_path();
+    fs::path synopsis_entries_file_path = initial_graph_folder / fs::path("synopsis_entries.txt");
     Statistic* statistic = new Statistic(
         initial_graph_path,
         item_label_list_path,
         update_stream_path,
+        synopsis_entries_file_path,
         query_keywords,
         query_support_threshold,
         query_radius,
@@ -53,24 +56,25 @@ int main(int argc, char *argv[])
     // std::cout << "----------- Loading graphs -----------" << std::endl;
     start = Get_Time();
     statistic->start_timestamp = start;
-    // 1. Load initial graph and item labels
+    // 1.1. Load item labels
     Graph* data_graph = new Graph();
     std::cout << "----------- Loading label list -----------" << std::endl;
     start = Get_Time();
     data_graph->LoadItemLabel(item_label_list_path);
     statistic->label_list_load_time = Duration(start);
     Print_Time("Load Label List Time Cost: ", statistic->label_list_load_time);
+    // 1.2. Load initial graph
     std::cout << "----------- Loading initial graph -----------" << std::endl;
     data_graph->LoadInitialGraph(initial_graph_path);
-    
     statistic->initial_graph_load_time = Duration(start);
-    Print_Time("Load initial Graph Time Cost: ", statistic->initial_graph_load_time);
+    Print_Time("Load Initial Graph Time Cost: ", statistic->initial_graph_load_time);
+    // 1.3. Load update stream
     std::cout << "----------- Loading update stream -----------" << std::endl;
     start = Get_Time();
     data_graph->LoadUpdateStream(update_stream_path);
     statistic->update_stream_load_time = Duration(start);
     Print_Time("Load Update Stream Time Cost: ", statistic->update_stream_load_time);
-    // std::cout << "*********** Graph loading complete ***********" << std::endl;
+    std::cout << "*********** Graph loading complete ***********" << std::endl;
     // data_graph->PrintMetaData();
     // Print infos
     Print_Time_Now("Load Graphs Time Cost: ", statistic->start_timestamp);
@@ -85,14 +89,21 @@ int main(int argc, char *argv[])
     std::cout << "* query_radius: " << query_radius << "\n";
     std::cout << "* query_score_threshold: " << query_score_threshold << "\n";
 
-    std::cout << "------------ Building Synopsis ------------" << std::endl;
     // 2. build synopsis
-    start = Get_Time();
     Synopsis* syn = new Synopsis();
-    syn->BuildSynopsis(data_graph);
+    // 2.1. precompute or load synopsis entries
+    std::cout << "------------ Precompute Synopsis Entries ------------" << std::endl;
+    start = Get_Time();
+    std::vector<SynopsisNode*> vertex_entry_list;
+    if (io::file_exists(synopsis_entries_file_path.c_str()))
+        vertex_entry_list = syn->LoadSynopsisEntries(data_graph);
+    else
+        vertex_entry_list = syn->PrecomputeSynopsisEntries(data_graph);
+    Print_Time_Now("Compute part takes ", start);
+    std::cout << "------------ Building Synopsis ------------" << std::endl;
+    syn->BuildSynopsis(data_graph, vertex_entry_list);
     statistic->synopsis_building_time = Duration(start);
     Print_Time("Building Synopsis Time Cost: ", statistic->synopsis_building_time);
-
     std::cout << "*********** Preprocessing complete ***********" << std::endl;
     Print_Time_Now("Offline Total Time: ", statistic->start_timestamp);
     statistic->offline_finish_timestamp = Get_Time();
@@ -113,7 +124,7 @@ int main(int argc, char *argv[])
                 update_stream.size() <= 0,
                 "Initialization Error: The update stream has not been initialized!"
             );
-            while (update_stream[end_idx].timestamp <= query_timestamp)
+            while (end_idx < update_stream.size() && update_stream[end_idx].timestamp <= query_timestamp)
             {
                 // add new edge if in query
                 std::cout << "Maintain timestamp " << update_stream[end_idx].timestamp << " to " << query_timestamp << std::endl;
@@ -168,7 +179,7 @@ int main(int argc, char *argv[])
         statistic->start_timestamp = start;
         size_t start_idx = 0, end_idx = 0;
         std::vector<InsertUnit> update_stream = data_graph->GetUpdateStream();
-        while (start_idx < update_stream.size())
+        while (end_idx < update_stream.size())
         {
             // 3.2.1. maintain the graph and synopsis once
             // add new edge if in query
@@ -229,6 +240,12 @@ int main(int argc, char *argv[])
     statistic->leaf_node_counter = syn->CountLeafNodes(syn->GetRoot());
 
     std::cout << statistic->GenerateStatisticResult() << std::endl;
+
+    if (statistic->SaveStatisticResult())
+    {
+        std::cout << "Print stat result successfully" << std::endl;
+    }
+
     for (auto subgraph :result_list)
     {
         delete subgraph;
