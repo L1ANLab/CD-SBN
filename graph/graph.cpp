@@ -524,7 +524,7 @@ void Graph::LoadInitialGraph(const std::string &path)
 {
     ErrorControl::assert_error(
         !io::file_exists(path.c_str()),
-        "Unknown File Error: The input <" + path  + "> file does not exists"
+        "File Error: The input <" + path  + "> file does not exists"
     );
     std::ifstream ifs(path);
     ErrorControl::assert_error(
@@ -556,7 +556,7 @@ void Graph::LoadItemLabel(const std::string &path)
 {
     ErrorControl::assert_error(
         !io::file_exists(path.c_str()),
-        "Unknown File Error: The input <" + path  + "> file does not exists"
+        "File Error: The input <" + path  + "> file does not exists"
     );
     std::ifstream ifs(path);
     ErrorControl::assert_error(
@@ -581,7 +581,7 @@ void Graph::LoadUpdateStream(const std::string &path)
 {
     ErrorControl::assert_error(
         !io::file_exists(path.c_str()),
-        "Unknown File Error: The input <" + path  + "> file does not exists"
+        "File Error: The input <" + path  + "> file does not exists"
     );
     std::ifstream ifs(path);
     ErrorControl::assert_error(
