@@ -66,6 +66,7 @@ public:
     uint leaf_node_visit_counter;
 
     std::string GenerateStatisticResult();
+    bool SaveStatisticResult();
 };
 
 

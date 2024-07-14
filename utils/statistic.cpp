@@ -1,6 +1,7 @@
 #include <vector>
 #include <algorithm>
 #include <iostream>
+#include <fstream>
 #include <cmath>
 #include <filesystem>
 
@@ -45,7 +46,7 @@ std::string Statistic::GenerateStatisticResult()
     std:: string result = "";
     result += "STATISTIC RESULT\n";
     result += "-------------FILE INFO-------------\n";
-    result += ("Initial Graph File:"+ initial_graph_path_str + "\n");
+    result += ("Initial Graph File: "+ initial_graph_path_str + "\n");
     result += "Mid Data File: " + mid_file_path.string() + "\n";
     result += "\n";
     result += "-------------SOLVER INFO-------------\n";
@@ -105,4 +106,30 @@ std::string Statistic::GenerateStatisticResult()
     // result += "Refinement Graph Update Time: " + std::to_string(refinement_graph_update_time) + "\n";
     // result += "Refinement Graph Copy Time: " + std::to_string(refinement_grah_copy_time) + "\n";
     return result;
+}
+
+
+bool Statistic::SaveStatisticResult()
+{
+    fs::path initial_graph_folder = fs::path(initial_graph_path_str).parent_path();
+    
+    std::stringstream ss;
+    std::chrono::high_resolution_clock::time_point now_time = Get_Time();
+    time_t t = std::chrono::system_clock::to_time_t(now_time);
+    ss << std::put_time(localtime(&t), "%m%d-%H%M%S");
+    std::string stat_file_name = "statistic-" + ss.str();
+    stat_file_name += "-" + std::to_string(std::chrono::duration_cast<\
+    std::chrono::microseconds>(now_time.time_since_epoch()).count()) + ".txt";
+    fs::path stat_file_path = initial_graph_folder / fs::path(stat_file_name);
+    
+    std::ofstream of(stat_file_path.string(), std::ios::out);
+    ErrorControl::assert_error(
+        !of,
+        "File Stream Error: The output file stream open failed"
+    );
+    of << GenerateStatisticResult();
+    of.close();
+
+    std::cout << "Result is saved in " << stat_file_path.string() << std::endl;
+    return true;
 }
