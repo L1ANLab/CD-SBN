@@ -14,6 +14,7 @@ Statistic::Statistic(
     std::string initial_graph_path_str_,
     std::string item_label_list_path_str_,
     std::string update_stream_path_str_,
+    std::string synopsis_entries_file_path_str_,
     std::vector<uint> query_keywords_,
     uint query_support_threshold_,
     uint query_radius_,
@@ -22,7 +23,8 @@ Statistic::Statistic(
 )
 : initial_graph_path_str(initial_graph_path_str_)
 , item_label_list_path_str(item_label_list_path_str_)
-, update_stream_path_str{update_stream_path_str_}
+, update_stream_path_str(update_stream_path_str_)
+, synopsis_entries_file_path_str(synopsis_entries_file_path_str_)
 , query_keywords(query_keywords_)
 , query_support_threshold(query_support_threshold_)
 , query_radius(query_radius_)
@@ -33,8 +35,6 @@ Statistic::Statistic(
 std::string Statistic::GenerateStatisticResult()
 {
     fs::path initial_graph_folder = fs::path(initial_graph_path_str).parent_path();
-    
-    fs::path mid_file_path = initial_graph_folder / fs::path("mid_graph.txt");
 
     std::string distribution = initial_graph_folder.filename().string();
     std::string file_info = initial_graph_folder.parent_path().filename().string();
@@ -47,7 +47,7 @@ std::string Statistic::GenerateStatisticResult()
     result += "STATISTIC RESULT\n";
     result += "-------------FILE INFO-------------\n";
     result += ("Initial Graph File: "+ initial_graph_path_str + "\n");
-    result += "Mid Data File: " + mid_file_path.string() + "\n";
+    result += "Synopsis Entries File: " + synopsis_entries_file_path_str + "\n";
     result += "\n";
     result += "-------------SOLVER INFO-------------\n";
     result += "Result["+ std::to_string(solver_result.size()) +"]\n";

@@ -12,6 +12,7 @@ private:
     std::string initial_graph_path_str;
     std::string item_label_list_path_str;
     std::string update_stream_path_str;
+    std::string synopsis_entries_file_path_str;
     std::vector<uint> query_keywords;
     uint query_support_threshold;
     uint query_radius;
@@ -23,6 +24,7 @@ public:
         std::string initial_graph_path_str_,
         std::string item_label_list_path_str_,
         std::string update_stream_path_str_,
+        std::string synopsis_entries_file_path_str_,
         std::vector<uint> query_keywords_,
         uint query_support_threshold_,
         uint query_radius_,
