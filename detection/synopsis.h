@@ -46,6 +46,13 @@ public:
         SynopsisData* data_[],
         uint user_id
     ); // Vertex entry construct
+    
+    SynopsisNode(
+        uint id_,
+        uint level_,
+        SynopsisData* data_[],
+        uint user_id
+    ); // Vertex entry construct
     ~SynopsisNode();
 
     uint GetID();
@@ -96,10 +103,10 @@ public:
     uint CountLeafNodes(SynopsisNode* now_node) const;
 
     std::vector<SynopsisNode*> PrecomputeSynopsisEntries(Graph* graph);
-    std::vector<SynopsisNode*> LoadSynopsisEntries(Graph* graph);
+    std::vector<SynopsisNode*> LoadSynopsisEntries(std::string synopsis_file_path);
     SynopsisNode* BuildSynopsis(Graph* graph, std::vector<SynopsisNode*> vertex_entry_list);
 
-    bool SaveSynopsisEntries(std::string synopsis_file_path);
+    bool SaveSynopsisEntries(std::string synopsis_file_path, std::vector<SynopsisNode*> vertex_entry_list);
 
     bool UpdateSynopsisAfterInsertion(uint user_id, uint item_id, uint addition_flag, Graph* Graph);
     bool UpdateSynopsisAfterExpiration(uint user_id, uint item_id, uint removal_flag, Graph* Graph);

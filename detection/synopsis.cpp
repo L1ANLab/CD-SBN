@@ -70,6 +70,26 @@ SynopsisNode::SynopsisNode(
     ID_COUNTER ++;
 }
 
+/// @brief Vertex entry load construction
+/// @param bv_r_ 
+/// @param ub_sup_M_ 
+/// @param ub_score_ 
+/// @param vertex_entry 
+SynopsisNode::SynopsisNode(
+    uint id_,
+    uint level_,
+    SynopsisData* data_[],
+    uint user_id
+):id(id_), level(level_), user_set{user_id}
+, children_entries(0)
+{
+    for (int r=0;r<R_MAX;r++)
+    {
+        data[r] = data_[r];
+    }
+}
+
+
 SynopsisNode::~SynopsisNode()
 {
     for (size_t i=0; i<R_MAX;i++)
@@ -131,9 +151,48 @@ uint Synopsis::CountLeafNodes(SynopsisNode* now_node) const
 /// @brief [TODO] Load synopsis entries from file
 /// @param graph 
 /// @return a vector of vertex entries
-std::vector<SynopsisNode*> Synopsis::LoadSynopsisEntries(Graph* graph)
+std::vector<SynopsisNode*> Synopsis::LoadSynopsisEntries(std::string synopsis_file_path)
 {
-    std::vector<SynopsisNode*> vertex_entry_list(0);
+    ErrorControl::assert_error(
+        !io::file_exists(synopsis_file_path.c_str()),
+        "File Error: The input <" + synopsis_file_path  + "> file does not exists"
+    );
+    std::ifstream ifs(synopsis_file_path);
+    ErrorControl::assert_error(
+        !ifs,
+        "File Stream Error: The input file stream open failed"
+    );
+    uint list_size;
+    ifs >> list_size;
+    // int counter = 0;
+    std::vector<SynopsisNode*> vertex_entry_list;
+    this->inv_list.resize(list_size);
+    while (!ifs.eof())
+    {
+        uint node_id, user_id;
+        ifs >> node_id;
+        SynopsisData* data[R_MAX];
+        for (int r=0; r<R_MAX; r++)
+        {
+            std::string bv_str;
+            uint ub_sup_M, ub_score;
+            ifs >> bv_str >> ub_sup_M >> ub_score;
+            std::bitset<MAX_LABEL> bv_r(bv_str);
+            SynopsisData* data_r = new SynopsisData(bv_r, ub_sup_M, ub_score);
+            data[r] = data_r;
+        }
+        ifs >> user_id;
+        
+        SynopsisNode* node_pointer = new SynopsisNode(
+            node_id,
+            MAX_LEVEL,
+            data,
+            user_id
+        );
+        vertex_entry_list.emplace_back(node_pointer);
+        this->inv_list[user_id].emplace_back(node_pointer);
+    }
+    ifs.close();
     return vertex_entry_list;
 }
 
@@ -141,7 +200,7 @@ std::vector<SynopsisNode*> Synopsis::LoadSynopsisEntries(Graph* graph)
 /// @brief [TODO] save the synopsis from root to file
 /// @param synopsis_file_path 
 /// @return true if file successfully saved, otherwise false
-bool Synopsis::SaveSynopsisEntries(std::string synopsis_file_path)
+bool Synopsis::SaveSynopsisEntries(std::string synopsis_file_path, std::vector<SynopsisNode*> vertex_entry_list)
 {
     ErrorControl::assert_error(
         io::file_exists(synopsis_file_path.c_str()),
@@ -153,9 +212,19 @@ bool Synopsis::SaveSynopsisEntries(std::string synopsis_file_path)
         "File Stream Error: The output file stream open failed"
     );
 
-    SaveSynopsisRecursively(of, this->root);
-
-
+    of << vertex_entry_list.size() << std::endl;
+    for (SynopsisNode* vertex_entry : vertex_entry_list)
+    {
+        of << vertex_entry->GetID() << ' ';
+        for (int r=0; r<R_MAX; r++)
+        {
+            of << vertex_entry->GetBvR(r) << ' ';
+            of << vertex_entry->GetUbSupM(r) << ' ';
+            of << vertex_entry->GetUbScore(r) << ' ';
+        }
+        of << vertex_entry->GetUserSet().front();
+        of << std::endl;
+    }
     of.close();
     return true;
 }
@@ -190,12 +259,10 @@ std::vector<SynopsisNode*> Synopsis::PrecomputeSynopsisEntries(Graph* graph)
 /// @param graph 
 /// @return a pointer to the root node of synopsis
 SynopsisNode* Synopsis::BuildSynopsis(Graph* graph, std::vector<SynopsisNode*> vertex_entry_list)
-{    
-    std::chrono::high_resolution_clock::time_point start = Get_Time();
+{
     // 1. recusively call function to split and merge the synopsis nodes
     this->root = BuildSynopsisRecursively(vertex_entry_list, 0);
     // 2. return the root node pointer
-    Print_Time_Now("Build part takes ", start);
     return root;
 }
 

@@ -3,6 +3,7 @@
 #include <numeric>
 #include <string>
 #include <thread>
+#include <filesystem>
 
 #include "utils/CLI11.hpp"
 #include "utils/globals.h"
@@ -13,6 +14,9 @@
 #include "detection/snapshot_handle.h"
 #include "detection/continuous_handle.h"
 #include "detection/synopsis.h"
+
+
+namespace fs=std::filesystem;
 
 
 int main(int argc, char *argv[])
@@ -96,15 +100,27 @@ int main(int argc, char *argv[])
     start = Get_Time();
     std::vector<SynopsisNode*> vertex_entry_list;
     if (io::file_exists(synopsis_entries_file_path.c_str()))
-        vertex_entry_list = syn->LoadSynopsisEntries(data_graph);
+    { // load from file if exists
+        vertex_entry_list = syn->LoadSynopsisEntries(synopsis_entries_file_path);
+        Print_Time_Now("Load part takes: ", start);
+    }
     else
+    { // precompute
         vertex_entry_list = syn->PrecomputeSynopsisEntries(data_graph);
-    Print_Time_Now("Compute part takes ", start);
+        syn->SaveSynopsisEntries(synopsis_entries_file_path, vertex_entry_list);
+        Print_Time_Now("Compute part takes: ", start);
+    }
+    // 2.2. precompute or load synopsis entries
     std::cout << "------------ Building Synopsis ------------" << std::endl;
+    start = Get_Time();
     syn->BuildSynopsis(data_graph, vertex_entry_list);
+    Print_Time_Now("Build part takes ", start);
     statistic->synopsis_building_time = Duration(start);
+
+    // 2. print time cost of Building Synopsis
     Print_Time("Building Synopsis Time Cost: ", statistic->synopsis_building_time);
     std::cout << "*********** Preprocessing complete ***********" << std::endl;
+
     Print_Time_Now("Offline Total Time: ", statistic->start_timestamp);
     statistic->offline_finish_timestamp = Get_Time();
 
@@ -239,7 +255,7 @@ int main(int argc, char *argv[])
     statistic->edge_num = data_graph->NumEdges();
     statistic->leaf_node_counter = syn->CountLeafNodes(syn->GetRoot());
 
-    std::cout << statistic->GenerateStatisticResult() << std::endl;
+    std::cout << std::endl << statistic->GenerateStatisticResult() << std::endl;
 
     if (statistic->SaveStatisticResult())
     {
