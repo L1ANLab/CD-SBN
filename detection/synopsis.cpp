@@ -499,7 +499,7 @@ SynopsisNode* Synopsis::CreateVertexEntry(uint user_id, Graph* graph)
             {
                 if (!std::binary_search(user_list.begin(), user_list.end(), user_data->user_id))
                     continue; // skip if the user neighbor of <user_id> is not contained in the 2r-hop.
-                uint now_score = (user_data->x_data*user_data->x_data + user_data->y_data)/2;
+                uint now_score = (user_data->x_data*user_data->x_data - user_data->y_data)/2;
                 ub_score = std::max(ub_score, now_score);
             }
         }
