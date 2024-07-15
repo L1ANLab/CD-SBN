@@ -210,6 +210,7 @@ void Graph::MaintainAfterExpiration(uint user_id, uint item_id, uint removal_fla
         if (n_user_id == user_id) continue;  // delete the user of <user_id>
         // 1.1. make sure new user neighbor has data
         size_t n_user_data_index = InsertNeighborUserData(user_id, n_user_id);
+        size_t user_data_index = InsertNeighborUserData(n_user_id, user_id);
         uint lambda = 0;
         uint wedge_score = GetEdgeData(n_user_id, item_id)->weight;
         if (inserted_edge->weight < wedge_score)
@@ -220,6 +221,9 @@ void Graph::MaintainAfterExpiration(uint user_id, uint item_id, uint removal_fla
         // 1.2. apply the increment
         user_neighbor_datas[user_id][n_user_data_index]->x_data += lambda;
         user_neighbor_datas[user_id][n_user_data_index]->y_data += (2*lambda*wedge_score+lambda*lambda);
+
+        user_neighbor_datas[n_user_id][user_data_index]->x_data += lambda;
+        user_neighbor_datas[n_user_id][user_data_index]->y_data += (2*lambda*wedge_score+lambda*lambda);
     }
 
     // 2. if new edge was added (removal_flag == 1)
