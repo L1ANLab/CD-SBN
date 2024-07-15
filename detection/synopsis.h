@@ -46,13 +46,6 @@ public:
         SynopsisData* data_[],
         uint user_id
     ); // Vertex entry construct
-    
-    SynopsisNode(
-        uint id_,
-        uint level_,
-        SynopsisData* data_[],
-        uint user_id
-    ); // Vertex entry construct
     ~SynopsisNode();
 
     uint GetID();

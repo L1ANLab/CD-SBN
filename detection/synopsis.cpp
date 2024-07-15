@@ -70,25 +70,6 @@ SynopsisNode::SynopsisNode(
     ID_COUNTER ++;
 }
 
-/// @brief Vertex entry load construction
-/// @param bv_r_ 
-/// @param ub_sup_M_ 
-/// @param ub_score_ 
-/// @param vertex_entry 
-SynopsisNode::SynopsisNode(
-    uint id_,
-    uint level_,
-    SynopsisData* data_[],
-    uint user_id
-):id(id_), level(level_), user_set{user_id}
-, children_entries(0)
-{
-    for (int r=0;r<R_MAX;r++)
-    {
-        data[r] = data_[r];
-    }
-}
-
 
 SynopsisNode::~SynopsisNode()
 {
@@ -169,8 +150,8 @@ std::vector<SynopsisNode*> Synopsis::LoadSynopsisEntries(std::string synopsis_fi
     this->inv_list.resize(list_size);
     while (!ifs.eof())
     {
-        uint node_id, user_id;
-        ifs >> node_id;
+        uint user_id;
+        ifs >> user_id;
         SynopsisData* data[R_MAX];
         for (int r=0; r<R_MAX; r++)
         {
@@ -181,10 +162,8 @@ std::vector<SynopsisNode*> Synopsis::LoadSynopsisEntries(std::string synopsis_fi
             SynopsisData* data_r = new SynopsisData(bv_r, ub_sup_M, ub_score);
             data[r] = data_r;
         }
-        ifs >> user_id;
         
         SynopsisNode* node_pointer = new SynopsisNode(
-            node_id,
             MAX_LEVEL,
             data,
             user_id
@@ -215,14 +194,13 @@ bool Synopsis::SaveSynopsisEntries(std::string synopsis_file_path, std::vector<S
     of << vertex_entry_list.size() << std::endl;
     for (SynopsisNode* vertex_entry : vertex_entry_list)
     {
-        of << vertex_entry->GetID() << ' ';
+        of << vertex_entry->GetUserSet().front() << ' ';
         for (int r=0; r<R_MAX; r++)
         {
             of << vertex_entry->GetBvR(r) << ' ';
             of << vertex_entry->GetUbSupM(r) << ' ';
             of << vertex_entry->GetUbScore(r) << ' ';
         }
-        of << vertex_entry->GetUserSet().front();
         of << std::endl;
     }
     of.close();
@@ -568,7 +546,7 @@ SynopsisNode* Synopsis::BuildSynopsisRecursively(
     }
     children_entries_.shrink_to_fit();
 
-    SynopsisNode* non_leaf_node_pointer = new SynopsisNode(level, vertex_entry_list);
+    SynopsisNode* non_leaf_node_pointer = new SynopsisNode(level, children_entries_);
     for (auto user_id: non_leaf_node_pointer->GetUserSet())
     {
         inv_list[user_id].emplace_back(non_leaf_node_pointer);
