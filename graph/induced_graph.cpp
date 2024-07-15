@@ -183,6 +183,10 @@ InducedGraph* InducedGraph::ComputeKBitruss(uint k)
     std::vector<uint> user_list(this->user_map);
     // 0.use adjacency list to save the edges
     std::vector<std::vector<std::pair<uint, uint>>> new_edge_list(user_list.back()+1);
+    for(size_t i=0; i < new_edge_list.size();i++)
+    {
+        new_edge_list[i].clear();
+    }
     
     for (auto edge : this->e_lists)
     {
@@ -192,17 +196,6 @@ InducedGraph* InducedGraph::ComputeKBitruss(uint k)
     // 1. compute the support for each edge in the subgraph
     for (uint user : user_list)
     {
-        // std::vector<uint> item_neighbors;
-        // for ()
-        // std::copy_if(
-        //     this->graph.GetUserNeighbors(user).begin(),
-        //     this->graph.GetUserNeighbors(user).end(),
-        //     item_neighbors.begin(),
-        //     [item_list] (const uint user_neighbor){
-        //         return (user_neighbor > user &&
-        //         std::binary_search(item_list.begin(), user_list.end(), user_neighbor));
-        //     }
-        // );
         for (size_t i = 0; i< new_edge_list[user].size(); i++)
         {
             uint item_neighbor1 = new_edge_list[user][i].first;
@@ -214,16 +207,16 @@ InducedGraph* InducedGraph::ComputeKBitruss(uint k)
                     this->graph.GetItemNeighbors(item_neighbor1).size()+
                     this->graph.GetItemNeighbors(item_neighbor2).size()
                 );
-                std::set_intersection(
+                std::vector<uint>::iterator it = std::set_intersection(
                     this->graph.GetItemNeighbors(item_neighbor1).begin(),
                     this->graph.GetItemNeighbors(item_neighbor1).end(),
                     this->graph.GetItemNeighbors(item_neighbor2).begin(),
                     this->graph.GetItemNeighbors(item_neighbor2).end(),
                     raw_common_neighbors.begin()
                 );
-                raw_common_neighbors.shrink_to_fit();
-                std::vector<uint> common_neighbors;
-                std::copy_if(
+                raw_common_neighbors.resize(it - raw_common_neighbors.begin());
+                std::vector<uint> common_neighbors(raw_common_neighbors.size());
+                std::vector<uint>::iterator copy_iter = std::copy_if(
                     raw_common_neighbors.begin(),
                     raw_common_neighbors.end(),
                     common_neighbors.begin(),
@@ -232,17 +225,19 @@ InducedGraph* InducedGraph::ComputeKBitruss(uint k)
                         std::binary_search(user_list.begin(), user_list.end(), common_neighbor));
                     }
                 );
+                common_neighbors.resize(copy_iter - common_neighbors.begin());
                 // 1.2. increase the support of butterfly
                 for (uint another_user :common_neighbors)
                 {
                     new_edge_list[user][i].second ++;
                     new_edge_list[user][j].second ++;
                     int count = 0;
-                    for (auto edge : new_edge_list[another_user])
+                    for (uint idx = 0; idx < new_edge_list[another_user].size(); idx++)
                     {
-                        if (edge.first == item_neighbor1 || edge.first == item_neighbor2)
+                        if (new_edge_list[another_user][idx].first == item_neighbor1 ||
+                            new_edge_list[another_user][idx].first == item_neighbor2)
                         {
-                            edge.second ++;
+                            new_edge_list[another_user][idx].second ++;
                             count ++;
                         }
                         if (count == 2) break;
@@ -275,7 +270,7 @@ InducedGraph* InducedGraph::ComputeKBitruss(uint k)
         {
             uint user = drop_edge_info.first;
             uint item_idx = drop_edge_info.second;
-            uint item = new_edge_list[user][item_idx].second;
+            uint item = new_edge_list[user][item_idx].first;
             for (size_t i = 0; i< new_edge_list[user].size(); i++)
             {
                 uint item_neighbor = new_edge_list[user][i].first;
@@ -285,16 +280,16 @@ InducedGraph* InducedGraph::ComputeKBitruss(uint k)
                     this->graph.GetItemNeighbors(item).size() +
                     this->graph.GetItemNeighbors(item_neighbor).size()
                 );
-                std::set_intersection(
+                std::vector<uint>::iterator it = std::set_intersection(
                     this->graph.GetItemNeighbors(item).begin(),
                     this->graph.GetItemNeighbors(item).end(),
                     this->graph.GetItemNeighbors(item_neighbor).begin(),
                     this->graph.GetItemNeighbors(item_neighbor).end(),
                     raw_common_neighbors.begin()
                 );
-                raw_common_neighbors.shrink_to_fit();
-                std::vector<uint> common_neighbors;
-                std::copy_if(
+                raw_common_neighbors.resize(it - raw_common_neighbors.begin());
+                std::vector<uint> common_neighbors(raw_common_neighbors.size());
+                std::vector<uint>::iterator copy_iter = std::copy_if(
                     raw_common_neighbors.begin(),
                     raw_common_neighbors.end(),
                     common_neighbors.begin(),
@@ -302,16 +297,18 @@ InducedGraph* InducedGraph::ComputeKBitruss(uint k)
                         return std::binary_search(user_list.begin(), user_list.end(), common_neighbor);
                     }
                 );
+                common_neighbors.resize(copy_iter - common_neighbors.begin());
                 // 1.2. increase the support of butterfly
                 for (uint another_user :common_neighbors)
                 {
                     new_edge_list[user][i].second --;
                     int count = 0;
-                    for (auto edge : new_edge_list[another_user])
+                    for (uint idx = 0; idx < new_edge_list[another_user].size(); idx++)
                     {
-                        if (edge.first == item_neighbor || edge.first == item)
+                        if (new_edge_list[another_user][idx].first == item_neighbor ||
+                            new_edge_list[another_user][idx].first == item)
                         {
-                            edge.second --;
+                            new_edge_list[another_user][idx].second --;
                             count --;
                         }
                         if (count == 2) break;
@@ -379,14 +376,14 @@ InducedGraph* InducedGraph::ComputeKRSigmaBitruss(uint sigma)
                 user_neighbor_list[user1].size() +
                 user_neighbor_list[user2].size()
             );
-            std::set_intersection(
+            std::vector<uint>::iterator it = std::set_intersection(
                 user_neighbor_list[user1].begin(),
                 user_neighbor_list[user1].end(),
                 user_neighbor_list[user2].begin(),
                 user_neighbor_list[user2].end(),
                 raw_common_neighbors.begin()
             );
-            raw_common_neighbors.shrink_to_fit();
+            raw_common_neighbors.resize(it - raw_common_neighbors.begin());
             // skip to next user if not common neighbor
             if (raw_common_neighbors.empty()) continue;
             // 1.2. compute the user relationship score
