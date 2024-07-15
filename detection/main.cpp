@@ -188,6 +188,7 @@ int main(int argc, char *argv[])
         );
 
         result_list = snapshot_query->ExecuteQuery(statistic);
+        statistic->solver_result = result_list;
         statistic->query_process_time = Duration(start);
     }
     else // 3.2. for continuous query
