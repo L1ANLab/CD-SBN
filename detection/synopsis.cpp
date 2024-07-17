@@ -129,7 +129,7 @@ uint Synopsis::CountLeafNodes(SynopsisNode* now_node) const
 
 
 
-/// @brief [TODO] Load synopsis entries from file
+/// @brief Load synopsis entries from file
 /// @param graph 
 /// @return a vector of vertex entries
 std::vector<SynopsisNode*> Synopsis::LoadSynopsisEntries(std::string synopsis_file_path)
@@ -176,7 +176,7 @@ std::vector<SynopsisNode*> Synopsis::LoadSynopsisEntries(std::string synopsis_fi
 }
 
 
-/// @brief [TODO] save the synopsis from root to file
+/// @brief save the synopsis from root to file
 /// @param synopsis_file_path 
 /// @return true if file successfully saved, otherwise false
 bool Synopsis::SaveSynopsisEntries(std::string synopsis_file_path, std::vector<SynopsisNode*> vertex_entry_list)
@@ -552,17 +552,6 @@ SynopsisNode* Synopsis::BuildSynopsisRecursively(
         inv_list[user_id].emplace_back(non_leaf_node_pointer);
     }
     return non_leaf_node_pointer;
-}
-
-/// @brief [TODO][Private] save the current synopsis 
-/// @param of 
-/// @param now_node_pointer 
-void Synopsis::SaveSynopsisRecursively(
-    std::ofstream& of,
-    SynopsisNode* now_node_pointer
-)
-{
-    return;
 }
 
 /// @brief [Private] traverse the synopsis to insert a new vertex entry

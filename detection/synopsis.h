@@ -79,11 +79,6 @@ private:
         uint level
     );
 
-    void SaveSynopsisRecursively(
-        std::ofstream& of,
-        SynopsisNode* now_node_pointer
-    );
-
     void InsertVertexEntry(uint user_id, SynopsisNode* new_vertex_entry);
     void SearchSynopsisTrace(uint user_id, SynopsisNode* now_node_pointer, uint new_vertex_entry_score);
     void DestroySynopsis(SynopsisNode* now_node_pointer);
