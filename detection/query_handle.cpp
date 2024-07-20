@@ -69,3 +69,51 @@ bool QueryHandle::CheckPruningConditions(SynopsisNode* node)
     return true;
 }
 
+/// @brief check whether the <to_insert_community> can be inserted into <candidate_set> 
+/// @param candidate_set 
+/// @param to_insert_community 
+/// @return true if can be inserted, otherwise false
+bool QueryHandle::CheckCommunityInsert(
+    std::set<InducedGraph*>& candidate_set,
+    InducedGraph* to_insert_community
+)
+{
+    std::set<InducedGraph*>::iterator iter = candidate_set.begin();
+    while(iter!=candidate_set.end())
+    {
+        // (1) not subset if two graph has the same num of users
+        if ((*iter)->user_map.size() == to_insert_community->user_map.size())
+        {
+            iter++;
+            continue;
+        }
+        // (2) compute the common users
+        std::vector<uint> common_users(
+            (*iter)->user_map.size() + to_insert_community->user_map.size()
+        );
+        std::vector<uint>::iterator it = std::set_intersection(
+            (*iter)->user_map.begin(), (*iter)->user_map.end(),
+            to_insert_community->user_map.begin(), to_insert_community->user_map.end(),
+            common_users.begin()
+        );
+        uint common_user_num = it - common_users.begin();
+        if ((*iter)->user_map.size() < to_insert_community->user_map.size())
+        {
+            if ((*iter)->user_map.size() == common_user_num)
+            {   //  (*iter) is a subset
+                candidate_set.erase(iter++);
+                continue;
+            }
+        }
+        else
+        {
+            if (to_insert_community->user_map.size() == common_user_num)
+            {
+                return false;
+            }
+        }
+        iter++;
+    }
+
+    return true;
+}

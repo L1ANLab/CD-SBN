@@ -2,6 +2,7 @@
 #ifndef QUERYHANDLE_H
 #define QUERYHANDLE_H
 
+#include <set>
 #include "graph/induced_graph.h"
 #include "detection/synopsis.h"
 #include "utils/statistic.h"
@@ -33,6 +34,10 @@ protected:
     uint query_radius_idx;
     
     bool CheckPruningConditions(SynopsisNode* node);
+    bool CheckCommunityInsert(
+        std::set<InducedGraph*>& candidate_set,
+        InducedGraph* to_insert_community
+    );
 
 public:
     QueryHandle(
@@ -44,8 +49,6 @@ public:
         Synopsis* syn_
     );
     ~QueryHandle();
-
-    virtual std::vector<InducedGraph*> ExecuteQuery(Statistic* stat) = 0;
 };
 
 
