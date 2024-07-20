@@ -278,7 +278,7 @@ bool Synopsis::UpdateSynopsisAfterInsertion(uint user_id, uint item_id, uint add
         {
             auto [affected_user_2r_list, affected_item_2r_list] = graph->Get2rHopOfUser(affected_user_id, radius);
             // 3. for each affected nodes (from bottom to top)
-            for (auto affected_node : inv_list[user_id])
+            for (auto affected_node : inv_list[affected_user_id])
             {
                 bool changed_flag = false;
                 // compute BV and sup if addition
@@ -390,7 +390,7 @@ bool Synopsis::UpdateSynopsisAfterExpiration(uint user_id, uint item_id, uint re
         {
             auto [affected_user_2r_list, affected_item_2r_list] = graph->Get2rHopOfUser(affected_user_id, radius);
             // 3. for each affected nodes (from bottom to top)
-            for (auto affected_node : inv_list[user_id])
+            for (auto affected_node : inv_list[affected_user_id])
             {
                 bool changed_flag = false;
                 // compute BV and sup if addition
