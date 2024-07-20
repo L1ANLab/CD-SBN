@@ -45,22 +45,30 @@ public:
     float update_stream_load_time;
     float synopsis_building_time;
 
-    float graph_synopsis_maintain_time;
     float query_process_time;
 
+    // maintain stat
+    float graph_synopsis_maintain_time;
+    float edge_maintain_time;
+    float graph_maintain_time;
+    float synopsis_maintain_time;
+
+    // snapshot stat
     float select_greatest_entry_in_H_time;
     float leaf_node_traverse_time;
     float nonleaf_node_traverse_time;
-    float compute_2r_hop_time;
-    float compute_k_bitruss_time;
-    float compute_user_relationship_score_time;
+    float snapshot_compute_2r_hop_time;
+    float snapshot_compute_k_bitruss_time;
+    float snapshot_compute_user_relationship_score_time;
+
+    // continuous stat
+    float continuous_expired_recompute_k_bitruss_time;
+    float continuous_expired_recompute_score_time;
+    float continuous_inserted_compute_2r_hop_time;
+    float continuous_inserted_compute_k_bitruss_time;
+    float continuous_inserted_compute_score_time;
     float modify_result_set_time;
 
-    float select_greatest_increment_entry_time;
-    float refinement_increment_compute_time;
-    float refinement_increment_compute_counter;
-    float refinement_graph_update_time;
-    float refinement_grah_copy_time;
 
     uint vertex_pruning_counter;
     uint entry_pruning_counter;
@@ -68,7 +76,7 @@ public:
     uint leaf_node_visit_counter;
 
     std::string GenerateStatisticResult();
-    bool SaveStatisticResult();
+    bool SaveStatisticResult(std::vector<InducedGraph*> result_list);
 };
 
 

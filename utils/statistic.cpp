@@ -69,13 +69,13 @@ std::string Statistic::GenerateStatisticResult()
     result += "Query Radius: " + std::to_string(query_radius) + "\n";
     result += "Query Score Threshold: " + std::to_string(query_score_threshold) + "\n";
     result += "\n";
-    result += "-------------Pruning INFO-------------\n";
+    result += "-------------PRUNING INFO-------------\n";
     result += "Pruning Vertices: " + std::to_string(vertex_pruning_counter) + "\n";
     result += "Pruning Entries: " + std::to_string(entry_pruning_counter) + "\n";
     result += "Leaf Nodes: " + std::to_string(leaf_node_counter) + "\n";
     result += "Pruning Leaf Nodes: " + std::to_string(leaf_node_counter - leaf_node_visit_counter) + "\n";
     result += "\n";
-    result += "-------------TIME INFO-------------\n";
+    result += "-------------TOTAL TIME INFO-------------\n";
     // result += "Started at: " + std::to_string(start_timestamp) + " \tFinished at: " + std::to_string(finish_timestamp) + "\n";
     float total_time = Duration(start_timestamp) - Duration(finish_timestamp);
     result += "Total time: " + std::to_string(total_time) + "\n";
@@ -90,45 +90,63 @@ std::string Statistic::GenerateStatisticResult()
     result += "Maintenance time: " + std::to_string(graph_synopsis_maintain_time) + "\n";
     result += "Processing time: " + std::to_string(query_process_time) + "\n";
     result += "\n";
-    result += "-------------OBTAIN TIME INFO-------------\n";
+    result += "-------------MAINTAIN TIME INFO-------------\n";
+    result += "Edge Maintain time: " + std::to_string(edge_maintain_time) + "\n";
+    result += "Graph Maintain time: " + std::to_string(graph_maintain_time) + "\n";
+    result += "Synopsis Maintain time: " + std::to_string(synopsis_maintain_time) + "\n";
+    result += "\n";
+    result += "-------------SNAPSHOT TIME INFO-------------\n";
     result += "Select Greatest Entry in Heap time: " + std::to_string(select_greatest_entry_in_H_time) + "\n";
     result += "Leaf Node Traverse time: " + std::to_string(leaf_node_traverse_time) + "\n";
     result += "NonLeaf Node Traverse time: " + std::to_string(nonleaf_node_traverse_time) + "\n";
-    result += "Compute 2R-Hop time: " + std::to_string(compute_2r_hop_time) + "\n";
-    result += "Compute K-Bitruss time: " + std::to_string(compute_k_bitruss_time) + "\n";
-    result += "Compute Relationship Score time: " + std::to_string(compute_user_relationship_score_time) + "\n";
-    // result += "Modify Result Set time: " + std::to_string(modify_result_set_time) + "\n";
+    result += "Compute 2R-Hop time: " + std::to_string(snapshot_compute_2r_hop_time) + "\n";
+    result += "Compute K-Bitruss time: " + std::to_string(snapshot_compute_k_bitruss_time) + "\n";
+    result += "Compute Score time: " + std::to_string(snapshot_compute_user_relationship_score_time) + "\n";
     result += "\n";
-    // result += "-------------REFINE TIME INFO-------------\n";
-    // result += "Select Greatest Increment Entry in Heap time: " + std::to_string(select_greatest_increment_entry_time) + "\n";
-    // result += "Refinement Increment Compute Time: " + std::to_string(refinement_increment_compute_time);
-    // result += " for " + std::to_string(refinement_increment_compute_counter) + " times\n";
-    // result += "Refinement Graph Update Time: " + std::to_string(refinement_graph_update_time) + "\n";
-    // result += "Refinement Graph Copy Time: " + std::to_string(refinement_grah_copy_time) + "\n";
+    result += "-------------CONTINUOUS TIME INFO-------------\n";
+    result += "Expiration Recompute K-Bitruss Time: " + std::to_string(continuous_expired_recompute_k_bitruss_time) + "\n";
+    result += "Expiration Recompute Score Time: " + std::to_string(continuous_expired_recompute_score_time) + "\n";
+    result += "Insertion Compute 2R-Hop time: " + std::to_string(continuous_inserted_compute_2r_hop_time) + "\n";
+    result += "Insertion Compute K-Bitruss time: " + std::to_string(continuous_inserted_compute_k_bitruss_time) + "\n";
+    result += "Insertion Compute Score time: " + std::to_string(continuous_inserted_compute_score_time) + "\n";
+    result += "Refine Result Set time: " + std::to_string(modify_result_set_time) + "\n";
     return result;
 }
 
 
-bool Statistic::SaveStatisticResult()
+bool Statistic::SaveStatisticResult(std::vector<InducedGraph*> result_list)
 {
     fs::path initial_graph_folder = fs::path(initial_graph_path_str).parent_path();
     
-    std::stringstream ss;
     std::chrono::high_resolution_clock::time_point now_time = Get_Time();
+    std::stringstream ss;
     time_t t = std::chrono::system_clock::to_time_t(now_time);
     ss << std::put_time(localtime(&t), "%m%d-%H%M%S");
-    std::string stat_file_name = "statistic-" + ss.str();
-    stat_file_name += "-" + std::to_string(std::chrono::duration_cast<\
-    std::chrono::microseconds>(now_time.time_since_epoch()).count()) + ".txt";
+    std::string time_str = ss.str() +  "-" + GetUnixTimestamp(now_time);
+    std::string stat_file_name = "statistic-" + time_str + ".txt";
+    std::string result_file_name = "result-" + time_str + ".txt";
+
     fs::path stat_file_path = initial_graph_folder / fs::path(stat_file_name);
+    fs::path result_file_path = initial_graph_folder / fs::path(result_file_name);
     
-    std::ofstream of(stat_file_path.string(), std::ios::out);
+    std::ofstream stat_of(stat_file_path.string(), std::ios::out);
     ErrorControl::assert_error(
-        !of,
-        "File Stream Error: The output file stream open failed"
+        !stat_of,
+        "File Stream Error: The statistic output file stream open failed"
     );
-    of << GenerateStatisticResult();
-    of.close();
+    stat_of << GenerateStatisticResult();
+    stat_of.close();
+
+    std::ofstream result_of(result_file_path.string(), std::ios::out);
+    ErrorControl::assert_error(
+        !result_of,
+        "File Stream Error: The result output file stream open failed"
+    );
+    for (auto result_subgraph: result_list)
+    {
+        result_of << result_subgraph->PrintMetaData() << '\n';
+    }
+    result_of.close();
 
     std::cout << "Result is saved in " << stat_file_path.string() << std::endl;
     return true;

@@ -18,6 +18,8 @@
 #define Get_Time() std::chrono::high_resolution_clock::now()
 #define Duration(start) std::chrono::duration_cast<\
     std::chrono::microseconds>(Get_Time() - start).count()/(float)1000
+#define GetUnixTimestamp(now_time) std::to_string(std::chrono::duration_cast<\
+    std::chrono::microseconds>(now_time.time_since_epoch()).count())
 #define Print_Time_Now(str, start) std::cout << str << Duration(start) << \
     "ms" << std::endl
 #define Print_Time(str, timespan) std::cout << str << timespan << \
