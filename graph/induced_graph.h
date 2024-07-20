@@ -26,7 +26,7 @@ public:
         std::vector<std::pair<uint, uint>> e_lists_
     );
 
-    bool operator<(const InducedGraph& subgraph) const;
+    bool operator < (const InducedGraph& subgraph) const;
     bool operator == (const InducedGraph& subgraph) const;
 
     uint NumUsers() const { return user_map.size(); }
@@ -35,8 +35,9 @@ public:
     uint GetUserDegree(uint user_id);
     
     InducedGraph* ComputeKBitruss(uint k);
-    InducedGraph* ComputeKRSigmaBitruss(uint sigma);
-    void PrintMetaData();
+    InducedGraph* ComputeSigmaBitruss(uint sigma);
+    InducedGraph* ComputeKRSigmaBitruss(uint k, uint sigma);
+    std::string PrintMetaData();
 };
 
 #endif //GRAPH_INDUCEDGRAPH
