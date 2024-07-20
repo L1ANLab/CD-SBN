@@ -100,9 +100,12 @@ void Graph::AddItemVertex(uint item_id)
 /// @param user_id 
 /// @param item_id 
 /// @param addition_flag 1 if new edge was added, else 0
-void Graph::MaintainAfterInsertion(uint user_id, uint item_id, uint addition_flag)
+/// @return return a list of user whose properties changed
+std::vector<uint> Graph::MaintainAfterInsertion(uint user_id, uint item_id, uint addition_flag)
 {
     EdgeData* inserted_edge = GetEdgeData(user_id, item_id);
+    std::set<uint> related_user_set;
+    related_user_set.emplace(user_id);
 
     // 1. re-compute user relationship score
     for(size_t i = 0;i < item_neighbors[item_id].size();i++)
@@ -112,19 +115,20 @@ void Graph::MaintainAfterInsertion(uint user_id, uint item_id, uint addition_fla
         // 1.1. make sure new user neighbor has data
         size_t n_user_data_index = InsertNeighborUserData(user_id, n_user_id);
         size_t user_data_index = InsertNeighborUserData(n_user_id, user_id);
-        uint lambda = 0;
         uint wedge_score = GetEdgeData(n_user_id, item_id)->weight;
         if (inserted_edge->weight <= wedge_score)
         {
-            lambda = 1;
+            uint lambda = 1;
             wedge_score = inserted_edge->weight - 1;
+
+            // 1.2. apply the increment
+            user_neighbor_datas[user_id][n_user_data_index]->x_data += lambda;
+            user_neighbor_datas[user_id][n_user_data_index]->y_data += (2*lambda*wedge_score+lambda*lambda);
+        
+            user_neighbor_datas[n_user_id][user_data_index]->x_data += lambda;
+            user_neighbor_datas[n_user_id][user_data_index]->y_data += (2*lambda*wedge_score+lambda*lambda);
+            related_user_set.emplace(n_user_id);
         }
-        // 1.2. apply the increment
-        user_neighbor_datas[user_id][n_user_data_index]->x_data += lambda;
-        user_neighbor_datas[user_id][n_user_data_index]->y_data += (2*lambda*wedge_score+lambda*lambda);
-    
-        user_neighbor_datas[n_user_id][user_data_index]->x_data += lambda;
-        user_neighbor_datas[n_user_id][user_data_index]->y_data += (2*lambda*wedge_score+lambda*lambda);
     }
 
     // 2. if new edge was added (addition_flag == 1)
@@ -152,19 +156,25 @@ void Graph::MaintainAfterInsertion(uint user_id, uint item_id, uint addition_fla
             );
             common_neighbors.resize(it - common_neighbors.begin());
             size_t cn_num = common_neighbors.size() - 1;  // skip the item of <item_id>
-            inserted_edge->ub_sup += uint(cn_num);
-            GetEdgeData(n_user_id, item_id)->ub_sup += uint(cn_num);
-            for(size_t j = 0; j < common_neighbors.size(); j++)
+            if (cn_num > 0)
             {
-                uint cn_item_id = common_neighbors[j];
-                if (cn_item_id == item_id) continue;
-                GetEdgeData(user_id, cn_item_id)->ub_sup += 1;
-                GetEdgeData(n_user_id, cn_item_id)->ub_sup += 1;
+                inserted_edge->ub_sup += uint(cn_num);
+                GetEdgeData(n_user_id, item_id)->ub_sup += uint(cn_num);
+                for(size_t j = 0; j < common_neighbors.size(); j++)
+                {
+                    uint cn_item_id = common_neighbors[j];
+                    if (cn_item_id == item_id) continue;
+                    GetEdgeData(user_id, cn_item_id)->ub_sup += 1;
+                    GetEdgeData(n_user_id, cn_item_id)->ub_sup += 1;
+                }
+                related_user_set.emplace(n_user_id);
             }
         }
     }
 
-    return;
+    std::vector<uint> related_user;
+    related_user.assign(related_user_set.begin(), related_user_set.end());
+    return related_user;
 }
 
 /// @brief insert an edge into graph
@@ -199,9 +209,12 @@ uint Graph::InsertEdge(uint user_id, uint item_id)
 /// @param user_id 
 /// @param item_id 
 /// @param removal_flag 1 if new edge was removed, else 0
-void Graph::MaintainAfterExpiration(uint user_id, uint item_id, uint removal_flag)
+/// @return return a list of user whose properties changed
+std::vector<uint> Graph::MaintainAfterExpiration(uint user_id, uint item_id, uint removal_flag)
 {
     EdgeData* inserted_edge = GetEdgeData(user_id, item_id);
+    std::set<uint> related_user_set;
+    related_user_set.emplace(user_id);
 
     // 1. re-compute user relationship score
     for(size_t i = 0;i < item_neighbors[item_id].size();i++)
@@ -211,19 +224,20 @@ void Graph::MaintainAfterExpiration(uint user_id, uint item_id, uint removal_fla
         // 1.1. make sure new user neighbor has data
         size_t n_user_data_index = InsertNeighborUserData(user_id, n_user_id);
         size_t user_data_index = InsertNeighborUserData(n_user_id, user_id);
-        uint lambda = 0;
         uint wedge_score = GetEdgeData(n_user_id, item_id)->weight;
         if (inserted_edge->weight < wedge_score)
         {
-            lambda = -1;
+            uint lambda = -1;
             wedge_score = inserted_edge->weight + 1;
-        }
-        // 1.2. apply the increment
-        user_neighbor_datas[user_id][n_user_data_index]->x_data += lambda;
-        user_neighbor_datas[user_id][n_user_data_index]->y_data += (2*lambda*wedge_score+lambda*lambda);
 
-        user_neighbor_datas[n_user_id][user_data_index]->x_data += lambda;
-        user_neighbor_datas[n_user_id][user_data_index]->y_data += (2*lambda*wedge_score+lambda*lambda);
+            // 1.2. apply the increment
+            user_neighbor_datas[user_id][n_user_data_index]->x_data += lambda;
+            user_neighbor_datas[user_id][n_user_data_index]->y_data += (2*lambda*wedge_score+lambda*lambda);
+
+            user_neighbor_datas[n_user_id][user_data_index]->x_data += lambda;
+            user_neighbor_datas[n_user_id][user_data_index]->y_data += (2*lambda*wedge_score+lambda*lambda);
+            related_user_set.emplace(n_user_id);
+        }
     }
 
     // 2. if new edge was added (removal_flag == 1)
@@ -242,7 +256,7 @@ void Graph::MaintainAfterExpiration(uint user_id, uint item_id, uint removal_fla
             uint n_user_id = item_neighbors[item_id][i];
             if (n_user_id == user_id) continue;  // delete the user of <user_id>
             std::vector<uint> common_neighbors(
-                user_neighbors[user_id].size() + user_neighbors[item_id].size()
+                user_neighbors[user_id].size() + user_neighbors[n_user_id].size()
             );
             std::vector<uint>::iterator it = std::set_intersection(
                 user_neighbors[user_id].begin(), user_neighbors[user_id].end(),
@@ -251,19 +265,25 @@ void Graph::MaintainAfterExpiration(uint user_id, uint item_id, uint removal_fla
             );
             common_neighbors.resize(it - common_neighbors.begin());
             size_t cn_num = common_neighbors.size() - 1;  // delete the item of <item_id>
-            inserted_edge->ub_sup += uint(cn_num);
-            GetEdgeData(n_user_id, item_id)->ub_sup += uint(cn_num);
-            for(size_t j = 0; j < common_neighbors.size(); j++)
+            if (cn_num > 0)
             {
-                uint cn_item_id = common_neighbors[j];
-                if (cn_item_id == item_id) continue;
-                GetEdgeData(user_id, cn_item_id)->ub_sup += 1;
-                GetEdgeData(n_user_id, cn_item_id)->ub_sup += 1;
+                inserted_edge->ub_sup += uint(cn_num);
+                GetEdgeData(n_user_id, item_id)->ub_sup += uint(cn_num);
+                for(size_t j = 0; j < common_neighbors.size(); j++)
+                {
+                    uint cn_item_id = common_neighbors[j];
+                    if (cn_item_id == item_id) continue;
+                    GetEdgeData(user_id, cn_item_id)->ub_sup += 1;
+                    GetEdgeData(n_user_id, cn_item_id)->ub_sup += 1;
+                }
+                related_user_set.emplace(n_user_id);
             }
         }
     }
 
-    return;
+    std::vector<uint> related_user;
+    related_user.assign(related_user_set.begin(), related_user_set.end());
+    return related_user;
 }
 
 /// @brief expire an edge from graph
