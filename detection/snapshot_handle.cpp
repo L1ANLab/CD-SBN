@@ -92,10 +92,7 @@ std::vector<InducedGraph*> SnapshotHandle::ExecuteQuery(Statistic* stat)
                     leaf_node_visit_counter += 1;
                 }
             }
-            else
-            {
-                entry_pruning_counter += 1;
-            }
+            else entry_pruning_counter += 1;
             stat->nonleaf_node_traverse_time += Duration(start_timestamp);
         }
         else
@@ -104,11 +101,7 @@ std::vector<InducedGraph*> SnapshotHandle::ExecuteQuery(Statistic* stat)
             // 1.3.2. test the pruning condition
             if (CheckPruningConditions(current_node))
             {
-                if (current_node->GetUserSet().size() == 0)
-                {
-                    std::cout << "Meet empty synopsis node<" << current_node->GetID() << ">" << std::endl;
-                }
-                else
+                if (current_node->GetUserSet().size() > 0)
                 {
                     compute_2r_hop_start_timestamp = Get_Time();
                     // (1) compute r-hop of vertex
@@ -121,7 +114,8 @@ std::vector<InducedGraph*> SnapshotHandle::ExecuteQuery(Statistic* stat)
                     );
                     InducedGraph* r_hop_subgraph = new InducedGraph(*data_graph, user_list, item_list);
                     stat->snapshot_compute_2r_hop_time += Duration(compute_2r_hop_start_timestamp);
-                    if (!r_hop_subgraph->e_lists.empty())
+                    if (r_hop_subgraph->e_lists.empty()) delete r_hop_subgraph;
+                    else
                     {
                         vertex_pruning_counter += 1;
                         // (2) compute k-bitruss from r-hop
@@ -138,7 +132,8 @@ std::vector<InducedGraph*> SnapshotHandle::ExecuteQuery(Statistic* stat)
                         float k_bitruss_time = Duration(compute_k_bitruss_start_timestamp);
                         stat->snapshot_compute_k_bitruss_time += k_bitruss_time;
                         if (max_k_truss_cost < k_bitruss_time) max_k_truss_cost = k_bitruss_time;
-                        if (!bitruss_subgraph->e_lists.empty())
+                        if (bitruss_subgraph->e_lists.empty()) delete bitruss_subgraph;
+                        else
                         {
                             // (3) compute the (k,r,σ)-bitruss
                             compute_score_start_timestamp = Get_Time();
@@ -151,8 +146,7 @@ std::vector<InducedGraph*> SnapshotHandle::ExecuteQuery(Statistic* stat)
                             if (!k_r_sigma_bitruss_subgraph->e_lists.empty() &&
                                 CheckCommunityInsert(candidate_set_P, k_r_sigma_bitruss_subgraph))
                                 candidate_set_P.emplace(k_r_sigma_bitruss_subgraph);
-                            else
-                                delete k_r_sigma_bitruss_subgraph;
+                            else delete k_r_sigma_bitruss_subgraph;
                         }
                     }
                 }
