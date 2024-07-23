@@ -38,6 +38,7 @@ public:
     InducedGraph* ComputeSigmaBitruss(uint sigma);
     InducedGraph* ComputeKRSigmaBitruss(uint k, uint sigma);
     std::string PrintMetaData();
+    std::string PrintShortMetaData();
 };
 
 #endif //GRAPH_INDUCEDGRAPH

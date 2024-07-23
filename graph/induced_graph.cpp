@@ -154,12 +154,15 @@ InducedGraph* InducedGraph::ComputeKBitruss(uint k)
     std::vector<uint> user_list(this->user_map);
     // 0.use adjacency list to save the edges
     std::vector<std::vector<std::pair<uint, uint>>> new_edge_list(user_list.back()+1);
+    std::vector<std::vector<uint>> item_neighbor_list(item_map.back()+1);
     
     for (auto edge : this->e_lists)
     {
         new_edge_list[edge.first].emplace_back(std::pair{edge.second, 0});
+        item_neighbor_list[edge.second].emplace_back(edge.first);
     }
 
+    std::chrono::high_resolution_clock::time_point start = Get_Time();
     // 1. compute the support for each edge in the subgraph
     for (uint user : user_list)
     {
@@ -168,41 +171,32 @@ InducedGraph* InducedGraph::ComputeKBitruss(uint k)
             uint item_neighbor1 = new_edge_list[user][i].first;
             for (size_t j = i+1;j<new_edge_list[user].size();j++)
             {
-                // 1.1, for the choosed two item, find common neighor user.
+                // 1.1, for the choosed two item, find common neighor users.
                 uint item_neighbor2 = new_edge_list[user][j].first;
-                std::vector<uint> raw_common_neighbors(
-                    this->graph.GetItemNeighbors(item_neighbor1).size()+
-                    this->graph.GetItemNeighbors(item_neighbor2).size()
+                std::vector<uint> common_neighbors(
+                    item_neighbor_list[item_neighbor1].size()+
+                    item_neighbor_list[item_neighbor2].size()
                 );
                 std::vector<uint>::iterator it = std::set_intersection(
-                    this->graph.GetItemNeighbors(item_neighbor1).begin(),
-                    this->graph.GetItemNeighbors(item_neighbor1).end(),
-                    this->graph.GetItemNeighbors(item_neighbor2).begin(),
-                    this->graph.GetItemNeighbors(item_neighbor2).end(),
-                    raw_common_neighbors.begin()
+                    item_neighbor_list[item_neighbor1].begin(),
+                    item_neighbor_list[item_neighbor1].end(),
+                    item_neighbor_list[item_neighbor2].begin(),
+                    item_neighbor_list[item_neighbor2].end(),
+                    common_neighbors.begin()
                 );
-                raw_common_neighbors.resize(it - raw_common_neighbors.begin());
-                std::vector<uint> common_neighbors(raw_common_neighbors.size());
-                std::vector<uint>::iterator copy_iter = std::copy_if(
-                    raw_common_neighbors.begin(),
-                    raw_common_neighbors.end(),
-                    common_neighbors.begin(),
-                    [user, user_list] (uint common_neighbor) {
-                        return (common_neighbor > user &&
-                        std::binary_search(user_list.begin(), user_list.end(), common_neighbor));
-                    }
-                );
-                common_neighbors.resize(copy_iter - common_neighbors.begin());
-                // 1.2. increase the support of butterfly
+                common_neighbors.resize(it - common_neighbors.begin());
+
+                // 1.2. for each common neighbor user, count the butterflies
                 for (uint another_user :common_neighbors)
                 {
+                    if (another_user <= user) continue; // avoid double counting
                     new_edge_list[user][i].second ++;
                     new_edge_list[user][j].second ++;
                     int count = 0;
                     for (uint idx = 0; idx < new_edge_list[another_user].size(); idx++)
                     {
-                        if (new_edge_list[another_user][idx].first == item_neighbor1 ||
-                            new_edge_list[another_user][idx].first == item_neighbor2)
+                        uint now_item = new_edge_list[another_user][idx].first;
+                        if (now_item == item_neighbor1 || now_item == item_neighbor2)
                         {
                             new_edge_list[another_user][idx].second ++;
                             count ++;
@@ -213,76 +207,105 @@ InducedGraph* InducedGraph::ComputeKBitruss(uint k)
             }
         }
     }
-    // Print_Time_Now("Compute Support: ", start);
+    Print_Time_Now("Compute Support: ", start);
 
     // 2. compute the bitruss
-    // 2.1. remove and update edges until qualified
-    uint drop_edge_num = 1;
-    // start = Get_Time();
-    while(drop_edge_num > 0)
+    start = Get_Time();
+    // detect all unqualified edge
+    std::vector<std::pair<uint, uint>> drop_edge_list;
+    for (uint user: user_list)
     {
-        drop_edge_num = 0;
-        bool hasEdge = false;
-        std::vector<std::pair<uint, uint>> drop_edge_list;
-        // (1) detect all unqualified edge
-        for (size_t user=0;user< user_list.size(); user++)
+        for (size_t idx=0; idx<new_edge_list[user].size();idx++)
         {
-            for (size_t idx=0; idx<new_edge_list[user].size();idx++)
-            {
-                // pass the qualified edge and 0-sup edge (UINT_MAX)
-                if (new_edge_list[user][idx].second >= k)
-                {
-                    hasEdge = true;
-                    continue;
-                }
+            if (new_edge_list[user][idx].second >0 && new_edge_list[user][idx].second < k)
                 drop_edge_list.emplace_back(std::pair(user, idx));
-            }
         }
-        if (!hasEdge) break; // if no edge
-        // (2) remove the detection edges and update the related edges
+    }
+
+    while(drop_edge_list.size() > 0)
+    {
+        // 2.1. remove the detection edges and update the related edges
         for (auto drop_edge_info : drop_edge_list)
         {
+            // (1) extract the drop edge info
             uint user = drop_edge_info.first;
             uint item_idx = drop_edge_info.second;
+            if (new_edge_list[user][item_idx].second == 0)
+                continue;
             uint item = new_edge_list[user][item_idx].first;
             for (size_t i = 0; i< new_edge_list[user].size(); i++)
             {
+                if (new_edge_list[user][item_idx].second == 0) break;
+                if (new_edge_list[user][i].second == 0) continue;
                 uint item_neighbor = new_edge_list[user][i].first;
                 if (item_neighbor == item) continue;
 
-                std::vector<uint> raw_common_neighbors(
-                    this->graph.GetItemNeighbors(item).size() +
-                    this->graph.GetItemNeighbors(item_neighbor).size()
+                std::vector<uint> common_neighbors(
+                    item_neighbor_list[item].size() +
+                    item_neighbor_list[item_neighbor].size()
                 );
                 std::vector<uint>::iterator it = std::set_intersection(
-                    this->graph.GetItemNeighbors(item).begin(),
-                    this->graph.GetItemNeighbors(item).end(),
-                    this->graph.GetItemNeighbors(item_neighbor).begin(),
-                    this->graph.GetItemNeighbors(item_neighbor).end(),
-                    raw_common_neighbors.begin()
+                    item_neighbor_list[item].begin(),
+                    item_neighbor_list[item].end(),
+                    item_neighbor_list[item_neighbor].begin(),
+                    item_neighbor_list[item_neighbor].end(),
+                    common_neighbors.begin()
                 );
-                raw_common_neighbors.resize(it - raw_common_neighbors.begin());
-                std::vector<uint> common_neighbors(raw_common_neighbors.size());
-                std::vector<uint>::iterator copy_iter = std::copy_if(
-                    raw_common_neighbors.begin(),
-                    raw_common_neighbors.end(),
-                    common_neighbors.begin(),
-                    [user_list] (uint common_neighbor) {
-                        return std::binary_search(user_list.begin(), user_list.end(), common_neighbor);
-                    }
-                );
-                common_neighbors.resize(copy_iter - common_neighbors.begin());
+                common_neighbors.resize(it - common_neighbors.begin());
+
+                if (common_neighbors.size() < 0) continue;
                 // 1.2. increase the support of butterfly
-                for (uint another_user :common_neighbors)
+                for (uint another_user : common_neighbors)
                 {
+                    if (another_user == user) continue;
+                    if (new_edge_list[user][item_idx].second == 0)
+                    {
+                        std::cout << "Error Support Computation" << "\n"; 
+                    }
+                    new_edge_list[user][item_idx].second --;
+                    if (new_edge_list[user][item_idx].second == 0)
+                    {
+                        std::vector<uint>::iterator remove_it = std::remove(
+                            item_neighbor_list[item].begin(),
+                            item_neighbor_list[item].end(),
+                            user
+                        );
+                        item_neighbor_list[item].resize(remove_it - item_neighbor_list[item].begin());
+                    }
+                    if (new_edge_list[user][i].second == 0)
+                    {
+                        std::cout << "Error Support Computation" << "\n"; 
+                    }
                     new_edge_list[user][i].second --;
+                    if (new_edge_list[user][i].second == 0)
+                    {
+                        std::vector<uint>::iterator remove_it = std::remove(
+                            item_neighbor_list[item_neighbor].begin(),
+                            item_neighbor_list[item_neighbor].end(),
+                            user
+                        );
+                        item_neighbor_list[item_neighbor].resize(remove_it - item_neighbor_list[item_neighbor].begin());
+                    }
                     int count = 0;
                     for (uint idx = 0; idx < new_edge_list[another_user].size(); idx++)
                     {
-                        if (new_edge_list[another_user][idx].first == item_neighbor ||
-                            new_edge_list[another_user][idx].first == item)
+                        uint now_item = new_edge_list[another_user][idx].first;
+                        if (now_item == item_neighbor || now_item == item)
                         {
+                            if (new_edge_list[another_user][idx].second == 0)
+                            {
+                                std::cout << "Error Support Computation" << "\n"; 
+                            }
                             new_edge_list[another_user][idx].second --;
+                            if (new_edge_list[another_user][idx].second == 0)
+                            {
+                                std::vector<uint>::iterator remove_it = std::remove(
+                                    item_neighbor_list[now_item].begin(),
+                                    item_neighbor_list[now_item].end(),
+                                    another_user
+                                );
+                                item_neighbor_list[now_item].resize(remove_it - item_neighbor_list[now_item].begin());
+                            }
                             count ++;
                         }
                         if (count == 2) break;
@@ -290,32 +313,47 @@ InducedGraph* InducedGraph::ComputeKBitruss(uint k)
                 }
             }
             // new_edge_list[user].erase(new_edge_list[user].begin()+item_idx);
-            new_edge_list[user][item_idx].second = UINT_MAX;
-            if (new_edge_list[user].empty())
-                user_list.erase(std::lower_bound(user_list.begin(), user_list.end(), user));
+            if (new_edge_list[user][item_idx].second != 0)
+            {
+                std::cout << "Error Support Computation" << "\n"; 
+            }
+            // user_exist_list[user]--;
         }
-        // (3) update drop_num
-        drop_edge_num = drop_edge_list.size();
+        // (2) clear drop edge list and detect all unqualified edge
+        std::vector<std::pair<uint, uint>>().swap(drop_edge_list);
+        for (uint user: user_list)
+        {
+            for (size_t idx=0; idx<new_edge_list[user].size();idx++)
+            {
+                if (new_edge_list[user][idx].second > 0 && new_edge_list[user][idx].second < k)
+                    drop_edge_list.emplace_back(std::pair(user, idx));
+            }
+        }
     }
-    // Print_Time_Now("Filter Support: ", start);
+    Print_Time_Now("Filter Support: ", start);
 
+    std::set<uint> user_set;
     std::set<uint> item_set;
     std::vector<std::pair<uint, uint>> new_e_list;
     for (size_t i=0; i<new_edge_list.size();i++)
     {
         for (auto edge : new_edge_list[i])
         {
-            if (edge.second != UINT_MAX)
+            if (edge.second > 0)
             {
-                item_set.emplace(edge.first);
+                user_set.insert(i);
+                item_set.insert(edge.first);
                 new_e_list.emplace_back(std::pair(i, edge.first));
             }
         }
     }
+    if (item_set.size() > 0 && item_set.size() < 2)
+    {
+        std::cout << this->PrintMetaData() << "\n";
+    }
     new_e_list.shrink_to_fit();
     std::vector<uint> item_list;
     item_list.assign(item_set.begin(), item_set.end());
-
     return new InducedGraph(this->graph, user_list, item_list, new_e_list);
 }
 
@@ -666,5 +704,18 @@ std::string InducedGraph::PrintMetaData()
     result_str += "\n";
     result_str += "edge List[" + std::to_string(e_lists.size()) +  "]";
     result_str += "\n";
+    return result_str;
+}
+
+
+std::string InducedGraph::PrintShortMetaData()
+{
+    std::string result_str;
+    result_str += "U[" + std::to_string(user_map.size()) +  "]";
+    result_str += " ";
+    result_str += "I[" + std::to_string(item_map.size()) +  "]";
+    result_str += " ";
+    result_str += "E[" + std::to_string(e_lists.size()) +  "]";
+    result_str += " ";
     return result_str;
 }
