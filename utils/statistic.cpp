@@ -88,7 +88,8 @@ std::string Statistic::GenerateStatisticResult()
     float total_online_time = Duration(offline_finish_timestamp) - Duration(finish_timestamp);
     result += "Total Online time: " + std::to_string(total_online_time) + "\n";
     result += "Maintenance time: " + std::to_string(graph_synopsis_maintain_time) + "\n";
-    result += "Processing time: " + std::to_string(query_process_time) + "\n";
+    result += "Snapshot Query Processing time: " + std::to_string(snapshot_query_processing_time) + "\n";
+    result += "Continuous Query Processing time: " + std::to_string(continuous_query_processing_time) + "\n";
     result += "\n";
     result += "-------------MAINTAIN TIME INFO-------------\n";
     result += "Edge Maintain time: " + std::to_string(edge_maintain_time) + "\n";
@@ -104,6 +105,8 @@ std::string Statistic::GenerateStatisticResult()
     result += "Compute Score time: " + std::to_string(snapshot_compute_user_relationship_score_time) + "\n";
     result += "\n";
     result += "-------------CONTINUOUS TIME INFO-------------\n";
+    result += "Continuous Edge Maintain time: " + std::to_string(continuous_edge_maintain_time) + "\n";
+    result += "Continuous Graph Maintain time: " + std::to_string(continuous_graph_maintain_time) + "\n";
     result += "Expiration Recompute K-Bitruss Time: " + std::to_string(continuous_expired_recompute_k_bitruss_time) + "\n";
     result += "Expiration Recompute Score Time: " + std::to_string(continuous_expired_recompute_score_time) + "\n";
     result += "Insertion Compute 2R-Hop time: " + std::to_string(continuous_inserted_compute_2r_hop_time) + "\n";

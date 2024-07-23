@@ -38,6 +38,7 @@ public:
 
     std::chrono::high_resolution_clock::time_point start_timestamp;
     std::chrono::high_resolution_clock::time_point offline_finish_timestamp;
+    std::chrono::high_resolution_clock::time_point snapshot_finish_timestamp;
     std::chrono::high_resolution_clock::time_point finish_timestamp;
 
     float initial_graph_load_time;
@@ -45,13 +46,13 @@ public:
     float update_stream_load_time;
     float synopsis_building_time;
 
-    float query_process_time;
-
     // maintain stat
     float graph_synopsis_maintain_time;
     float edge_maintain_time;
     float graph_maintain_time;
     float synopsis_maintain_time;
+    float snapshot_query_processing_time;
+    float continuous_query_processing_time;
 
     // snapshot stat
     float select_greatest_entry_in_H_time;
@@ -62,6 +63,8 @@ public:
     float snapshot_compute_user_relationship_score_time;
 
     // continuous stat
+    float continuous_edge_maintain_time;
+    float continuous_graph_maintain_time;
     float continuous_expired_recompute_k_bitruss_time;
     float continuous_expired_recompute_score_time;
     float continuous_inserted_compute_2r_hop_time;
