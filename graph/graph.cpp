@@ -192,15 +192,15 @@ uint Graph::InsertEdge(uint user_id, uint item_id)
     // 3.1 if inserting an existing edge, weight++ and return
     if (lower != user_neighbors[user_id].end() && *lower == item_id)
     {
-        edges_[user_id][dis]->weight =  edges_[user_id][dis]->weight + 1;
+        edges_[user_id][dis]->weight = edges_[user_id][dis]->weight + 1;
         return 0;
     }
     // 3.2 else add edge into the user neighbors and item neighbors
-    user_neighbors[user_id].insert(lower, item_id);
-    edges_[user_id].insert(edges_[user_id].begin() + dis, new EdgeData(1, 0));
+    user_neighbors[user_id].emplace(user_neighbors[user_id].begin() + dis, item_id);
+    edges_[user_id].emplace(edges_[user_id].begin() + dis, new EdgeData(1, 0));
 
     lower = std::lower_bound(item_neighbors[item_id].begin(), item_neighbors[item_id].end(), user_id);
-    item_neighbors[item_id].insert(lower, user_id);
+    item_neighbors[item_id].emplace(lower, user_id);
     edge_count_++;
     return 1;
 }
@@ -208,11 +208,14 @@ uint Graph::InsertEdge(uint user_id, uint item_id)
 /// @brief maintain auxiliary data (BV, ub_sup, X, Y) after edge expiration
 /// @param user_id 
 /// @param item_id 
-/// @param removal_flag 1 if new edge was removed, else 0
 /// @return return a list of user whose properties changed
-std::vector<uint> Graph::MaintainAfterExpiration(uint user_id, uint item_id, uint removal_flag)
+std::vector<uint> Graph::MaintainBeforeExpiration(uint user_id, uint item_id)
 {
-    EdgeData* inserted_edge = GetEdgeData(user_id, item_id);
+    EdgeData* expired_edge = GetEdgeData(user_id, item_id);
+    ErrorControl::assert_error(
+        expired_edge == nullptr,
+        "Edge Deletion Error: The edge does not exist in edges_!"
+    );
     std::set<uint> related_user_set;
     related_user_set.emplace(user_id);
 
@@ -225,32 +228,38 @@ std::vector<uint> Graph::MaintainAfterExpiration(uint user_id, uint item_id, uin
         size_t n_user_data_index = InsertNeighborUserData(user_id, n_user_id);
         size_t user_data_index = InsertNeighborUserData(n_user_id, user_id);
         uint wedge_score = GetEdgeData(n_user_id, item_id)->weight;
-        if (inserted_edge->weight < wedge_score)
+        if (expired_edge->weight - 1 < wedge_score)
         {
-            uint lambda = -1;
-            wedge_score = inserted_edge->weight + 1;
+            uint lambda = 1;
+            wedge_score = expired_edge->weight;
 
             // 1.2. apply the increment
-            user_neighbor_datas[user_id][n_user_data_index]->x_data += lambda;
-            user_neighbor_datas[user_id][n_user_data_index]->y_data += (2*lambda*wedge_score+lambda*lambda);
+            user_neighbor_datas[user_id][n_user_data_index]->x_data -= lambda;
+            user_neighbor_datas[user_id][n_user_data_index]->y_data -= (2*lambda*wedge_score+lambda*lambda);
 
-            user_neighbor_datas[n_user_id][user_data_index]->x_data += lambda;
-            user_neighbor_datas[n_user_id][user_data_index]->y_data += (2*lambda*wedge_score+lambda*lambda);
+            user_neighbor_datas[n_user_id][user_data_index]->x_data -= lambda;
+            user_neighbor_datas[n_user_id][user_data_index]->y_data -= (2*lambda*wedge_score+lambda*lambda);
             related_user_set.emplace(n_user_id);
         }
     }
 
-    // 2. if new edge was added (removal_flag == 1)
-    if (removal_flag == 1)
+    // 2. if edge will be removed (inserted_edge->weight == 1)
+    if (expired_edge->weight == 1)
     {
-        // 2.1. add item.BV to user.BV
+        // 2.1. recompute user.BV from all item.BV
         ErrorControl::assert_error(
             item_bvs.size() <= item_id,
             "Item Entity Error: No such item BV."
         );
-        user_bvs[user_id] |= item_bvs[item_id];
+        user_bvs[user_id].reset();
+        for (uint n_item_id : user_neighbors[user_id])
+        {
+            if (n_item_id == item_id) continue;
+            user_bvs[user_id] |= item_bvs[n_item_id];
+        }
         
         // 2.2. re-compute the support 
+        expired_edge->ub_sup = 0;
         for(size_t i = 0;i < item_neighbors[item_id].size();i++)
         {   
             uint n_user_id = item_neighbors[item_id][i];
@@ -267,16 +276,14 @@ std::vector<uint> Graph::MaintainAfterExpiration(uint user_id, uint item_id, uin
             size_t cn_num = common_neighbors.size() - 1;  // delete the item of <item_id>
             if (cn_num > 0)
             {
-                inserted_edge->ub_sup += uint(cn_num);
-                GetEdgeData(n_user_id, item_id)->ub_sup += uint(cn_num);
+                GetEdgeData(n_user_id, item_id)->ub_sup -= uint(cn_num);
                 for(size_t j = 0; j < common_neighbors.size(); j++)
                 {
                     uint cn_item_id = common_neighbors[j];
                     if (cn_item_id == item_id) continue;
-                    GetEdgeData(user_id, cn_item_id)->ub_sup += 1;
-                    GetEdgeData(n_user_id, cn_item_id)->ub_sup += 1;
+                    GetEdgeData(user_id, cn_item_id)->ub_sup -= 1;
+                    GetEdgeData(n_user_id, cn_item_id)->ub_sup -= 1;
                 }
-                related_user_set.emplace(n_user_id);
             }
         }
     }
@@ -294,7 +301,11 @@ uint Graph::ExpireEdge(uint user_id, uint item_id)
 {
     // 1. change the weight of edge
     // 1.1. search the pos of the item in the neighbor list of the user
-    auto lower = std::lower_bound(user_neighbors[user_id].begin(), user_neighbors[user_id].end(), item_id);
+    auto lower = std::lower_bound(
+        user_neighbors[user_id].begin(),
+        user_neighbors[user_id].end(),
+        item_id
+    );
     ErrorControl::assert_error(
         lower == user_neighbors[user_id].end() || *lower != item_id,
         "Edge Deletion Error: The edge does not exist in user_neighbors!"
@@ -302,7 +313,7 @@ uint Graph::ExpireEdge(uint user_id, uint item_id)
     // 1.2. weight-- if weight > 1
     size_t dis = std::distance(user_neighbors[user_id].begin(), lower);
     edges_[user_id][dis]->weight = edges_[user_id][dis]->weight - 1;
-    // edges_[user_id].erase(edges_[user_id].begin() + );
+
     if (edges_[user_id][dis]->weight > 0)
     {
         return 0;
@@ -314,6 +325,7 @@ uint Graph::ExpireEdge(uint user_id, uint item_id)
     // 2. remove the edge if weight == 1
     // 2.1. delete the item from user neighbor list
     user_neighbors[user_id].erase(lower);
+    edges_[user_id].erase(edges_[user_id].begin() + dis);
     
     // 2.2 delete the user from item neighbor list
     lower = std::lower_bound(item_neighbors[item_id].begin(), item_neighbors[item_id].end(), user_id);
@@ -461,10 +473,11 @@ std::tuple<std::vector<uint>, std::vector<uint>>  Graph::Get2rHopOfUser(uint cen
         {
             uint visit_user = to_visit_users.front();
             to_visit_users.pop();
-            if (visited_users.find(visit_user) != visited_users.end()) continue;
             for (size_t j = 0; j < user_neighbors[visit_user].size(); j++)
             {
+                if (visited_items.find(user_neighbors[visit_user][j]) != visited_items.end()) continue;
                 to_visit_items.push(user_neighbors[visit_user][j]);
+                visited_items.emplace(user_neighbors[visit_user][j]);
             }
             visited_users.emplace(visit_user);
         }
@@ -473,14 +486,20 @@ std::tuple<std::vector<uint>, std::vector<uint>>  Graph::Get2rHopOfUser(uint cen
         {
             uint visit_item = to_visit_items.front();
             to_visit_items.pop();
-            if (visited_items.find(visit_item) != visited_items.end()) continue;
-            
             for (size_t j = 0; j < item_neighbors[visit_item].size(); j++)
             {
+                if (visited_users.find(item_neighbors[visit_item][j]) != visited_users.end()) continue;
                 to_visit_users.push(item_neighbors[visit_item][j]);
+                visited_users.emplace(item_neighbors[visit_item][j]);
             }
             visited_items.emplace(visit_item);
         }
+    }
+    while (!to_visit_users.empty())
+    {
+        uint visit_user = to_visit_users.front();
+        to_visit_users.pop();
+        visited_users.emplace(visit_user);
     }
 
     std::vector<uint> user_map_;
@@ -495,10 +514,10 @@ std::tuple<std::vector<uint>, std::vector<uint>>  Graph::Get2rHopOfUserByBV(uint
 {
     std::queue<uint> to_visit_users;
     std::set<uint> visited_users;
-    std::set<uint> qualified_user_set;
+    // std::set<uint> qualified_user_set;
     std::queue<uint> to_visit_items;
     std::set<uint> visited_items;
-    std::set<uint> qualified_item_set;
+    // std::set<uint> qualified_item_set;
 
     to_visit_users.emplace(center_user_id);
     for (uint i=0;i < r; i++)
@@ -507,36 +526,41 @@ std::tuple<std::vector<uint>, std::vector<uint>>  Graph::Get2rHopOfUserByBV(uint
         {
             uint visit_user = to_visit_users.front();
             to_visit_users.pop();
-            if (visited_users.find(visit_user) != visited_users.end()) continue;
             for (size_t j = 0; j < user_neighbors[visit_user].size(); j++)
             {
+                if (visited_items.find(user_neighbors[visit_user][j]) != visited_items.end()) continue;
+                if ((bv & this->GetItemBv(user_neighbors[visit_user][j])).none()) continue;
                 to_visit_items.push(user_neighbors[visit_user][j]);
+                visited_items.emplace(user_neighbors[visit_user][j]);
             }
-            visited_users.emplace(visit_user);
-            if ((bv & this->GetUserBv(visit_user)).any())
-                qualified_user_set.emplace(visit_user);
         }
 
         while (!to_visit_items.empty())
         {
             uint visit_item = to_visit_items.front();
-            to_visit_items.pop();
-            if (visited_items.find(visit_item) != visited_items.end()) continue;
-            
+            to_visit_items.pop();            
             for (size_t j = 0; j < item_neighbors[visit_item].size(); j++)
             {
+                if (visited_users.find(item_neighbors[visit_item][j]) != visited_users.end()) continue;
+                if ((bv & this->GetUserBv(item_neighbors[visit_item][j])).none()) continue;
                 to_visit_users.push(item_neighbors[visit_item][j]);
+                visited_users.emplace(item_neighbors[visit_item][j]);
             }
-            visited_items.emplace(visit_item);
-            if ((bv & this->GetItemBv(visit_item)).any())
-                qualified_item_set.emplace(visit_item);
         }
     }
+    while (!to_visit_users.empty())
+    {
+        uint visit_user = to_visit_users.front();
+        to_visit_users.pop();
+        if ((bv & this->GetUserBv(visit_user)).any()) continue;
+        visited_users.emplace(visit_user);
+    }
+
 
     std::vector<uint> user_map_;
-    user_map_.assign(qualified_user_set.begin(), qualified_user_set.end());
+    user_map_.assign(visited_users.begin(), visited_users.end());
     std::vector<uint> item_map_;
-    item_map_.assign(qualified_item_set.begin(), qualified_item_set.end());
+    item_map_.assign(visited_items.begin(), visited_items.end());
 
     return {user_map_, item_map_};
 }

@@ -75,7 +75,7 @@ public:
     uint InsertEdge(uint user_id, uint item_id);
     std::vector<uint> MaintainAfterInsertion(uint user_id, uint item_id, uint type);
     uint ExpireEdge(uint user_id, uint item_id);
-    std::vector<uint> MaintainAfterExpiration(uint user_id, uint item_id, uint type);
+    std::vector<uint> MaintainBeforeExpiration(uint user_id, uint item_id);
 
     const std::vector<uint>& GetUserNeighbors(uint user_id) const;
     const std::vector<uint>& GetItemNeighbors(uint item_id) const;
