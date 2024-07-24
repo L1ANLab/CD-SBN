@@ -81,13 +81,7 @@ bool QueryHandle::CheckCommunityInsert(
     std::set<InducedGraph*>::iterator iter = candidate_set.begin();
     while(iter!=candidate_set.end())
     {
-        // (1) not subset if two graph has the same num of users
-        if ((*iter)->user_map.size() == to_insert_community->user_map.size())
-        {
-            iter++;
-            continue;
-        }
-        // (2) compute the common users
+        // (1) compute the common users
         std::vector<uint> common_users(
             (*iter)->user_map.size() + to_insert_community->user_map.size()
         );
@@ -97,8 +91,9 @@ bool QueryHandle::CheckCommunityInsert(
             common_users.begin()
         );
         uint common_user_num = it - common_users.begin();
+        // (2) discuss conditions
         if ((*iter)->user_map.size() < to_insert_community->user_map.size())
-        {
+        {   // if *iter is smaller and is a subset
             if ((*iter)->user_map.size() == common_user_num)
             {   //  (*iter) is a subset
                 candidate_set.erase(iter++);
