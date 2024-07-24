@@ -113,11 +113,12 @@ std::string Statistic::GenerateStatisticResult()
     result += "Insertion Compute K-Bitruss time: " + std::to_string(continuous_inserted_compute_k_bitruss_time) + "\n";
     result += "Insertion Compute Score time: " + std::to_string(continuous_inserted_compute_score_time) + "\n";
     result += "Refine Result Set time: " + std::to_string(modify_result_set_time) + "\n";
+    result += "Average Query Process Time: " + std::to_string(average_continuous_query_time) + "\n";
     return result;
 }
 
 
-bool Statistic::SaveStatisticResult(std::vector<InducedGraph*> result_list)
+bool Statistic::SaveStatisticResult()
 {
     fs::path initial_graph_folder = fs::path(initial_graph_path_str).parent_path();
     
@@ -145,7 +146,7 @@ bool Statistic::SaveStatisticResult(std::vector<InducedGraph*> result_list)
         !result_of,
         "File Stream Error: The result output file stream open failed"
     );
-    for (auto result_subgraph: result_list)
+    for (auto result_subgraph: this->solver_result)
     {
         result_of << result_subgraph->PrintMetaData() << '\n';
     }

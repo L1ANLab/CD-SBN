@@ -71,6 +71,7 @@ public:
     float continuous_inserted_compute_k_bitruss_time;
     float continuous_inserted_compute_score_time;
     float modify_result_set_time;
+    float average_continuous_query_time;
 
 
     uint vertex_pruning_counter;
@@ -79,7 +80,7 @@ public:
     uint leaf_node_visit_counter;
 
     std::string GenerateStatisticResult();
-    bool SaveStatisticResult(std::vector<InducedGraph*> result_list);
+    bool SaveStatisticResult();
 };
 
 
