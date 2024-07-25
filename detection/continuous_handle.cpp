@@ -1,6 +1,5 @@
 
 #include <vector>
-#include <set>
 #include <algorithm>
 
 #include "detection/continuous_handle.h"
@@ -24,135 +23,173 @@ ContinuousHandle::ContinuousHandle(
 
 ContinuousHandle::~ContinuousHandle() {}
 
-std::vector<InducedGraph*> ContinuousHandle::ExecuteQuery(Statistic* stat)
+
+bool hasSameElement(std::vector<uint> vec1, std::vector<uint> vec2)
+{
+    for (uint val: vec1)
+        if (std::binary_search(vec2.begin(), vec2.end(), val))
+            return true;
+    return false;
+}
+
+std::vector<InducedGraph*> ContinuousHandle::ExecuteQuery(
+    Statistic* stat,
+    std::vector<InducedGraph*> result_list,
+    uint isRemoved, uint expire_edge_user_id, uint expire_edge_item_id,
+    uint insert_edge_user_id, std::vector<uint> insert_related_user_list
+)
 {
     // 0. initialization:
     std::chrono::high_resolution_clock::time_point start_timestamp,
-    leaf_node_start_timestamp, compute_2r_hop_start_timestamp,
-    compute_k_bitruss_start_timestamp, compute_score_start_timestamp,
-    refine_candidate_set_start_timestamp;
+    expired_recompute_k_bitruss_start_timestamp, expired_recompute_score_start_timestamp,
+    expired_refine_start_timestamp, inserted_compute_2r_hop_start_timestamp,
+    inserted_compute_k_bitruss_start_timestamp, inserted_compute_score_start_timestamp,
+    inserted_refine_start_timestamp;
+    float expire_k_bitruss_time=0, expire_score_time=0, expire_refine_time=0,
+    insert_2r_hop_time=0, insert_k_bitruss_time=0, insert_score_time=0, insert_refine_time=0;
 
-    // 0.1 initialize a candidate set
+    // 0.1. initialize a candidate set
     std::set<InducedGraph*> candidate_set_P;
 
-    // 0.2. initialize a maximum heap
-    std::vector<HeapEntry*> maximum_heap_H(0);
-    SynopsisNode* root_node = this->syn->GetRoot();
-    maximum_heap_H.emplace_back(
-        new HeapEntry(root_node, root_node->GetUbScore(query_radius_idx))
-    );
-
-    std::make_heap(maximum_heap_H.begin(), maximum_heap_H.end(), CompareHeapEntry);
-
-    
-    // uint vertex_pruning_counter = 0;
-    uint leaf_node_visit_counter = 0;
-    uint entry_pruning_counter = 0;
-    uint max_k_truss_cost = 0;
-    uint max_score_cost = 0;
-
-    // 1. traverse the index
-    while(maximum_heap_H.size() > 0)
+    // 1. process the expired edge if exists
+    // recompute (k ,r, \sigma)-bitruss if subgraph contains a the expired edge
+    for (size_t idx = 0; idx < result_list.size(); idx++)
     {
-        start_timestamp = Get_Time();
-        // 1.1. get the maximum entry at the top of maximum heap. 
-        std::pop_heap(maximum_heap_H.begin(), maximum_heap_H.end(), CompareHeapEntry);
-        HeapEntry* now_heap_entry = maximum_heap_H.back();
-        maximum_heap_H.pop_back();
-        stat->select_greatest_entry_in_H_time += (Duration(start_timestamp));
-
-        // 1.2. early exit if the score of now entry is lower than the query threshold
-        if( now_heap_entry->score < this->query_score_threshold)
+        if (std::binary_search(
+            result_list[idx]->e_lists.begin(),
+            result_list[idx]->e_lists.end(),
+            std::pair{expire_edge_user_id, expire_edge_item_id}
+        ))
         {
-            std::cout << "!!!!Early termination!!!!" << std::endl;
-            break;
-        }
-        SynopsisNode* current_node = now_heap_entry->node;
-        // 1.3. process the current synopsis node
-        if (current_node->GetLevel() < MAX_LEVEL)
-        {
-            start_timestamp = Get_Time();
-            // 1.3.1. test the pruning condition
-            if (CheckPruningConditions(current_node))
+            InducedGraph* bitruss_subgraph = nullptr;
+            expired_recompute_k_bitruss_start_timestamp = Get_Time();
+            // (1) recompute k-bitruss if edge is removed
+            if (isRemoved > 0)
             {
-                // add the children into maximum heap if passing
-                for (SynopsisNode* child_node: current_node->GetChildren())
-                {
-                    maximum_heap_H.push_back(
-                        new HeapEntry(
-                            child_node,
-                            child_node->GetUbScore(query_radius_idx)
-                        )
+                std::vector<std::pair<uint, uint>>::iterator remove_iter;
+                if ((this->query_BV & result_list[idx]->graph.GetUserBv(expire_edge_user_id)).none())
+                { // unqualified user so remove all edges
+                    remove_iter = std::remove_if(
+                        result_list[idx]->e_lists.begin(),
+                        result_list[idx]->e_lists.end(),
+                        [expire_edge_user_id] (std::pair<uint, uint> edge) {
+                            return edge.first == expire_edge_user_id;
+                        }
                     );
-                    std::push_heap(maximum_heap_H.begin(), maximum_heap_H.end(), CompareHeapEntry);
-                }
-                // count the number of leaf index node
-                if (current_node->GetChildren().empty()
-                || current_node->GetChildren().back()->GetLevel() == MAX_LEVEL)
-                {
-                    leaf_node_visit_counter += 1;
-                }
-            }
-            else
-            {
-                entry_pruning_counter += 1;
-            }
-            stat->nonleaf_node_traverse_time += Duration(start_timestamp);
-        }
-        else
-        {
-            leaf_node_start_timestamp = Get_Time();
-            // 1.3.2. test the pruning condition
-            if (CheckPruningConditions(current_node))
-            {
-                if (current_node->GetUserSet().size() == 0)
-                {
-                    std::cout << "Meet empty synopsis node<" << current_node->GetID() << ">" << std::endl;
                 }
                 else
                 {
-                    compute_2r_hop_start_timestamp = Get_Time();
-                    // (1) compute r-hop of vertex
-                    uint center_user_id = current_node->GetUserSet().front();
-                    std::vector<uint> user_list, item_list;
-                    std::tie(user_list, item_list) = data_graph->Get2rHopOfUserByBV(
-                        center_user_id,
-                        query_radius_idx,
-                        query_BV
+                    remove_iter = std::remove(
+                        result_list[idx]->e_lists.begin(),
+                        result_list[idx]->e_lists.end(),
+                        std::pair{expire_edge_user_id, expire_edge_item_id}
                     );
-                    InducedGraph* r_hop_subgraph = new InducedGraph(*data_graph, user_list, item_list);
-                    stat->compute_2r_hop_time += Duration(compute_2r_hop_start_timestamp);
-
-                    // (2) compute k-bitruss from r-hop
-                    compute_k_bitruss_start_timestamp = Get_Time();
-                    // compute k-bitruss function
-                    InducedGraph* bitruss_subgraph = r_hop_subgraph->ComputeKBitruss(query_support_threshold);
-                    // delete the r-hop subgraph
-                    delete r_hop_subgraph;
-                    float k_bitruss_time = Duration(compute_k_bitruss_start_timestamp);
-                    stat->compute_k_bitruss_time += k_bitruss_time;
-                    if (max_k_truss_cost < k_bitruss_time) max_k_truss_cost = k_bitruss_time;
-                    
-                    // (3) compute the (k,r,σ)-bitruss
-                    compute_score_start_timestamp = Get_Time();
-                    InducedGraph* k_r_sigma_bitruss_subgraph = bitruss_subgraph->ComputeKRSigmaBitruss(query_score_threshold);
-                    delete bitruss_subgraph;
-                    float score_time = Duration(compute_score_start_timestamp);
-                    stat->compute_user_relationship_score_time += score_time;
-                    if (max_score_cost < score_time) max_score_cost = score_time;
-                    // (4) add subgraph into P if exists
-                    if (!k_r_sigma_bitruss_subgraph->user_map.empty())
-                        candidate_set_P.emplace(k_r_sigma_bitruss_subgraph);
-                    else
-                        delete k_r_sigma_bitruss_subgraph;
                 }
+                result_list[idx]->e_lists.resize(remove_iter - result_list[idx]->e_lists.begin());
+
+                bitruss_subgraph = result_list[idx]->ComputeKBitruss(query_support_threshold);
+                delete result_list[idx];
             }
-            stat->leaf_node_traverse_time += Duration(leaf_node_start_timestamp);
+            else bitruss_subgraph = result_list[idx];
+            expire_k_bitruss_time += Duration(expired_recompute_k_bitruss_start_timestamp);
+
+            // (2) compute the (k,r,σ)-bitruss
+            if (bitruss_subgraph->e_lists.empty())
+            {
+                delete bitruss_subgraph;
+                continue;
+            }
+
+            expired_recompute_score_start_timestamp = Get_Time();
+            InducedGraph* k_r_sigma_bitruss_subgraph = bitruss_subgraph->ComputeSigmaBitruss(query_score_threshold);
+            delete bitruss_subgraph;
+            expire_score_time += Duration(expired_recompute_score_start_timestamp);
+            // (3) add the result
+            expired_refine_start_timestamp = Get_Time();
+            if (!k_r_sigma_bitruss_subgraph->e_lists.empty() &&
+                CheckCommunityInsert(candidate_set_P, k_r_sigma_bitruss_subgraph))
+                candidate_set_P.emplace(k_r_sigma_bitruss_subgraph);
+            else delete k_r_sigma_bitruss_subgraph;
+            expire_refine_time += Duration(expired_refine_start_timestamp);
+        }
+        else // 1.2. add subgraph to set if subgraph contains none of related user
+            candidate_set_P.emplace(result_list[idx]);
+    }
+    if (candidate_set_P.size() < result_list.size())
+    {
+        std::cout << "Delete some subgraphs" << std::endl;
+    }
+    Print_Time("Expire Recompute K-bitruss: ", expire_k_bitruss_time);
+    Print_Time("Expire Recompute Score: ", expire_score_time);
+    Print_Time("Expire Refine Set: ", expire_refine_time);
+    stat->continuous_expired_recompute_k_bitruss_time += expire_k_bitruss_time;
+    stat->continuous_expired_recompute_score_time += expire_score_time;
+    stat->continuous_expired_refine_time += expire_refine_time;
+
+    // 2. process the inserted edge
+    std::tuple<std::vector<uint>, std::vector<uint>> result_tuple = data_graph->Get2rHopOfUserByBV(
+        insert_edge_user_id,
+        query_radius,
+        query_BV
+    );
+    std::vector<uint> insert_user_2r_hop_user_list = std::get<0>(result_tuple);
+    std::cout << insert_user_2r_hop_user_list.size() << std::endl;
+    for(uint user_id: insert_user_2r_hop_user_list)
+    {
+        inserted_compute_2r_hop_start_timestamp = Get_Time();
+        // (1) compute r-hop of vertex
+        uint center_user_id = user_id;
+        std::vector<uint> user_list, item_list;
+        std::tie(user_list, item_list) = data_graph->Get2rHopOfUserByBV(
+            center_user_id,
+            query_radius,
+            query_BV
+        );
+        InducedGraph* r_hop_subgraph = new InducedGraph(*data_graph, user_list, item_list);
+        insert_2r_hop_time += Duration(inserted_compute_2r_hop_start_timestamp);
+
+        if (r_hop_subgraph->e_lists.empty() || !hasSameElement(r_hop_subgraph->user_map, insert_related_user_list))
+        {
+            delete r_hop_subgraph;
+            continue;
+        }
+        // (2) compute k-bitruss from r-hop
+        inserted_compute_k_bitruss_start_timestamp = Get_Time();
+        // compute k-bitruss function
+        InducedGraph* bitruss_subgraph = r_hop_subgraph->ComputeKBitruss(query_support_threshold);
+        // delete the r-hop subgraph
+        delete r_hop_subgraph;
+        insert_k_bitruss_time += Duration(inserted_compute_k_bitruss_start_timestamp);
+
+        if (bitruss_subgraph->e_lists.empty())
+        {
+            delete bitruss_subgraph;
+            continue;
         }
 
-        delete now_heap_entry;
+        // (3) compute the (k,r,σ)-bitruss
+        inserted_compute_score_start_timestamp = Get_Time();
+        InducedGraph* k_r_sigma_bitruss_subgraph = bitruss_subgraph->ComputeSigmaBitruss(query_score_threshold);
+        delete bitruss_subgraph;
+        insert_score_time += Duration(inserted_compute_score_start_timestamp);
+        // (4) add subgraph into P if exists
+        inserted_refine_start_timestamp = Get_Time();
+        if (!k_r_sigma_bitruss_subgraph->e_lists.empty() &&
+            CheckCommunityInsert(candidate_set_P, k_r_sigma_bitruss_subgraph))
+            candidate_set_P.emplace(k_r_sigma_bitruss_subgraph);
+        else delete k_r_sigma_bitruss_subgraph;
+        insert_refine_time += Duration(inserted_refine_start_timestamp);
     }
+    stat->continuous_inserted_compute_2r_hop_time += insert_2r_hop_time;
+    stat->continuous_inserted_compute_k_bitruss_time += insert_k_bitruss_time;
+    stat->continuous_inserted_compute_score_time += insert_score_time;
+    stat->continuous_inserted_refine_time += insert_refine_time;
+    Print_Time("Insert Recompute 2r-hop: ", insert_2r_hop_time);
+    Print_Time("Insert Recompute K-bitruss: ", insert_k_bitruss_time);
+    Print_Time("Insert Recompute Score: ", insert_score_time);
+    Print_Time("Insert Refine Set: ", insert_refine_time);
 
+    // 3. refine the candidate set
     std::vector<InducedGraph*> result_set_R;
     result_set_R.assign(candidate_set_P.begin(), candidate_set_P.end());
     return result_set_R;
