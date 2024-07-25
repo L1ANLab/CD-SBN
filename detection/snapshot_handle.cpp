@@ -114,41 +114,48 @@ std::vector<InducedGraph*> SnapshotHandle::ExecuteQuery(Statistic* stat)
                     );
                     InducedGraph* r_hop_subgraph = new InducedGraph(*data_graph, user_list, item_list);
                     stat->snapshot_compute_2r_hop_time += Duration(compute_2r_hop_start_timestamp);
-                    if (r_hop_subgraph->e_lists.empty()) delete r_hop_subgraph;
-                    else
+                    if (r_hop_subgraph->e_lists.empty())
                     {
-                        vertex_pruning_counter += 1;
-                        // (2) compute k-bitruss from r-hop
-                        compute_k_bitruss_start_timestamp = Get_Time();
-                        // compute k-bitruss function
-                        InducedGraph* bitruss_subgraph = r_hop_subgraph->ComputeKBitruss(query_support_threshold);
-                        if (bitruss_subgraph->user_map.size() > 1)
-                        {
-                            std::cout << "(" << center_user_id << ") ";
-                            std::cout << bitruss_subgraph->PrintShortMetaData() << "\n"; 
-                        }
-                        // delete the r-hop subgraph
                         delete r_hop_subgraph;
-                        float k_bitruss_time = Duration(compute_k_bitruss_start_timestamp);
-                        stat->snapshot_compute_k_bitruss_time += k_bitruss_time;
-                        if (max_k_truss_cost < k_bitruss_time) max_k_truss_cost = k_bitruss_time;
-                        if (bitruss_subgraph->e_lists.empty()) delete bitruss_subgraph;
-                        else
-                        {
-                            // (3) compute the (k,r,σ)-bitruss
-                            compute_score_start_timestamp = Get_Time();
-                            InducedGraph* k_r_sigma_bitruss_subgraph = bitruss_subgraph->ComputeSigmaBitruss(query_score_threshold);
-                            delete bitruss_subgraph;
-                            float score_time = Duration(compute_score_start_timestamp);
-                            stat->snapshot_compute_user_relationship_score_time += score_time;
-                            if (max_score_cost < score_time) max_score_cost = score_time;
-                            // (4) add subgraph into P if exists
-                            if (!k_r_sigma_bitruss_subgraph->e_lists.empty() &&
-                                CheckCommunityInsert(candidate_set_P, k_r_sigma_bitruss_subgraph))
-                                candidate_set_P.emplace(k_r_sigma_bitruss_subgraph);
-                            else delete k_r_sigma_bitruss_subgraph;
-                        }
+                        stat->leaf_node_traverse_time += Duration(leaf_node_start_timestamp);
+                        continue;
                     }
+                    vertex_pruning_counter += 1;
+
+
+                    // (2) compute k-bitruss from r-hop
+                    compute_k_bitruss_start_timestamp = Get_Time();
+                    // compute k-bitruss function
+                    InducedGraph* bitruss_subgraph = r_hop_subgraph->ComputeKBitruss(query_support_threshold);
+                    // if (bitruss_subgraph->user_map.size() > 1)
+                    // {
+                    //     std::cout << "(" << center_user_id << ") ";
+                    //     std::cout << bitruss_subgraph->PrintShortMetaData() << "\n"; 
+                    // }
+                    delete r_hop_subgraph;
+                    
+                    float k_bitruss_time = Duration(compute_k_bitruss_start_timestamp);
+                    stat->snapshot_compute_k_bitruss_time += k_bitruss_time;
+                    if (max_k_truss_cost < k_bitruss_time) max_k_truss_cost = k_bitruss_time;
+                    if (bitruss_subgraph->e_lists.empty())
+                    {
+                        delete bitruss_subgraph;
+                        stat->leaf_node_traverse_time += Duration(leaf_node_start_timestamp);
+                        continue;
+                    }
+
+                    // (3) compute the (k,r,σ)-bitruss
+                    compute_score_start_timestamp = Get_Time();
+                    InducedGraph* k_r_sigma_bitruss_subgraph = bitruss_subgraph->ComputeSigmaBitruss(query_score_threshold);
+                    delete bitruss_subgraph;
+                    float score_time = Duration(compute_score_start_timestamp);
+                    stat->snapshot_compute_user_relationship_score_time += score_time;
+                    if (max_score_cost < score_time) max_score_cost = score_time;
+                    // (4) add subgraph into P if exists
+                    if (!k_r_sigma_bitruss_subgraph->e_lists.empty() &&
+                        CheckCommunityInsert(candidate_set_P, k_r_sigma_bitruss_subgraph))
+                        candidate_set_P.emplace(k_r_sigma_bitruss_subgraph);
+                    else delete k_r_sigma_bitruss_subgraph;
                 }
             }
             stat->leaf_node_traverse_time += Duration(leaf_node_start_timestamp);
