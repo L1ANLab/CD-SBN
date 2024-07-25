@@ -205,19 +205,16 @@ uint Graph::InsertEdge(uint user_id, uint item_id)
     return 1;
 }
 
-/// @brief maintain auxiliary data (BV, ub_sup, X, Y) after edge expiration
+/// @brief maintain auxiliary data (BV, ub_sup, X, Y) before edge expiration
 /// @param user_id 
 /// @param item_id 
-/// @return return a list of user whose properties changed
-std::vector<uint> Graph::MaintainBeforeExpiration(uint user_id, uint item_id)
+void Graph::MaintainBeforeExpiration(uint user_id, uint item_id)
 {
     EdgeData* expired_edge = GetEdgeData(user_id, item_id);
     ErrorControl::assert_error(
         expired_edge == nullptr,
         "Edge Deletion Error: The edge does not exist in edges_!"
     );
-    std::set<uint> related_user_set;
-    related_user_set.emplace(user_id);
 
     // 1. re-compute user relationship score
     for(size_t i = 0;i < item_neighbors[item_id].size();i++)
@@ -239,7 +236,6 @@ std::vector<uint> Graph::MaintainBeforeExpiration(uint user_id, uint item_id)
 
             user_neighbor_datas[n_user_id][user_data_index]->x_data -= lambda;
             user_neighbor_datas[n_user_id][user_data_index]->y_data -= (2*lambda*wedge_score+lambda*lambda);
-            related_user_set.emplace(n_user_id);
         }
     }
 
@@ -287,10 +283,36 @@ std::vector<uint> Graph::MaintainBeforeExpiration(uint user_id, uint item_id)
             }
         }
     }
+}
 
-    std::vector<uint> related_user;
-    related_user.assign(related_user_set.begin(), related_user_set.end());
-    return related_user;
+
+/// @brief maintain BV before edge expiration
+/// @param user_id 
+/// @param item_id 
+void Graph::MaintainBVBeforeExpiration(uint user_id, uint item_id)
+{
+    // 1. get edge info
+    EdgeData* expired_edge = GetEdgeData(user_id, item_id);
+    ErrorControl::assert_error(
+        expired_edge == nullptr,
+        "Edge Deletion Error: The edge does not exist in edges_!"
+    );
+
+    // 2. if edge will be removed (inserted_edge->weight == 1)
+    if (expired_edge->weight == 1)
+    {
+        // 2.1. recompute user.BV from all item.BV
+        ErrorControl::assert_error(
+            item_bvs.size() <= item_id,
+            "Item Entity Error: No such item BV."
+        );
+        user_bvs[user_id].reset();
+        for (uint n_item_id : user_neighbors[user_id])
+        {
+            if (n_item_id == item_id) continue;
+            user_bvs[user_id] |= item_bvs[n_item_id];
+        }
+    }
 }
 
 /// @brief expire an edge from graph

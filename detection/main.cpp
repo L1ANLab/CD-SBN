@@ -23,13 +23,13 @@ int main(int argc, char *argv[])
 {
     CLI::App app{"App description"};
 
-    bool is_continuous_flag = false;
+    // bool is_continuous_flag = false;
     std::string initial_graph_path = "", item_label_list_path = "", update_stream_path = "";
     uint query_timestamp = 0, sliding_window_size = 0;
     std::vector<uint> query_keywords(0);
     uint query_support_threshold = 0, query_radius = 0, query_score_threshold = 0;
 
-    app.add_flag("-c", is_continuous_flag, "whether it is a continuous query");
+    // app.add_flag("-c", is_continuous_flag, "whether it is a continuous query");
     app.add_option("-i,--initial", initial_graph_path, "initial graph path")->required();
     app.add_option("-l,--labels", item_label_list_path, "initial data graph path")->required();
     app.add_option("-u,--update", update_stream_path, "update stream path")->required();
@@ -79,19 +79,21 @@ int main(int argc, char *argv[])
     statistic->update_stream_load_time = Duration(start);
     Print_Time("Load Update Stream Time Cost: ", statistic->update_stream_load_time);
     std::cout << "*********** Graph loading complete ***********" << std::endl;
+    std::cout << std::endl;
     // data_graph->PrintMetaData();
     // Print infos
     Print_Time_Now("Load Graphs Time Cost: ", statistic->start_timestamp);
-    std::cout << "* query_timestamp: " << query_timestamp << "\n";
+    std::cout << "* query_timestamp: " << query_timestamp << std::endl;
     std::cout << "* query_keywords: " ;
     for (size_t i=0; i < query_keywords.size(); i++)
     {
         std::cout << query_keywords[i] << " ";
     }
     std::cout << "\n";
-    std::cout << "* query_support_threshold: " << query_support_threshold << "\n";
-    std::cout << "* query_radius: " << query_radius << "\n";
-    std::cout << "* query_score_threshold: " << query_score_threshold << "\n";
+    std::cout << "* query_support_threshold: " << query_support_threshold << std::endl;
+    std::cout << "* query_radius: " << query_radius << std::endl;
+    std::cout << "* query_score_threshold: " << query_score_threshold << std::endl;
+    std::cout << std::endl;
 
     // 2. build synopsis
     Synopsis* syn = new Synopsis();
@@ -110,141 +112,240 @@ int main(int argc, char *argv[])
         syn->SaveSynopsisEntries(synopsis_entries_file_path, vertex_entry_list);
         Print_Time_Now("Compute part takes: ", start);
     }
-    // 2.2. precompute or load synopsis entries
+    // 2.2. precompute or load synopsis entries 
     std::cout << "------------ Building Synopsis ------------" << std::endl;
     start = Get_Time();
     syn->BuildSynopsis(data_graph, vertex_entry_list);
     Print_Time_Now("Build part takes ", start);
     statistic->synopsis_building_time = Duration(start);
-
+    statistic->leaf_node_counter = syn->CountLeafNodes(syn->GetRoot());
     // 2. print time cost of Building Synopsis
     Print_Time("Building Synopsis Time Cost: ", statistic->synopsis_building_time);
     std::cout << "*********** Preprocessing complete ***********" << std::endl;
-
     Print_Time_Now("Offline Total Time: ", statistic->start_timestamp);
+    std::cout << std::endl;
     statistic->offline_finish_timestamp = Get_Time();
 
     // 3. execute query
     std::cout << "------------ Start online processing ------------" << std::endl;
-    start = Get_Time();
+    std::cout << "------------ Start graph & synopsis maintenance ------------" << std::endl;
+    std::chrono::high_resolution_clock::time_point edge_maintain_start, graph_maintain_start, synopsis_maintain_start;
+    statistic->edge_maintain_time = 0;
+    statistic->graph_maintain_time = 0;
+    statistic->synopsis_maintain_time = 0;
     std::vector<InducedGraph*> result_list;
-    if (!is_continuous_flag) // 3.1. for snapshot query
+    SnapshotHandle* snapshot_query = new SnapshotHandle(
+        query_keywords,
+        query_support_threshold,
+        query_radius,
+        query_score_threshold,
+        data_graph,
+        syn
+    );
+    start = Get_Time();
+    // 3.1. maintain the graph and synopsis until the query time
+    if (query_timestamp > data_graph->GetGraphTimestamp())
     {
-        // 3.1.1. maintain the graph and synopsis until the query time
-        if (query_timestamp > data_graph->GetGraphTimestamp())
-        {
-            std::cout << "------------ Start graph&synopsis maintenance ------------" << std::endl;
-            size_t start_idx = 0, end_idx = 0;
-            std::vector<InsertUnit> update_stream = data_graph->GetUpdateStream();
-            ErrorControl::assert_error(
-                update_stream.size() <= 0,
-                "Initialization Error: The update stream has not been initialized!"
-            );
-            while (end_idx < update_stream.size() && update_stream[end_idx].timestamp <= query_timestamp)
-            {
-                // add new edge if in query
-                std::cout << "Maintain timestamp " << update_stream[end_idx].timestamp << " to " << query_timestamp << std::endl;
-                uint addition_flag = data_graph->InsertEdge(
-                    update_stream[end_idx].user_id,
-                    update_stream[end_idx].item_id
-                );
-                syn->UpdateSynopsisAfterInsertion(
-                    update_stream[end_idx].user_id,
-                    update_stream[end_idx].item_id,
-                    addition_flag,
-                    data_graph
-                );
-                // expire old edge if out of window
-                if (end_idx - start_idx + 1 > sliding_window_size)
-                {
-                    uint removal_flag = data_graph->ExpireEdge(
-                        update_stream[end_idx].user_id,
-                        update_stream[end_idx].item_id
-                    );
-                    syn->UpdateSynopsisAfterExpiration(
-                        update_stream[end_idx].user_id,
-                        update_stream[end_idx].item_id,
-                        removal_flag,
-                        data_graph
-                    );
-                    start_idx += 1;
-                }
-                // move to next edge
-                end_idx += 1;
-            }
-            std::cout << std::endl;
-        }
-        statistic->graph_synopsis_maintain_time = Duration(start);
-        start = Get_Time();
-        // 3.1.2. find the answer for the snapshot query
-        std::cout << "------------ Start query processing ------------" << std::endl;
-        SnapshotHandle* snapshot_query = new SnapshotHandle(
-            query_keywords,
-            query_support_threshold,
-            query_radius,
-            query_score_threshold,
-            data_graph,
-            syn
-        );
-
-        result_list = snapshot_query->ExecuteQuery(statistic);
-        statistic->solver_result = result_list;
-        statistic->query_process_time = Duration(start);
-    }
-    else // 3.2. for continuous query
-    {
-        statistic->start_timestamp = start;
         size_t start_idx = 0, end_idx = 0;
         std::vector<InsertUnit> update_stream = data_graph->GetUpdateStream();
-        while (end_idx < update_stream.size())
+        ErrorControl::assert_error(
+            update_stream.size() <= 0,
+            "Initialization Error: The update stream has not been initialized!"
+        );
+        while (end_idx < update_stream.size() && update_stream[end_idx].timestamp <= query_timestamp)
         {
-            // 3.2.1. maintain the graph and synopsis once
-            // add new edge if in query
+            uint add_edge_user_id = update_stream[end_idx].user_id;
+            uint add_edge_item_id = update_stream[end_idx].item_id;
+            // add new edge if in quer
+            // (1) insert edge
+            std::cout << "Insert edge (" << add_edge_user_id << "," << add_edge_user_id << ")";
+            std::cout << " at " << update_stream[start_idx].timestamp << std::endl;
+            edge_maintain_start = Get_Time();
             uint addition_flag = data_graph->InsertEdge(
-                update_stream[end_idx].user_id,
-                update_stream[end_idx].item_id
+                add_edge_user_id,
+                add_edge_item_id
             );
+            statistic->edge_maintain_time += Duration(edge_maintain_start);
+            Print_Time_Now("[Insert] in ",  edge_maintain_start);
+            // (2) maintain grpah
+            graph_maintain_start = Get_Time();
+            data_graph->MaintainAfterInsertion(
+                add_edge_user_id,
+                add_edge_item_id,
+                addition_flag
+            );
+            statistic->graph_maintain_time += Duration(graph_maintain_start);
+            Print_Time_Now("[Maintain Graph] in ",  graph_maintain_start);
+            // (3) maintain synopsis
+            synopsis_maintain_start = Get_Time();
             syn->UpdateSynopsisAfterInsertion(
-                update_stream[end_idx].user_id,
-                update_stream[end_idx].item_id,
+                add_edge_user_id,
+                add_edge_item_id,
                 addition_flag,
                 data_graph
             );
+            statistic->synopsis_maintain_time += Duration(synopsis_maintain_start);
+            Print_Time_Now("[Maintain Synopsis] in ",  synopsis_maintain_start);
             // expire old edge if out of window
             if (end_idx - start_idx + 1 > sliding_window_size)
             {
-                uint removal_flag = data_graph->ExpireEdge(
-                    update_stream[end_idx].user_id,
-                    update_stream[end_idx].item_id
+                uint expire_edge_user_id = update_stream[start_idx].user_id;
+                uint expire_edge_item_id = update_stream[start_idx].item_id;
+                // (1) maintain grpah
+                graph_maintain_start = Get_Time();
+                data_graph->MaintainBeforeExpiration(
+                    expire_edge_user_id,
+                    expire_edge_item_id
                 );
+                statistic->graph_maintain_time += Duration(graph_maintain_start);
+                Print_Time_Now("[Maintain Graph] in ",  graph_maintain_start);
+                // (2) expire edge
+                std::cout << "Expire edge (" << expire_edge_user_id << "," << expire_edge_item_id << ")";
+                std::cout << " at " << update_stream[start_idx].timestamp << std::endl;
+                edge_maintain_start = Get_Time();
+                uint removal_flag = data_graph->ExpireEdge(
+                    expire_edge_user_id,
+                    expire_edge_item_id
+                );
+                statistic->edge_maintain_time += Duration(edge_maintain_start);
+                Print_Time_Now("[Expire] in ",  edge_maintain_start);
+                // (3) maintain synopsis
+                synopsis_maintain_start = Get_Time();
                 syn->UpdateSynopsisAfterExpiration(
-                    update_stream[end_idx].user_id,
-                    update_stream[end_idx].item_id,
+                    expire_edge_user_id,
+                    expire_edge_item_id,
                     removal_flag,
                     data_graph
                 );
+                statistic->synopsis_maintain_time += Duration(synopsis_maintain_start);
+                Print_Time_Now("[Maintain Synopsis] in ",  synopsis_maintain_start);
                 start_idx += 1;
             }
-            // TODO: 3.2.2. find the answer for the continuous query
-            // SnapshotHandle* snapshot_query = new SnapshotHandle(
-            //     query_keywords,
-            //     query_support_threshold,
-            //     query_radius,
-            //     query_score_threshold,
-            //     data_graph,
-            //     syn
-            // );
-
-            // result_list = snapshot_query->ExecuteSnapshotQuery(statistic);
-        
             // move to next edge
             end_idx += 1;
         }
-        statistic->finish_timestamp = Get_Time();
+        std::cout << std::endl;
+    }
+    statistic->graph_synopsis_maintain_time = Duration(start);
+    std::cout << "*********** Graph & synopsis maintenance complete ***********" << std::endl;
+    std::cout << std::endl;
+
+    // 3.2. find the answer for the snapshot query
+    std::cout << "------------ Start snapshot query ------------" << std::endl;
+    start = Get_Time();
+    result_list = snapshot_query->ExecuteQuery(statistic);
+    std::cout << "Snapshot Result:[" << result_list.size() << "]" << std::endl;
+    statistic->solver_result = result_list;
+    statistic->snapshot_query_processing_time = Duration(start);
+
+    statistic->user_node_num = data_graph->UserVerticesNum();
+    statistic->item_node_num = data_graph->ItemVerticesNum();
+    statistic->edge_num = data_graph->NumEdges();
+    std::cout << std::endl << statistic->GenerateStatisticResult() << std::endl;
+
+    if (statistic->SaveStatisticResult())
+    {
+        std::cout << "Print stat result successfully" << std::endl;
     }
 
+    std::cout << "*********** Snapshot query complete ***********" << std::endl;
+    std::cout << std::endl;
+    // return 0;
+
+    // 3.3. maintain the answer for the continuous query
+    std::cout << "------------ Start continuous query ------------" << std::endl;
+    ContinuousHandle* continuous_query = new ContinuousHandle(
+        query_keywords,
+        query_support_threshold,
+        query_radius,
+        query_score_threshold,
+        data_graph,
+        syn
+    );
+    std::chrono::high_resolution_clock::time_point continuous_turn_start;
+    start = Get_Time();
+    size_t start_idx = 0, end_idx = 0;
+    std::vector<InsertUnit> update_stream = data_graph->GetUpdateStream();
+    while (end_idx < update_stream.size())
+    {
+       continuous_turn_start = Get_Time();
+        uint insert_edge_user_id = update_stream[end_idx].user_id;
+        uint insert_edge_item_id = update_stream[end_idx].item_id;
+        // 3.2.1. maintain the graph and synopsis once
+        // (1) insert edge
+        std::cout << "Insert edge (" << insert_edge_user_id << "," << insert_edge_item_id << ")";
+        std::cout << " at " << update_stream[end_idx].timestamp << std::endl;
+        edge_maintain_start = Get_Time();
+        uint addition_flag = data_graph->InsertEdge(
+            insert_edge_user_id,
+            insert_edge_item_id
+        );
+        statistic->continuous_edge_maintain_time += Duration(edge_maintain_start);
+        // Print_Time_Now("[Insert] in ",  edge_maintain_start);
+        // (2) maintain grpah
+        graph_maintain_start = Get_Time();
+        std::vector<uint> insert_related_user_list = data_graph->MaintainAfterInsertion(
+            insert_edge_user_id,
+            insert_edge_item_id,
+            addition_flag
+        );
+        statistic->continuous_graph_maintain_time += Duration(graph_maintain_start);
+        // Print_Time_Now("[Maintain] in ",  graph_maintain_start);
+        uint expire_edge_user_id = UINT_MAX;
+        uint expire_edge_item_id = UINT_MAX;
+        uint isRemoved = 0;
+        if (end_idx - start_idx + 1 > sliding_window_size)
+        {   
+            expire_edge_user_id = update_stream[start_idx].user_id;
+            expire_edge_item_id = update_stream[start_idx].item_id;
+            std::cout << "Expire edge (" << update_stream[start_idx].user_id << "," << update_stream[start_idx].item_id << ")";
+            std::cout << " at " << update_stream[start_idx].timestamp << std::endl;
+            // (1) maintain grpah
+            graph_maintain_start = Get_Time();
+            data_graph->MaintainBVBeforeExpiration(
+                update_stream[start_idx].user_id,
+                update_stream[start_idx].item_id
+            );
+            statistic->continuous_graph_maintain_time += Duration(graph_maintain_start);
+            // Print_Time_Now("[Maintain] in ",  graph_maintain_start);
+            // (2) expire edge
+            edge_maintain_start = Get_Time();
+            isRemoved = data_graph->ExpireEdge(
+                update_stream[start_idx].user_id,
+                update_stream[start_idx].item_id
+            );
+            statistic->continuous_edge_maintain_time += Duration(edge_maintain_start);
+            // Print_Time_Now("[Expire] in ",  edge_maintain_start);
+            start_idx += 1;
+        }
+        // 3.2.2. find the answer for the continuous query
+        result_list = continuous_query->ExecuteQuery(
+            statistic,
+            result_list,
+            isRemoved, expire_edge_user_id, expire_edge_item_id,
+            insert_edge_user_id, insert_related_user_list
+        );
+        statistic->solver_result = result_list;
+        statistic->average_continuous_query_time = (statistic->average_continuous_query_time * (end_idx) + Duration(continuous_turn_start)) / (end_idx + 1);
+        Print_Time_Now("Continuous Turn Time: ", continuous_turn_start);
+        std::cout << "Continuous Result: [" << result_list.size() << "]" << " at " << update_stream[end_idx].timestamp << std::endl;
+        std::cout << "Average Continuous Turn Time: " << statistic->average_continuous_query_time << std::endl;
+        if (result_list.size() == 65)
+        {
+            for (auto result_subgraph: result_list)
+            {
+                std::cout << result_subgraph->PrintMetaData() << std::endl;
+            }
+        }
+        // move to next edge
+        end_idx += 1;
+    }
+    statistic->continuous_query_processing_time = Duration(start);
+
     statistic->finish_timestamp = Get_Time();
+    std::cout << "*********** Continuous query complete ***********" << std::endl;
     std::cout << "*********** Query processing complete ***********" << std::endl;
+    std::cout << std::endl;
     // print result
     // for (InducedGraph* subgraph: result_list)
     // {
@@ -254,7 +355,6 @@ int main(int argc, char *argv[])
     statistic->user_node_num = data_graph->UserVerticesNum();
     statistic->item_node_num = data_graph->ItemVerticesNum();
     statistic->edge_num = data_graph->NumEdges();
-    statistic->leaf_node_counter = syn->CountLeafNodes(syn->GetRoot());
 
     std::cout << std::endl << statistic->GenerateStatisticResult() << std::endl;
 
