@@ -59,17 +59,22 @@ public:
     float leaf_node_traverse_time;
     float nonleaf_node_traverse_time;
     float snapshot_compute_2r_hop_time;
-    float snapshot_compute_k_bitruss_time;
-    float snapshot_compute_user_relationship_score_time;
+    float snapshot_compute_community_time;
+    float snapshot_compute_data_time;
+    float snapshot_filter_edge_time;
 
     // continuous stat
     float continuous_edge_maintain_time;
     float continuous_graph_maintain_time;
-    float continuous_expired_recompute_k_bitruss_time;
-    float continuous_expired_recompute_score_time;
+    float continuous_expired_recompute_community_time;
+    float continuous_expired_compute_data_time;
+    float continuous_expired_filter_edge_time;
+    float continuous_expired_refine_time;
     float continuous_inserted_compute_2r_hop_time;
-    float continuous_inserted_compute_k_bitruss_time;
-    float continuous_inserted_compute_score_time;
+    float continuous_inserted_compute_community_time;
+    float continuous_inserted_compute_data_time;
+    float continuous_inserted_filter_edge_time;
+    float continuous_inserted_refine_time;
     float modify_result_set_time;
     float average_continuous_query_time;
 
