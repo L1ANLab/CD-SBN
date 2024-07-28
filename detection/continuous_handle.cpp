@@ -41,12 +41,11 @@ std::vector<InducedGraph*> ContinuousHandle::ExecuteQuery(
 {
     // 0. initialization:
     std::chrono::high_resolution_clock::time_point start_timestamp,
-    expired_recompute_k_bitruss_start_timestamp, expired_recompute_score_start_timestamp,
-    expired_refine_start_timestamp, inserted_compute_2r_hop_start_timestamp,
-    inserted_compute_k_bitruss_start_timestamp, inserted_compute_score_start_timestamp,
+    expired_recompute_community_start_timestamp, expired_refine_start_timestamp,
+    inserted_compute_2r_hop_start_timestamp, inserted_compute_community_start_timestamp,
     inserted_refine_start_timestamp;
-    float expire_k_bitruss_time=0, expire_score_time=0, expire_refine_time=0,
-    insert_2r_hop_time=0, insert_k_bitruss_time=0, insert_score_time=0, insert_refine_time=0;
+    float expire_community_time=0, expire_refine_time=0,
+    insert_2r_hop_time=0, insert_community_time=0, insert_refine_time=0;
 
     // 0.1. initialize a candidate set
     std::set<InducedGraph*> candidate_set_P;
@@ -61,8 +60,6 @@ std::vector<InducedGraph*> ContinuousHandle::ExecuteQuery(
             std::pair{expire_edge_user_id, expire_edge_item_id}
         ))
         {
-            InducedGraph* bitruss_subgraph = nullptr;
-            expired_recompute_k_bitruss_start_timestamp = Get_Time();
             // (1) recompute k-bitruss if edge is removed
             if (isRemoved > 0)
             {
@@ -86,24 +83,18 @@ std::vector<InducedGraph*> ContinuousHandle::ExecuteQuery(
                     );
                 }
                 result_list[idx]->e_lists.resize(remove_iter - result_list[idx]->e_lists.begin());
-
-                bitruss_subgraph = result_list[idx]->ComputeKBitruss(query_support_threshold);
-                delete result_list[idx];
             }
-            else bitruss_subgraph = result_list[idx];
-            expire_k_bitruss_time += Duration(expired_recompute_k_bitruss_start_timestamp);
-
+            expired_recompute_community_start_timestamp = Get_Time();
             // (2) compute the (k,r,σ)-bitruss
-            if (bitruss_subgraph->e_lists.empty())
-            {
-                delete bitruss_subgraph;
-                continue;
-            }
+            InducedGraph* k_r_sigma_bitruss_subgraph =
+                result_list[idx]->ComputeKRSigmaBitruss(
+                    query_support_threshold,
+                    query_score_threshold,
+                    stat->continuous_expired_compute_data_time,
+                    stat->continuous_expired_filter_edge_time
+                );
+            expire_community_time += Duration(expired_recompute_community_start_timestamp);
 
-            expired_recompute_score_start_timestamp = Get_Time();
-            InducedGraph* k_r_sigma_bitruss_subgraph = bitruss_subgraph->ComputeSigmaBitruss(query_score_threshold);
-            delete bitruss_subgraph;
-            expire_score_time += Duration(expired_recompute_score_start_timestamp);
             // (3) add the result
             expired_refine_start_timestamp = Get_Time();
             if (!k_r_sigma_bitruss_subgraph->e_lists.empty() &&
@@ -119,11 +110,9 @@ std::vector<InducedGraph*> ContinuousHandle::ExecuteQuery(
     {
         std::cout << "Delete some subgraphs" << std::endl;
     }
-    Print_Time("Expire Recompute K-bitruss: ", expire_k_bitruss_time);
-    Print_Time("Expire Recompute Score: ", expire_score_time);
+    Print_Time("Expire Recompute Community: ", expire_community_time);
     Print_Time("Expire Refine Set: ", expire_refine_time);
-    stat->continuous_expired_recompute_k_bitruss_time += expire_k_bitruss_time;
-    stat->continuous_expired_recompute_score_time += expire_score_time;
+    stat->continuous_expired_recompute_community_time += expire_community_time;
     stat->continuous_expired_refine_time += expire_refine_time;
 
     // 2. process the inserted edge
@@ -153,26 +142,20 @@ std::vector<InducedGraph*> ContinuousHandle::ExecuteQuery(
             delete r_hop_subgraph;
             continue;
         }
-        // (2) compute k-bitruss from r-hop
-        inserted_compute_k_bitruss_start_timestamp = Get_Time();
-        // compute k-bitruss function
-        InducedGraph* bitruss_subgraph = r_hop_subgraph->ComputeKBitruss(query_support_threshold);
-        // delete the r-hop subgraph
+
+        // (2) compute the (k,r,σ)-bitruss
+        inserted_compute_community_start_timestamp = Get_Time();
+        InducedGraph* k_r_sigma_bitruss_subgraph =
+            r_hop_subgraph->ComputeKRSigmaBitruss(
+                query_support_threshold,
+                query_score_threshold,
+                stat->continuous_inserted_compute_data_time,
+                stat->continuous_inserted_filter_edge_time
+            );
         delete r_hop_subgraph;
-        insert_k_bitruss_time += Duration(inserted_compute_k_bitruss_start_timestamp);
+        insert_community_time += Duration(inserted_compute_community_start_timestamp);
 
-        if (bitruss_subgraph->e_lists.empty())
-        {
-            delete bitruss_subgraph;
-            continue;
-        }
-
-        // (3) compute the (k,r,σ)-bitruss
-        inserted_compute_score_start_timestamp = Get_Time();
-        InducedGraph* k_r_sigma_bitruss_subgraph = bitruss_subgraph->ComputeSigmaBitruss(query_score_threshold);
-        delete bitruss_subgraph;
-        insert_score_time += Duration(inserted_compute_score_start_timestamp);
-        // (4) add subgraph into P if exists
+        // (3) add subgraph into P if exists
         inserted_refine_start_timestamp = Get_Time();
         if (!k_r_sigma_bitruss_subgraph->e_lists.empty() &&
             CheckCommunityInsert(candidate_set_P, k_r_sigma_bitruss_subgraph))
@@ -181,12 +164,10 @@ std::vector<InducedGraph*> ContinuousHandle::ExecuteQuery(
         insert_refine_time += Duration(inserted_refine_start_timestamp);
     }
     stat->continuous_inserted_compute_2r_hop_time += insert_2r_hop_time;
-    stat->continuous_inserted_compute_k_bitruss_time += insert_k_bitruss_time;
-    stat->continuous_inserted_compute_score_time += insert_score_time;
+    stat->continuous_inserted_compute_community_time += insert_community_time;
     stat->continuous_inserted_refine_time += insert_refine_time;
     Print_Time("Insert Recompute 2r-hop: ", insert_2r_hop_time);
-    Print_Time("Insert Recompute K-bitruss: ", insert_k_bitruss_time);
-    Print_Time("Insert Recompute Score: ", insert_score_time);
+    Print_Time("Insert Recompute Community: ", insert_community_time);
     Print_Time("Insert Refine Set: ", insert_refine_time);
 
     // 3. refine the candidate set
