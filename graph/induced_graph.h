@@ -36,7 +36,7 @@ public:
     
     InducedGraph* ComputeKBitruss(uint k);
     InducedGraph* ComputeSigmaBitruss(uint sigma);
-    InducedGraph* ComputeKRSigmaBitruss(uint k, uint sigma);
+    InducedGraph* ComputeKRSigmaBitruss(uint k, uint sigma, float& data_compute_time, float& edge_filter_time);
     std::string PrintMetaData();
     std::string PrintShortMetaData();
 };
