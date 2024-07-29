@@ -9,14 +9,14 @@
 
 struct SynopsisData
 {
-    std::bitset<MAX_LABEL> bv_r;
+    std::bitset<max_label> bv_r;
     uint ub_sup_M;
     uint ub_score;
 
     SynopsisData(): bv_r{}, ub_sup_M(0), ub_score(0){}
 
     SynopsisData(
-        std::bitset<MAX_LABEL> bv_r_,
+        std::bitset<max_label> bv_r_,
         uint ub_sup_M_,
         uint ub_score_
     ): bv_r(bv_r_)
@@ -49,8 +49,8 @@ public:
     ~SynopsisNode();
 
     uint GetID();
-    void SetBvR(std::bitset<MAX_LABEL> bv_r_, uint r);
-    std::bitset<MAX_LABEL> GetBvR(uint r) const;
+    void SetBvR(std::bitset<max_label> bv_r_, uint r);
+    std::bitset<max_label> GetBvR(uint r) const;
     void SetUbSupM(uint ub_sup_M_, uint r);
     uint GetUbSupM(uint r) const;
     void SetUbScore(uint ub_score_, uint r);
@@ -98,6 +98,8 @@ public:
 
     bool UpdateSynopsisAfterInsertion(uint user_id, uint item_id, uint addition_flag, Graph* Graph);
     bool UpdateSynopsisAfterExpiration(uint user_id, uint item_id, uint removal_flag, Graph* Graph);
+
+    std::vector<SynopsisNode*> GetInvListByUser(uint user_id);
 };
 
 #endif //CDSBN_SYNOPSIS_H

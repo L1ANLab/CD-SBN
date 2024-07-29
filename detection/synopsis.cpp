@@ -83,8 +83,8 @@ SynopsisNode::~SynopsisNode()
 
 uint SynopsisNode::GetID() { return id; }
 
-void SynopsisNode::SetBvR(std::bitset<MAX_LABEL> bv_r_, uint r) { data[r]->bv_r = bv_r_; }
-std::bitset<MAX_LABEL> SynopsisNode::GetBvR(uint r) const { return data[r]->bv_r; }
+void SynopsisNode::SetBvR(std::bitset<max_label> bv_r_, uint r) { data[r]->bv_r = bv_r_; }
+std::bitset<max_label> SynopsisNode::GetBvR(uint r) const { return data[r]->bv_r; }
 
 void SynopsisNode::SetUbSupM(uint ub_sup_M_, uint r) { data[r]->ub_sup_M = ub_sup_M_; }
 uint SynopsisNode::GetUbSupM(uint r) const { return data[r]->ub_sup_M; }
@@ -158,7 +158,7 @@ std::vector<SynopsisNode*> Synopsis::LoadSynopsisEntries(std::string synopsis_fi
             std::string bv_str;
             uint ub_sup_M, ub_score;
             ifs >> bv_str >> ub_sup_M >> ub_score;
-            std::bitset<MAX_LABEL> bv_r(bv_str);
+            std::bitset<max_label> bv_r(bv_str);
             SynopsisData* data_r = new SynopsisData(bv_r, ub_sup_M, ub_score);
             data[r] = data_r;
         }
@@ -267,7 +267,7 @@ bool Synopsis::UpdateSynopsisAfterInsertion(uint user_id, uint item_id, uint add
         InsertVertexEntry(user_id, node_pointer);
     }
 
-    std::bitset<MAX_LABEL> u_i_BV = graph->GetUserBv(user_id);
+    std::bitset<max_label> u_i_BV = graph->GetUserBv(user_id);
     // 1. for all possible radii r
     for (int r=0; r<R_MAX; r++)
     {
@@ -285,8 +285,8 @@ bool Synopsis::UpdateSynopsisAfterInsertion(uint user_id, uint item_id, uint add
                 if (addition_flag == 1)
                 {
                     // 3.1. compute BV_r
-                    std::bitset<MAX_LABEL> node_BV_r = affected_node->GetBvR(r);
-                    std::bitset<MAX_LABEL> new_BV_r = affected_node->GetBvR(r) | u_i_BV;
+                    std::bitset<max_label> node_BV_r = affected_node->GetBvR(r);
+                    std::bitset<max_label> new_BV_r = affected_node->GetBvR(r) | u_i_BV;
                     if (node_BV_r != new_BV_r)
                     {
                         affected_node->SetBvR(new_BV_r, r);
@@ -379,7 +379,7 @@ bool Synopsis::UpdateSynopsisAfterExpiration(uint user_id, uint item_id, uint re
     //     InsertVertexEntry(user_id, node_pointer);
     // }
 
-    // std::bitset<MAX_LABEL> u_i_BV = graph->GetUserBv(user_id);
+    // std::bitset<max_label> u_i_BV = graph->GetUserBv(user_id);
     // 1. for all possible radii r
     for (int r=0; r<R_MAX; r++)
     {
@@ -397,8 +397,8 @@ bool Synopsis::UpdateSynopsisAfterExpiration(uint user_id, uint item_id, uint re
                 if (removal_flag == 1)
                 {
                     // 3.1. compute BV_r
-                    std::bitset<MAX_LABEL> node_BV_r = affected_node->GetBvR(r);
-                    std::bitset<MAX_LABEL> new_BV_r;
+                    std::bitset<max_label> node_BV_r = affected_node->GetBvR(r);
+                    std::bitset<max_label> new_BV_r;
                     for(uint affect_hop_user_id: affected_user_2r_list)
                     {
                         new_BV_r |= graph->GetUserBv(affect_hop_user_id);
@@ -458,6 +458,9 @@ bool Synopsis::UpdateSynopsisAfterExpiration(uint user_id, uint item_id, uint re
 }
 
 
+std::vector<SynopsisNode*> Synopsis::GetInvListByUser(uint user_id) {return this->inv_list[user_id];}
+
+
 /// @brief [Private] create a vertex entry for the new user
 /// @param user_id 
 /// @param graph 
@@ -471,7 +474,7 @@ SynopsisNode* Synopsis::CreateVertexEntry(uint user_id, Graph* graph)
         auto [user_list, item_list] = graph->Get2rHopOfUser(user_id, radius);
         if (user_list.size() == 0) continue;
         // 0.1. compute BV_r
-        std::bitset<MAX_LABEL> bv_r_(0);
+        std::bitset<max_label> bv_r_(0);
         for(uint hop_user_id: user_list)
         {
             bv_r_ = bv_r_ | graph->GetUserBv(hop_user_id);
@@ -599,7 +602,7 @@ void Synopsis::SearchSynopsisTrace(uint user_id, SynopsisNode* now_node_pointer,
     return;
 }
 
-/// @brief recursively destroy the synopsis nodes from the pointer
+/// @brief [Private] recursively destroy the synopsis nodes from the pointer
 /// @param now_node_pointer 
 void Synopsis::DestroySynopsis(SynopsisNode* now_node_pointer)
 {

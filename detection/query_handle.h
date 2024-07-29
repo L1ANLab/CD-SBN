@@ -30,7 +30,7 @@ protected:
     Graph* data_graph;
     Synopsis* syn;
 
-    std::bitset<MAX_LABEL>  query_BV;
+    std::bitset<max_label>  query_BV;
     uint query_radius_idx;
     
     bool CheckPruningConditions(SynopsisNode* node);
