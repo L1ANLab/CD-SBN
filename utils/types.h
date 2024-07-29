@@ -10,7 +10,8 @@
 #define UNMATCHED UINT_MAX
 #define MAX_LEVEL UINT_MAX
 
-#define MAX_LABEL 100
+const uint threads_num = 20;
+const uint max_label = 100;
 #define SYNOPSIS_SIZE 32
 #define R_MAX 3
 

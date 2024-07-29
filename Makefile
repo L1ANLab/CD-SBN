@@ -1,5 +1,5 @@
-CC = g++ -fdiagnostics-color=always 
-FLAGS = -std=c++17 -g -Wall -I. -O2
+CC = g++ -fopenmp -fdiagnostics-color=always
+FLAGS = -std=c++17 -g -Wall -I. -O3
 LIBS = -pthread
 
 BUILD = build
