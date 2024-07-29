@@ -19,7 +19,7 @@ SynopsisNode::SynopsisNode(
 ):id(ID_COUNTER), level(level_), user_set{}
 {
     this->children_entries.assign(children_entries_.begin(), children_entries_.end());
-    for (int r=0;r<R_MAX;r++)
+    for (uint r=0;r<R_MAX;r++)
     {
         SynopsisData* data_r = new SynopsisData();
         for(size_t i=0;i<children_entries_.size();i++)
@@ -63,7 +63,7 @@ SynopsisNode::SynopsisNode(
 ):id(ID_COUNTER), level(level_), user_set{user_id}
 , children_entries(0)
 {
-    for (int r=0;r<R_MAX;r++)
+    for (uint r=0;r<R_MAX;r++)
     {
         data[r] = data_[r];
     }
@@ -83,8 +83,8 @@ SynopsisNode::~SynopsisNode()
 
 uint SynopsisNode::GetID() { return id; }
 
-void SynopsisNode::SetBvR(std::bitset<max_label> bv_r_, uint r) { data[r]->bv_r = bv_r_; }
-std::bitset<max_label> SynopsisNode::GetBvR(uint r) const { return data[r]->bv_r; }
+void SynopsisNode::SetBvR(std::bitset<MAX_LABEL> bv_r_, uint r) { data[r]->bv_r = bv_r_; }
+std::bitset<MAX_LABEL> SynopsisNode::GetBvR(uint r) const { return data[r]->bv_r; }
 
 void SynopsisNode::SetUbSupM(uint ub_sup_M_, uint r) { data[r]->ub_sup_M = ub_sup_M_; }
 uint SynopsisNode::GetUbSupM(uint r) const { return data[r]->ub_sup_M; }
@@ -153,12 +153,12 @@ std::vector<SynopsisNode*> Synopsis::LoadSynopsisEntries(std::string synopsis_fi
         uint user_id;
         ifs >> user_id;
         SynopsisData* data[R_MAX];
-        for (int r=0; r<R_MAX; r++)
+        for (uint r=0; r<R_MAX; r++)
         {
             std::string bv_str;
             uint ub_sup_M, ub_score;
             ifs >> bv_str >> ub_sup_M >> ub_score;
-            std::bitset<max_label> bv_r(bv_str);
+            std::bitset<MAX_LABEL> bv_r(bv_str);
             SynopsisData* data_r = new SynopsisData(bv_r, ub_sup_M, ub_score);
             data[r] = data_r;
         }
@@ -195,7 +195,7 @@ bool Synopsis::SaveSynopsisEntries(std::string synopsis_file_path, std::vector<S
     for (SynopsisNode* vertex_entry : vertex_entry_list)
     {
         of << vertex_entry->GetUserSet().front() << ' ';
-        for (int r=0; r<R_MAX; r++)
+        for (uint r=0; r<R_MAX; r++)
         {
             of << vertex_entry->GetBvR(r) << ' ';
             of << vertex_entry->GetUbSupM(r) << ' ';
@@ -267,9 +267,9 @@ bool Synopsis::UpdateSynopsisAfterInsertion(uint user_id, uint item_id, uint add
         InsertVertexEntry(user_id, node_pointer);
     }
 
-    std::bitset<max_label> u_i_BV = graph->GetUserBv(user_id);
+    std::bitset<MAX_LABEL> u_i_BV = graph->GetUserBv(user_id);
     // 1. for all possible radii r
-    for (int r=0; r<R_MAX; r++)
+    for (uint r=0; r<R_MAX; r++)
     {
         uint radius = r+1;
         auto [affected_user_list, affected_item_list] = graph->Get2rHopOfUser(user_id, radius);
@@ -285,8 +285,8 @@ bool Synopsis::UpdateSynopsisAfterInsertion(uint user_id, uint item_id, uint add
                 if (addition_flag == 1)
                 {
                     // 3.1. compute BV_r
-                    std::bitset<max_label> node_BV_r = affected_node->GetBvR(r);
-                    std::bitset<max_label> new_BV_r = affected_node->GetBvR(r) | u_i_BV;
+                    std::bitset<MAX_LABEL> node_BV_r = affected_node->GetBvR(r);
+                    std::bitset<MAX_LABEL> new_BV_r = affected_node->GetBvR(r) | u_i_BV;
                     if (node_BV_r != new_BV_r)
                     {
                         affected_node->SetBvR(new_BV_r, r);
@@ -379,9 +379,9 @@ bool Synopsis::UpdateSynopsisAfterExpiration(uint user_id, uint item_id, uint re
     //     InsertVertexEntry(user_id, node_pointer);
     // }
 
-    // std::bitset<max_label> u_i_BV = graph->GetUserBv(user_id);
+    // std::bitset<MAX_LABEL> u_i_BV = graph->GetUserBv(user_id);
     // 1. for all possible radii r
-    for (int r=0; r<R_MAX; r++)
+    for (uint r=0; r<R_MAX; r++)
     {
         uint radius = r+1;
         auto [affected_user_list, affected_item_list] = graph->Get2rHopOfUser(user_id, radius);
@@ -397,8 +397,8 @@ bool Synopsis::UpdateSynopsisAfterExpiration(uint user_id, uint item_id, uint re
                 if (removal_flag == 1)
                 {
                     // 3.1. compute BV_r
-                    std::bitset<max_label> node_BV_r = affected_node->GetBvR(r);
-                    std::bitset<max_label> new_BV_r;
+                    std::bitset<MAX_LABEL> node_BV_r = affected_node->GetBvR(r);
+                    std::bitset<MAX_LABEL> new_BV_r;
                     for(uint affect_hop_user_id: affected_user_2r_list)
                     {
                         new_BV_r |= graph->GetUserBv(affect_hop_user_id);
@@ -468,13 +468,13 @@ std::vector<SynopsisNode*> Synopsis::GetInvListByUser(uint user_id) {return this
 SynopsisNode* Synopsis::CreateVertexEntry(uint user_id, Graph* graph)
 {
     SynopsisData* data_[R_MAX] = {nullptr};
-    for (int r=0; r<R_MAX; r++)
+    for (uint r=0; r<R_MAX; r++)
     {
         uint radius = r+1;
         auto [user_list, item_list] = graph->Get2rHopOfUser(user_id, radius);
         if (user_list.size() == 0) continue;
         // 0.1. compute BV_r
-        std::bitset<max_label> bv_r_(0);
+        std::bitset<MAX_LABEL> bv_r_(0);
         for(uint hop_user_id: user_list)
         {
             bv_r_ = bv_r_ | graph->GetUserBv(hop_user_id);
@@ -563,7 +563,7 @@ void Synopsis::InsertVertexEntry(uint user_id, SynopsisNode* new_vertex_entry)
 {
     
     uint new_vertex_entry_score = 0;
-    for (int r=0;r<R_MAX;r++)
+    for (uint r=0;r<R_MAX;r++)
     {
         new_vertex_entry_score += new_vertex_entry->GetUbScore(r);
     }
@@ -589,7 +589,7 @@ void Synopsis::SearchSynopsisTrace(uint user_id, SynopsisNode* now_node_pointer,
         [](const SynopsisNode* child, uint new_vertex_entry_score)
         {
             uint child_score = 0;
-            for (int r=0;r<R_MAX;r++)
+            for (uint r=0;r<R_MAX;r++)
             {
                 child_score += child->GetUbScore(r);
             }

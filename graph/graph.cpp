@@ -54,7 +54,7 @@ void Graph::SetGraphTimestamp(uint new_timestamp) { this->graph_timestamp = new_
 
 void Graph::SetItemLabels(uint item_id, std::string label_str)
 {
-    std::bitset<max_label> bitvector = 0;
+    std::bitset<MAX_LABEL> bitvector = 0;
     std::stringstream ss(label_str);
     std::stringstream trans;
     std::string label;
@@ -378,11 +378,11 @@ uint Graph::GetUserDegree(uint user_id) const
     return user_neighbors[user_id].size();
 }
 
-const std::bitset<max_label>& Graph::GetUserBv(uint user_id) const
+const std::bitset<MAX_LABEL>& Graph::GetUserBv(uint user_id) const
 {
     return user_bvs[user_id];
 }
-const std::bitset<max_label>& Graph::GetItemBv(uint item_id) const
+const std::bitset<MAX_LABEL>& Graph::GetItemBv(uint item_id) const
 {
     return item_bvs[item_id];
 }
@@ -532,7 +532,7 @@ std::tuple<std::vector<uint>, std::vector<uint>>  Graph::Get2rHopOfUser(uint cen
     return {user_map_, item_map_};
 }
 
-std::tuple<std::vector<uint>, std::vector<uint>>  Graph::Get2rHopOfUserByBV(uint center_user_id, uint r, std::bitset<max_label> bv)
+std::tuple<std::vector<uint>, std::vector<uint>>  Graph::Get2rHopOfUserByBV(uint center_user_id, uint r, std::bitset<MAX_LABEL> bv)
 {
     std::queue<uint> to_visit_users;
     std::set<uint> visited_users;

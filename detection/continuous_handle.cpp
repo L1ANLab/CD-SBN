@@ -184,9 +184,9 @@ std::vector<InducedGraph*> ContinuousHandle::ExecuteQuery(
             insert_refine_time += Duration(inserted_refine_start_timestamp);
         }
     }
-    stat->continuous_inserted_compute_2r_hop_time += (insert_2r_hop_time)/threads_num;
-    stat->continuous_inserted_compute_community_time += (insert_community_time)/threads_num;
-    stat->continuous_inserted_refine_time += (insert_refine_time)/threads_num;
+    stat->continuous_inserted_compute_2r_hop_time += (insert_2r_hop_time)/THREADS_NUM;
+    stat->continuous_inserted_compute_community_time += (insert_community_time)/THREADS_NUM;
+    stat->continuous_inserted_refine_time += (insert_refine_time)/THREADS_NUM;
     Print_Time("Insert Recompute 2r-hop: ", insert_2r_hop_time);
     Print_Time("Insert Recompute Community: ", insert_community_time);
     Print_Time("Insert Refine Set: ", insert_refine_time);

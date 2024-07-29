@@ -10,10 +10,10 @@
 #define UNMATCHED UINT_MAX
 #define MAX_LEVEL UINT_MAX
 
-const uint threads_num = 20;
-const uint max_label = 100;
-#define SYNOPSIS_SIZE 32
-#define R_MAX 3
+const uint THREADS_NUM = 20;
+const uint MAX_LABEL = 210000;
+const uint SYNOPSIS_SIZE = 32;
+const uint R_MAX = 3;
 
 // Time counting
 #define Get_Time() std::chrono::high_resolution_clock::now()

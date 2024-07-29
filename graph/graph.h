@@ -41,14 +41,14 @@ protected:
     uint graph_timestamp;
     // user
     std::vector<std::vector<uint>> user_neighbors; // Each item is a list of user neighbors
-    std::vector<std::bitset<max_label>> user_bvs; // the list of support upper bound bu_sup for each user
+    std::vector<std::bitset<MAX_LABEL>> user_bvs; // the list of support upper bound bu_sup for each user
     std::vector<uint> user_ub_sups; // the list of support upper bound ub_sup for each user
     std::vector<std::vector<UserData*>> user_neighbor_datas; // the list of X and Y data for each user
 
     // item
     uint label_size;
     std::vector<std::vector<uint>> item_neighbors; // Each item is a list of item neighbors
-    std::vector<std::bitset<max_label>> item_bvs; // the list of keyword bit vector bv for each item 
+    std::vector<std::bitset<MAX_LABEL>> item_bvs; // the list of keyword bit vector bv for each item 
     
     // edge
     uint edge_count_;  // The number of edges
@@ -81,8 +81,8 @@ public:
     const std::vector<uint>& GetUserNeighbors(uint user_id) const;
     const std::vector<uint>& GetItemNeighbors(uint item_id) const;
     uint GetUserDegree(uint v) const;
-    const std::bitset<max_label>& GetUserBv(uint user_id) const;
-    const std::bitset<max_label>& GetItemBv(uint item_id) const;
+    const std::bitset<MAX_LABEL>& GetUserBv(uint user_id) const;
+    const std::bitset<MAX_LABEL>& GetItemBv(uint item_id) const;
     EdgeData* GetEdgeData(uint user_id, uint item_id) const;
     const std::vector<UserData*>& GetNeighborUserData(uint user_id) const;
     UserData* GetNeighborUserData(uint user_id, uint n_user_id) const;
@@ -91,7 +91,7 @@ public:
     std::tuple<std::vector<uint>, std::vector<uint>> Get2rHopOfUserByBV(
         uint center_user_id,
         uint r,
-        std::bitset<max_label> bv
+        std::bitset<MAX_LABEL> bv
     );
     std::vector<InsertUnit> GetUpdateStream() const;
 
