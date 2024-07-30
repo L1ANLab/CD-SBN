@@ -10,12 +10,12 @@
             "cwd": "${workspaceRoot}",
             "environment": [],
             "args": [
-                "-i", "dataset/BS/20-3/uni/initial_graph.txt",
-                "-l", "dataset/BS/20-3/uni/label_list.txt",
-                "-u", "dataset/BS/20-3/uni/update_stream.txt",
+                "-i", "dataset/BS/initial_graph.txt",
+                "-l", "dataset/BS/label_list.txt",
+                "-u", "dataset/BS/update_stream.txt",
+                "-q", "dataset/BS/query_keywords_list-5.txt",
                 "-t", "599996400",
-                "-w", "1000",
-                "-Q", "18","5","17","8","16",
+                "-w", "100",
                 "-k", "4",
                 "-r", "2",
                 "-s", "2"
