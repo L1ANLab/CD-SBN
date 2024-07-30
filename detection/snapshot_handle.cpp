@@ -48,6 +48,13 @@ std::vector<InducedGraph*> SnapshotHandle::ExecuteQuery(Statistic* stat)
     uint entry_pruning_counter = 0;
     uint max_score_cost = 0;
 
+    stat->select_greatest_entry_in_H_time = 0.0;
+    stat->nonleaf_node_traverse_time = 0.0;
+    stat->snapshot_compute_2r_hop_time = 0.0;
+    stat->leaf_node_traverse_time = 0.0;
+    stat->snapshot_compute_community_time = 0.0;
+    stat->leaf_node_traverse_time = 0.0;
+
     // 1. traverse the index
     while(maximum_heap_H.size() > 0)
     {
@@ -119,22 +126,6 @@ std::vector<InducedGraph*> SnapshotHandle::ExecuteQuery(Statistic* stat)
                         continue;
                     }
                     vertex_pruning_counter += 1;
-
-                    // // (2) compute k-bitruss from r-hop
-                    // compute_k_bitruss_start_timestamp = Get_Time();
-                    // compute k-bitruss function
-                    // InducedGraph* bitruss_subgraph = r_hop_subgraph->ComputeKBitruss(query_support_threshold);
-                    // delete r_hop_subgraph;
-                    
-                    // float k_bitruss_time = Duration(compute_k_bitruss_start_timestamp);
-                    // stat->snapshot_compute_data_time += k_bitruss_time;
-                    // if (max_k_truss_cost < k_bitruss_time) max_k_truss_cost = k_bitruss_time;
-                    // if (bitruss_subgraph->e_lists.empty())
-                    // {
-                    //     delete bitruss_subgraph;
-                    //     stat->leaf_node_traverse_time += Duration(leaf_node_start_timestamp);
-                    //     continue;
-                    // }
 
                     // (2) compute the (k,r,σ)-bitruss
                     compute_community_start_timestamp = Get_Time();

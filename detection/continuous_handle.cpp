@@ -45,8 +45,8 @@ std::vector<InducedGraph*> ContinuousHandle::ExecuteQuery(
     expired_recompute_community_start_timestamp, expired_refine_start_timestamp,
     inserted_compute_2r_hop_start_timestamp, inserted_compute_community_start_timestamp,
     inserted_refine_start_timestamp;
-    float expire_community_time=0, expire_refine_time=0,
-    insert_2r_hop_time=0, insert_community_time=0, insert_refine_time=0;
+    float expire_community_time=0.0, expire_refine_time=0.0,
+    insert_2r_hop_time=0.0, insert_community_time=0.0, insert_refine_time=0.0;
 
     // 0.1. initialize a candidate set
     std::set<InducedGraph*> candidate_set_P;
@@ -125,7 +125,7 @@ std::vector<InducedGraph*> ContinuousHandle::ExecuteQuery(
     std::vector<uint> insert_user_2r_hop_user_list = std::get<0>(result_tuple);
     std::cout << insert_user_2r_hop_user_list.size() << std::endl;
     // uint user_computed_counter = 0;
-    #pragma omp parallel for num_threads(THREADS_NUM)
+#pragma omp parallel for num_threads(THREADS_NUM)
     for(uint user_id: insert_user_2r_hop_user_list)
     {
         inserted_compute_2r_hop_start_timestamp = Get_Time();
