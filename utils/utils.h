@@ -46,34 +46,16 @@ inline void execute_with_time_limit(std::function<void()> fun, uint time_limit, 
     } while (status != std::future_status::ready);
 }
 
-namespace mem {
-    /**
-     * get peak virtual memory space of the current process
-     * https://stackoverflow.com/questions/63166/how-to-determine-cpu-and-memory-consumption-from-inside-a-process#answer-64166
-     */
-    inline int parseLine(char* line){
-        // This assumes that a digit will be found and the line ends in " Kb".
-        int i = strlen(line);
-        const char* p = line;
-        while (*p <'0' || *p > '9') p++;
-        line[i-3] = '\0';
-        i = atoi(p);
-        return i;
-    }
-
-    inline int getValue(){ //Note: this value is in KB!
-        FILE* file = fopen("/proc/self/status", "r");
-        int result = -1;
-        char line[128];
-
-        while (fgets(line, 128, file) != NULL){
-            if (strncmp(line, "VmPeak:", 7) == 0){
-                result = parseLine(line);
-                break;
-            }
-        }
-        fclose(file);
-        return result;
+namespace utils {
+    inline std::vector<uint> generate_query_keywords(uint keyword_num, uint all_keyword_num)
+    {
+        std::vector<uint> temp;
+        for (uint i = 0; i < all_keyword_num; i++) temp.push_back(i);
+        srand(unsigned(time(0)));
+        random_shuffle(temp.begin(), temp.end());
+        temp.assign(temp.begin(), temp.begin()+keyword_num);
+        temp.shrink_to_fit();
+        return temp;
     }
 }
 
