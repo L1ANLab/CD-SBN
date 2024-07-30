@@ -363,6 +363,11 @@ uint Graph::ExpireEdge(uint user_id, uint item_id)
 }
 
 
+uint Graph::GetLabelSize() const
+{
+    return this->label_size;
+}
+
 const std::vector<uint>& Graph::GetUserNeighbors(uint user_id) const
 {
     return user_neighbors[user_id];

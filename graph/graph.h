@@ -78,6 +78,7 @@ public:
     void MaintainBeforeExpiration(uint user_id, uint item_id);
     void MaintainBVBeforeExpiration(uint user_id, uint item_id);
 
+    uint GetLabelSize() const;
     const std::vector<uint>& GetUserNeighbors(uint user_id) const;
     const std::vector<uint>& GetItemNeighbors(uint item_id) const;
     uint GetUserDegree(uint v) const;

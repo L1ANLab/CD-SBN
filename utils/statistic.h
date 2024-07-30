@@ -9,15 +9,17 @@
 class Statistic
 {
 private:
+    std::string create_timestamp_folder_str;
     std::string initial_graph_path_str;
     std::string item_label_list_path_str;
     std::string update_stream_path_str;
     std::string synopsis_entries_file_path_str;
-    std::vector<uint> query_keywords;
+    std::string query_keywords_list_file_path_str;
     uint query_support_threshold;
     uint query_radius;
     uint query_score_threshold;
     uint query_timestamp;
+    uint sliding_window_size;
 
 public:
     Statistic(
@@ -25,16 +27,19 @@ public:
         std::string item_label_list_path_str_,
         std::string update_stream_path_str_,
         std::string synopsis_entries_file_path_str_,
-        std::vector<uint> query_keywords_,
+        std::string query_keywords_list_file_path_str_,
         uint query_support_threshold_,
         uint query_radius_,
         uint query_score_threshold_,
-        uint query_timestamp_
+        uint query_timestamp_,
+        uint sliding_window_size_
     );
+    std::vector<uint> query_keywords;
     std::vector<InducedGraph*> solver_result;
     uint user_node_num;
     uint item_node_num;
     uint edge_num;
+    uint all_keyword_num;
 
     std::chrono::high_resolution_clock::time_point start_timestamp;
     std::chrono::high_resolution_clock::time_point offline_finish_timestamp;
@@ -44,6 +49,7 @@ public:
     float initial_graph_load_time;
     float label_list_load_time;
     float update_stream_load_time;
+    float query_keyword_load_time;
     float synopsis_building_time;
 
     // maintain stat
