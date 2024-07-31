@@ -296,15 +296,19 @@ def GenerateDatasetWithKeywords(dir_name: str, graph_file_name: str, keyword_fil
 
 
 if __name__ == "__main__":
-    GenerateDataset("AM", "out.wang-amazon", "uniform", 20, 3)
-    GenerateDataset("AR", "out.amazon-ratings", "uniform", 20, 3)
-    GenerateDatasetWithKeywords("BS", "out.bibsonomy-2ui", "out.bibsonomy-2ti")
-    GenerateDataset("CM", "out.librec-ciaodvd-movie_ratings", "uniform", 20, 3)
-    GenerateDatasetWithKeywords("CU", "out.citeulike-ui", "out.citeulike-ti")
-    GenerateDataset("DV", "out.digg-votes", "uniform", 20, 3)
-    GenerateDatasetWithKeywords("ML", "out.movielens-10m_ui", "out.movielens-10m_ti")
-    GenerateDataset("SX", "out.escorts", "uniform", 20, 3)
-    GenerateDataset("TA", "out.wang-tripadvisor", "uniform", 20, 3)
-    GenerateDataset("UF", "out.opsahl-ucforum", "uniform", 20, 3)
-    GenerateDatasetWithKeywords("VU", "out.pics_ui", "out.pics_ti")
-    GenerateDataset("WU", "out.munmun_twitterex_ut", "uniform", 20, 3)
+    # GenerateDataset("AM", "out.wang-amazon", "uniform", 20, 3)
+    # GenerateDataset("AR", "out.amazon-ratings", "uniform", 20, 3)
+    # GenerateDatasetWithKeywords("BS", "out.bibsonomy-2ui", "out.bibsonomy-2ti")
+    # GenerateDataset("CM", "out.librec-ciaodvd-movie_ratings", "uniform", 20, 3)
+    # GenerateDatasetWithKeywords("CU", "out.citeulike-ui", "out.citeulike-ti")
+    # GenerateDataset("DV", "out.digg-votes", "uniform", 20, 3)
+    # GenerateDatasetWithKeywords("ML", "out.movielens-10m_ui", "out.movielens-10m_ti")
+    # GenerateDataset("SX", "out.escorts", "uniform", 20, 3)
+    # GenerateDataset("TA", "out.wang-tripadvisor", "uniform", 20, 3)
+    # GenerateDataset("UF", "out.opsahl-ucforum", "uniform", 20, 3)
+    # GenerateDatasetWithKeywords("VU", "out.pics_ui", "out.pics_ti")
+    # GenerateDataset("WU", "out.munmun_twitterex_ut", "uniform", 20, 3)
+
+    # GenerateDataset("PL", "out.pl-50k", "uniform", 20, 3)
+    # GenerateDataset("UD", "out.ud-50k", "uniform", 20, 3)
+    pass
