@@ -11,9 +11,10 @@ make
 !!!Warning: make sure the global settings are appropriate in `/utils/types.h`. For example,
 
 ```cpp
-#define MAX_LABEL 100       // maximum label value
-#define SYNOPSIS_SIZE 32    // the size of children list in a synopsis node
-#define R_MAX 3             // the maximum value of query radius
+const uint THREADS_NUM = 20;   // multi-thread optimization
+const uint MAX_LABEL = 210000; // maximum label value
+const uint SYNOPSIS_SIZE = 32; // the size of children list in a synopsis node
+const uint R_MAX = 3;          // the maximum value of query radius
 ```
 
 ## 1. Input Data Format
@@ -52,6 +53,18 @@ A update stream is formatted as a series of edges with two end-vertices in two d
 2 2 3
 ```
 
+### 1.4 query keywords list
+A update stream is a list of query keywords. It is a text file containing multiple lines, where the first line are two numbers where the former one is # of query keywords (`n`) and the latter one is the size of each query keywords (`m`). Then, the following `n` lines are query keywords list and each line consists of `m` numbers. For example,
+```text/plain
+5 5
+1 2 3 4 5
+0 2 4 6 8
+1 3 5 7 9
+3 6 9 10 11
+4 8 12 16 20
+```
+
+
 Note that `<user-vertex-id> ` represents the id of vertex in the upper layer (user vertex) and `<item-vertex-id>` represents the id of vertex in the lower layer (item vertex), and `<item-vertex-id>` should be mentioned in item label list.
 
 
@@ -59,13 +72,17 @@ Note that `<user-vertex-id> ` represents the id of vertex in the upper layer (us
 After the preparation of executable file and input data, our method can be executed by:
 
 ```bash
-build/cdsbn <-c> -i <initial-graph-path> -l <item-label-list-path> -u <update-stream-path> -t <query-timestamp> -Q <query-keywords-set> -k <query-support-threshold> -r <query-maximum-radius> -s <query-score-threshold>
+build/cdsbn <-c> -i <initial-graph-path> -l <item-label-list-path> -u <update-stream-path> -t <query-timestamp> -w <sliding-window-size> -q <query-keywords-path> -k <query-support-threshold> -r <query-maximum-radius> -s <query-score-threshold>
 ```
 
 For example,
 
 ```bash
-build/cdsbn -i dataset/BS/20-3/uni/initial_graph.txt -l dataset/BS/20-3/uni/label_list.txt -u dataset/BS/20-3/uni/update_stream.txt -t 867333955 -Q 18 5 17 8 16 -k 4 -r 2 -s 2
+build/cdsbn -i dataset/BS/initial_graph.txt -l dataset/BS/label_list.txt -u dataset/BS/update_stream.txt -q dataset/BS/query_keywords_list-5.txt -t 599996400 -w 100 -k 4 -r 2 -s 2
+
+build/cdsbn -i dataset/BS/initial_graph.txt -l dataset/BS/label_list.txt -u dataset/BS/update_stream.txt -q dataset/BS/query_keywords_list-10.txt -t 599996400 -w 100 -k 4 -r 2 -s 2
+
+build/cdsbn -i dataset/BS/initial_graph.txt -l dataset/BS/label_list.txt -u dataset/BS/update_stream.txt -q dataset/BS/query_keywords_list-20.txt -t 599996400 -w 100 -k 4 -r 2 -s 2
 ```
 
 ## 3. Dataset
@@ -73,19 +90,16 @@ All of used dataset is from [KONECT](http://konect.cc/). To decompress the datas
 
 ```bash
 cd dataset/<dir>
-tar -xjf <filename>
+tar -xjf <filename> -C <target-folder>
 ```
 
-## Graph Structure
+## 4. Performance test
 
-```text/plain
-v1 <user-vertex-id> <bv> <ub-sup-M> <X-list> <Y-list>
-v2 <item-vertex-id>
-e <user-vertex-id> <item-vertex-id> <ub-sup>
-v2 0 2
-e 2 3
+```bash
+gprof -b -p -q build/cdsbn gmon.out > report.txt
+
+valgrind --log-file=valReport --leak-check=full --show-reachable=yes --leak-resolution=low
 ```
-
 
 
 ## Reference
