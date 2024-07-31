@@ -251,15 +251,15 @@ int main(int argc, char *argv[])
         statistic->solver_result = result_list;
         statistic->snapshot_query_processing_time = Duration(start);
 
-        statistic->user_node_num = data_graph->UserVerticesNum();
-        statistic->item_node_num = data_graph->ItemVerticesNum();
-        statistic->edge_num = data_graph->NumEdges();
-        std::cout << std::endl << statistic->GenerateStatisticResult() << std::endl;
+        // statistic->user_node_num = data_graph->UserVerticesNum();
+        // statistic->item_node_num = data_graph->ItemVerticesNum();
+        // statistic->edge_num = data_graph->NumEdges();
+        // std::cout << std::endl << statistic->GenerateStatisticResult() << std::endl;
 
-        if (statistic->SaveStatisticResult())
-        {
-            std::cout << "Print stat result successfully" << std::endl;
-        }
+        // if (statistic->SaveStatisticResult())
+        // {
+        //     std::cout << "Print stat result successfully" << std::endl;
+        // }
 
         std::cout << "*********** Snapshot query complete ***********" << std::endl;
         std::cout << std::endl;
