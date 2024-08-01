@@ -102,19 +102,19 @@ def generate_synthetic_dataset_uniform(
 
 
 if __name__ == "__main__":
-    # generate_synthetic_dataset_powerlaw(
-    #     "PL",
-    #     "out.pl-50k",
-    #     50000,
-    #     50000,
-    #     2,
-    #     0.1
-    # )
+    generate_synthetic_dataset_powerlaw(
+        "PL",
+        "out.pl-50k",
+        50000,
+        50000,
+        1.5,
+        0.1
+    )
     generate_synthetic_dataset_uniform(
         "UD",
         "out.ud-50k",
         50000,
         50000,
-        0.0001,
+        0.0005,
         0.1
     )
