@@ -220,10 +220,10 @@ std::vector<SynopsisNode*> Synopsis::PrecomputeSynopsisEntries(Graph* graph)
     uint vertices_num = graph->UserVerticesNum();
     for (uint i=0;i<vertices_num;i++)
     {
-        if (i%50 == 0)
+        if (i%100 == 0)
         {
             std::cout << "\r" << i+1 << "/" << vertices_num;
-            std::cout << std::fixed << std::setprecision(2) << " ("  << (i+1)*100.0/vertices_num << "%)";
+            std::cout << std::fixed << std::setprecision(2) << " ("  << (i+1)*100.0/vertices_num << "%)" << std::endl;
         }
         SynopsisNode* node_pointer = CreateVertexEntry(i, graph);
         vertex_entry_list.push_back(node_pointer);
