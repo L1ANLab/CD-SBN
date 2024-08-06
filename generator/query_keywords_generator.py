@@ -54,11 +54,12 @@ if __name__ == "__main__":
     # GenerateQueryKeywords("CU", "keywords_list.txt", 5, 5)
     # GenerateQueryKeywords("DV", "keywords_list.txt", 5, 5)
     # GenerateQueryKeywords("ML", "keywords_list.txt", 5, 5)
-    # GenerateQueryKeywords("PL", "keywords_list.txt", 5, 5)
     # GenerateQueryKeywords("SX", "keywords_list.txt", 5, 5)
     # GenerateQueryKeywords("TA", "keywords_list.txt", 5, 5)
-    # GenerateQueryKeywords("UD", "keywords_list.txt", 5, 5)
     # GenerateQueryKeywords("UF", "keywords_list.txt", 5, 5)
     # GenerateQueryKeywords("VU", "keywords_list.txt", 5, 5)
     # GenerateQueryKeywords("WU", "keywords_list.txt", 5, 5)
+
+    # GenerateQueryKeywords("PL", "keywords_list.txt", 5, 5)
+    # GenerateQueryKeywords("UD", "keywords_list.txt", 5, 5)
     pass
