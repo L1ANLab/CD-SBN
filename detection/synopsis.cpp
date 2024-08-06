@@ -457,8 +457,9 @@ bool Synopsis::UpdateSynopsisAfterExpiration(uint user_id, uint item_id, uint re
     return true;
 }
 
+uint Synopsis::GetInvListSize() { return this->inv_list.size(); }
 
-std::vector<SynopsisNode*> Synopsis::GetInvListByUser(uint user_id) {return this->inv_list[user_id];}
+std::vector<SynopsisNode*> Synopsis::GetInvListByUser(uint user_id) { return this->inv_list[user_id];}
 
 
 /// @brief [Private] create a vertex entry for the new user

@@ -99,6 +99,7 @@ public:
     bool UpdateSynopsisAfterInsertion(uint user_id, uint item_id, uint addition_flag, Graph* Graph);
     bool UpdateSynopsisAfterExpiration(uint user_id, uint item_id, uint removal_flag, Graph* Graph);
 
+    uint GetInvListSize();
     std::vector<SynopsisNode*> GetInvListByUser(uint user_id);
 };
 

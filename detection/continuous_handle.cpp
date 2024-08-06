@@ -132,7 +132,9 @@ std::vector<InducedGraph*> ContinuousHandle::ExecuteQuery(
         // 2.1. get the vertex
         uint center_user_id = user_id;
         // pruning the vertex if its synopsis node is unqualified
-        std::vector<SynopsisNode*> synopsis_node_list = this->syn->GetInvListByUser(center_user_id);
+        std::vector<SynopsisNode*> synopsis_node_list(0);
+        if (center_user_id < this->syn->GetInvListSize())
+            synopsis_node_list = this->syn->GetInvListByUser(center_user_id);
         bool isSkip = false;
         for (auto node: synopsis_node_list)
         {
