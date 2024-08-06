@@ -19,9 +19,10 @@ SynopsisNode::SynopsisNode(
 ):id(ID_COUNTER), level(level_), user_set{}
 {
     this->children_entries.assign(children_entries_.begin(), children_entries_.end());
+    
     for (uint r=0;r<R_MAX;r++)
     {
-        SynopsisData* data_r = new SynopsisData();
+        std::unique_ptr<SynopsisData> data_r(new SynopsisData());
         for(size_t i=0;i<children_entries_.size();i++)
         {
             data_r->bv_r |= children_entries_[i]->data[r]->bv_r;
@@ -34,7 +35,7 @@ SynopsisNode::SynopsisNode(
                 children_entries_[i]->data[r]->ub_score
             );
         }
-        this->data[r] = data_r;
+        this->data[r] = std::move(data_r);
     }
     std::vector<uint> temp_vec;
     for(size_t i=0;i<children_entries_.size();i++)
@@ -58,14 +59,18 @@ SynopsisNode::SynopsisNode(
 /// @param vertex_entry 
 SynopsisNode::SynopsisNode(
     uint level_,
-    SynopsisData* data_[],
+    std::unique_ptr<SynopsisData> data_[],
     uint user_id
 ):id(ID_COUNTER), level(level_), user_set{user_id}
 , children_entries(0)
 {
+    
     for (uint r=0;r<R_MAX;r++)
     {
-        data[r] = data_[r];
+        data[r] = std::move(data_[r]);
+        // data[r]->bv_r = data_[r]->bv_r;
+        // data[r]->ub_sup_M = data_[r]->ub_sup_M;
+        // data[r]->ub_score = data_[r]->ub_score;
     }
     ID_COUNTER ++;
 }
@@ -73,10 +78,10 @@ SynopsisNode::SynopsisNode(
 
 SynopsisNode::~SynopsisNode()
 {
-    for (size_t i=0; i<R_MAX;i++)
-    {
-        delete data[i];
-    }
+    // for (size_t i=0; i<R_MAX;i++)
+    // {
+    //     delete data[i];
+    // }
     std::vector<SynopsisNode*>().swap(children_entries);
     std::vector<uint>().swap(user_set);
 }
@@ -91,7 +96,7 @@ uint SynopsisNode::GetUbSupM(uint r) const { return data[r]->ub_sup_M; }
 
 void SynopsisNode::SetUbScore(uint ub_score_, uint r) { data[r]->ub_score = ub_score_; }
 uint SynopsisNode::GetUbScore(uint r) const { return data[r]->ub_score; }
-SynopsisData* SynopsisNode::GetSynopsisData(uint r) const { return data[r]; }
+// std::unique_ptr<SynopsisData> SynopsisNode::GetSynopsisData(uint r) const { return data[r]; }
 uint SynopsisNode::GetLevel() const { return level; }
 
 std::vector<uint> SynopsisNode::GetUserSet() const { return user_set; }
@@ -152,15 +157,15 @@ std::vector<SynopsisNode*> Synopsis::LoadSynopsisEntries(std::string synopsis_fi
     {
         uint user_id;
         ifs >> user_id;
-        SynopsisData* data[R_MAX];
+        std::unique_ptr<SynopsisData> data[R_MAX];
         for (uint r=0; r<R_MAX; r++)
         {
             std::string bv_str;
             uint ub_sup_M, ub_score;
             ifs >> bv_str >> ub_sup_M >> ub_score;
             std::bitset<MAX_LABEL> bv_r(bv_str);
-            SynopsisData* data_r = new SynopsisData(bv_r, ub_sup_M, ub_score);
-            data[r] = data_r;
+            std::unique_ptr<SynopsisData> data_r(new SynopsisData(bv_r, ub_sup_M, ub_score));
+            data[r] = std::move(data_r);
         }
         
         SynopsisNode* node_pointer = new SynopsisNode(
@@ -468,7 +473,7 @@ std::vector<SynopsisNode*> Synopsis::GetInvListByUser(uint user_id) { return thi
 /// @return a vertex entry of the <user_id> with aggregates
 SynopsisNode* Synopsis::CreateVertexEntry(uint user_id, Graph* graph)
 {
-    SynopsisData* data_[R_MAX] = {nullptr};
+    std::unique_ptr<SynopsisData> data_[R_MAX];
     for (uint r=0; r<R_MAX; r++)
     {
         uint radius = r+1;
@@ -508,8 +513,8 @@ SynopsisNode* Synopsis::CreateVertexEntry(uint user_id, Graph* graph)
             }
         }
         // 0.4. package a synopsis node
-        SynopsisData* data = new SynopsisData(bv_r_, ub_sup_M_, ub_score);
-        data_[r] = data;
+        std::unique_ptr<SynopsisData> data(new SynopsisData(bv_r_, ub_sup_M_, ub_score));
+        data_[r] = std::move(data);
     }
     return new SynopsisNode(MAX_LEVEL, data_, user_id);
 }

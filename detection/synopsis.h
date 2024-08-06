@@ -32,7 +32,7 @@ protected:
 
     uint id;
     uint level;
-    SynopsisData* data[R_MAX];
+    std::unique_ptr<SynopsisData> data[R_MAX];
     std::vector<uint> user_set;
 
     std::vector<SynopsisNode*> children_entries;
@@ -43,7 +43,7 @@ public:
     ); // TreeNode & LeafNode construct 
     SynopsisNode(
         uint level_,
-        SynopsisData* data_[],
+        std::unique_ptr<SynopsisData> data_[],
         uint user_id
     ); // Vertex entry construct
     ~SynopsisNode();
@@ -55,7 +55,7 @@ public:
     uint GetUbSupM(uint r) const;
     void SetUbScore(uint ub_score_, uint r);
     uint GetUbScore(uint r) const;
-    SynopsisData* GetSynopsisData(uint r) const;
+    // std::unique_ptr<SynopsisData> GetSynopsisData(uint r) const;
     uint GetLevel() const;
     std::vector<uint> GetUserSet() const;
     const std::vector<SynopsisNode*>& GetChildren() const;
