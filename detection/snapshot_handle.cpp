@@ -23,7 +23,7 @@ SnapshotHandle::SnapshotHandle(
 
 SnapshotHandle::~SnapshotHandle() {}
 
-std::vector<InducedGraph*> SnapshotHandle::ExecuteQuery(Statistic* stat)
+std::vector<std::unique_ptr<InducedGraph>> SnapshotHandle::ExecuteQuery(Statistic* stat)
 {
     // 0. initialization:
     std::chrono::high_resolution_clock::time_point start_timestamp,
@@ -31,7 +31,7 @@ std::vector<InducedGraph*> SnapshotHandle::ExecuteQuery(Statistic* stat)
     compute_community_start_timestamp, refine_candidate_set_start_timestamp;
 
     // 0.1 initialize a candidate set
-    std::set<InducedGraph*> candidate_set_P;
+    std::set<std::unique_ptr<InducedGraph>> candidate_set_P;
 
     // 0.2. initialize a maximum heap
     std::vector<std::unique_ptr<HeapEntry>> maximum_heap_H(0);
@@ -117,11 +117,10 @@ std::vector<InducedGraph*> SnapshotHandle::ExecuteQuery(Statistic* stat)
                         query_radius,
                         query_BV
                     );
-                    InducedGraph* r_hop_subgraph = new InducedGraph(*data_graph, user_list, item_list);
+                    std::unique_ptr<InducedGraph> r_hop_subgraph(new InducedGraph(*data_graph, user_list, item_list));
                     stat->snapshot_compute_2r_hop_time += Duration(compute_2r_hop_start_timestamp);
                     if (r_hop_subgraph->e_lists.empty())
                     {
-                        delete r_hop_subgraph;
                         stat->leaf_node_traverse_time += Duration(leaf_node_start_timestamp);
                         continue;
                     }
@@ -129,13 +128,12 @@ std::vector<InducedGraph*> SnapshotHandle::ExecuteQuery(Statistic* stat)
 
                     // (2) compute the (k,r,σ)-bitruss
                     compute_community_start_timestamp = Get_Time();
-                    InducedGraph* k_r_sigma_bitruss_subgraph = r_hop_subgraph->ComputeKRSigmaBitruss(
+                    std::unique_ptr<InducedGraph> k_r_sigma_bitruss_subgraph(r_hop_subgraph->ComputeKRSigmaBitruss(
                         query_support_threshold,
                         query_score_threshold,
                         stat->snapshot_compute_data_time,
                         stat->snapshot_filter_edge_time
-                    );
-                    delete r_hop_subgraph;
+                    ));
                     float score_time = Duration(compute_community_start_timestamp);
                     stat->snapshot_compute_community_time += score_time;
                     if (max_score_cost < score_time) max_score_cost = score_time;
@@ -150,7 +148,6 @@ std::vector<InducedGraph*> SnapshotHandle::ExecuteQuery(Statistic* stat)
                     if (!k_r_sigma_bitruss_subgraph->e_lists.empty() &&
                         CheckCommunityInsert(candidate_set_P, k_r_sigma_bitruss_subgraph))
                         candidate_set_P.emplace(k_r_sigma_bitruss_subgraph);
-                    else delete k_r_sigma_bitruss_subgraph;
                 }
             }
             stat->leaf_node_traverse_time += Duration(leaf_node_start_timestamp);
@@ -161,7 +158,7 @@ std::vector<InducedGraph*> SnapshotHandle::ExecuteQuery(Statistic* stat)
     stat->entry_pruning_counter = entry_pruning_counter;
     stat->leaf_node_visit_counter = leaf_node_visit_counter;
 
-    std::vector<InducedGraph*> result_set_R;
+    std::vector<std::unique_ptr<InducedGraph>> result_set_R;
     result_set_R.assign(candidate_set_P.begin(), candidate_set_P.end());
     return result_set_R;
 }

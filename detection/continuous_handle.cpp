@@ -33,9 +33,9 @@ bool hasSameElement(std::vector<uint> vec1, std::vector<uint> vec2)
     return false;
 }
 
-std::vector<InducedGraph*> ContinuousHandle::ExecuteQuery(
+std::vector<std::unique_ptr<InducedGraph>> ContinuousHandle::ExecuteQuery(
     Statistic* stat,
-    std::vector<InducedGraph*> result_list,
+    std::vector<std::unique_ptr<InducedGraph>> result_list,
     uint isRemoved, uint expire_edge_user_id, uint expire_edge_item_id,
     uint insert_edge_user_id, std::vector<uint> insert_related_user_list
 )
@@ -49,7 +49,7 @@ std::vector<InducedGraph*> ContinuousHandle::ExecuteQuery(
     insert_2r_hop_time=0.0, insert_community_time=0.0, insert_refine_time=0.0;
 
     // 0.1. initialize a candidate set
-    std::set<InducedGraph*> candidate_set_P;
+    std::set<std::unique_ptr<InducedGraph>> candidate_set_P;
 
     // 1. process the expired edge if exists
     // recompute (k ,r, \sigma)-bitruss if subgraph contains a the expired edge
@@ -87,13 +87,14 @@ std::vector<InducedGraph*> ContinuousHandle::ExecuteQuery(
             }
             expired_recompute_community_start_timestamp = Get_Time();
             // (2) compute the (k,r,σ)-bitruss
-            InducedGraph* k_r_sigma_bitruss_subgraph =
+            std::unique_ptr<InducedGraph> k_r_sigma_bitruss_subgraph(
                 result_list[idx]->ComputeKRSigmaBitruss(
                     query_support_threshold,
                     query_score_threshold,
                     stat->continuous_expired_compute_data_time,
                     stat->continuous_expired_filter_edge_time
-                );
+                )
+            );
             expire_community_time += Duration(expired_recompute_community_start_timestamp);
 
             // (3) add the result
@@ -101,7 +102,7 @@ std::vector<InducedGraph*> ContinuousHandle::ExecuteQuery(
             if (!k_r_sigma_bitruss_subgraph->e_lists.empty() &&
                 CheckCommunityInsert(candidate_set_P, k_r_sigma_bitruss_subgraph))
                 candidate_set_P.emplace(k_r_sigma_bitruss_subgraph);
-            else delete k_r_sigma_bitruss_subgraph;
+            // else delete k_r_sigma_bitruss_subgraph;
             expire_refine_time += Duration(expired_refine_start_timestamp);
         }
         else // 1.2. add subgraph to set if subgraph contains none of related user
@@ -153,26 +154,27 @@ std::vector<InducedGraph*> ContinuousHandle::ExecuteQuery(
             query_radius,
             query_BV
         );
-        InducedGraph* r_hop_subgraph = new InducedGraph(*data_graph, user_list, item_list);
+        std::unique_ptr<InducedGraph> r_hop_subgraph(new InducedGraph(*data_graph, user_list, item_list));
         insert_2r_hop_time += Duration(inserted_compute_2r_hop_start_timestamp);
         // pruning the vertex if its 2r-hop does not contain the related subgraph
-        if (r_hop_subgraph->e_lists.empty() || !hasSameElement(r_hop_subgraph->user_map, insert_related_user_list))
+        if (r_hop_subgraph->e_lists.empty() ||
+            !hasSameElement(r_hop_subgraph->user_map, insert_related_user_list)
+        )
         {
-            delete r_hop_subgraph;
             continue;
         }
         // user_computed_counter ++;
 
         // 2.3. compute the (k,r,σ)-bitruss
         inserted_compute_community_start_timestamp = Get_Time();
-        InducedGraph* k_r_sigma_bitruss_subgraph =
+        std::unique_ptr<InducedGraph> k_r_sigma_bitruss_subgraph(
             r_hop_subgraph->ComputeKRSigmaBitruss(
                 query_support_threshold,
                 query_score_threshold,
                 stat->continuous_inserted_compute_data_time,
                 stat->continuous_inserted_filter_edge_time
-            );
-        delete r_hop_subgraph;
+            )
+        );
         #pragma omp critical
         {
             insert_community_time += Duration(inserted_compute_community_start_timestamp);
@@ -182,7 +184,6 @@ std::vector<InducedGraph*> ContinuousHandle::ExecuteQuery(
             if (!k_r_sigma_bitruss_subgraph->e_lists.empty() &&
             CheckCommunityInsert(candidate_set_P, k_r_sigma_bitruss_subgraph))
                 candidate_set_P.emplace(k_r_sigma_bitruss_subgraph);
-            else delete k_r_sigma_bitruss_subgraph;
             insert_refine_time += Duration(inserted_refine_start_timestamp);
         }
     }
@@ -195,7 +196,7 @@ std::vector<InducedGraph*> ContinuousHandle::ExecuteQuery(
     // std::cout << "[" << user_computed_counter << "] Computed User" << std::endl;
 
     // 3. refine the candidate set
-    std::vector<InducedGraph*> result_set_R;
+    std::vector<std::unique_ptr<InducedGraph>> result_set_R;
     result_set_R.assign(candidate_set_P.begin(), candidate_set_P.end());
     return result_set_R;
 }
