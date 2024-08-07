@@ -34,7 +34,7 @@ std::vector<InducedGraph*> SnapshotHandle::ExecuteQuery(Statistic* stat)
     std::set<InducedGraph*> candidate_set_P;
 
     // 0.2. initialize a maximum heap
-    std::vector<HeapEntry*> maximum_heap_H(0);
+    std::vector<std::unique_ptr<HeapEntry>> maximum_heap_H(0);
     SynopsisNode* root_node = this->syn->GetRoot();
     maximum_heap_H.emplace_back(
         new HeapEntry(root_node, root_node->GetUbScore(query_radius_idx))
@@ -61,7 +61,7 @@ std::vector<InducedGraph*> SnapshotHandle::ExecuteQuery(Statistic* stat)
         start_timestamp = Get_Time();
         // 1.1. get the maximum entry at the top of maximum heap. 
         std::pop_heap(maximum_heap_H.begin(), maximum_heap_H.end(), CompareHeapEntry);
-        HeapEntry* now_heap_entry = maximum_heap_H.back();
+        std::unique_ptr<HeapEntry> now_heap_entry = std::move(maximum_heap_H.back());
         maximum_heap_H.pop_back();
         stat->select_greatest_entry_in_H_time += (Duration(start_timestamp));
 
@@ -155,8 +155,6 @@ std::vector<InducedGraph*> SnapshotHandle::ExecuteQuery(Statistic* stat)
             }
             stat->leaf_node_traverse_time += Duration(leaf_node_start_timestamp);
         }
-
-        delete now_heap_entry;
     }
 
     stat->vertex_pruning_counter = (this->data_graph->UserVerticesNum() - vertex_pruning_counter);

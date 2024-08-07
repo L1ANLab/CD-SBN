@@ -35,7 +35,7 @@ public:
         uint sliding_window_size_
     );
     std::vector<uint> query_keywords;
-    std::vector<InducedGraph*> solver_result;
+    std::vector<std::unique_ptr<InducedGraph>> solver_result;
     uint user_node_num;
     uint item_node_num;
     uint edge_num;

@@ -33,6 +33,7 @@ Statistic::Statistic(
 , query_timestamp(query_timestamp_)
 , sliding_window_size(sliding_window_size_)
 {
+    // create_timestamp_folder_str
     std::chrono::high_resolution_clock::time_point now_time = Get_Time();
     std::stringstream ss;
     time_t t = std::chrono::system_clock::to_time_t(now_time);
@@ -41,6 +42,63 @@ Statistic::Statistic(
     this->create_timestamp_folder_str = "experiment-" + time_str;
     fs::path initial_graph_folder = fs::path(initial_graph_path_str_).parent_path();
     fs::create_directory(initial_graph_folder / fs::path(create_timestamp_folder_str));
+
+
+    std::vector<uint> query_keywords(0);
+    std::vector<std::unique_ptr<InducedGraph>> solver_result(0);
+    this->user_node_num = 0;
+    this->item_node_num = 0;
+    this->edge_num = 0;
+    this->all_keyword_num = 0;
+
+    this->start_timestamp = Get_Time();
+    this->offline_finish_timestamp = Get_Time();
+    this->snapshot_finish_timestamp = Get_Time();
+    this->finish_timestamp = Get_Time();
+
+    this->initial_graph_load_time = 0.0;
+    this->label_list_load_time = 0.0;
+    this->update_stream_load_time = 0.0;
+    this->query_keyword_load_time = 0.0;
+    this->synopsis_building_time = 0.0;
+
+    // maintain stat
+    this->graph_synopsis_maintain_time = 0.0;
+    this->edge_maintain_time = 0.0;
+    this->graph_maintain_time = 0.0;
+    this->synopsis_maintain_time;
+    this->snapshot_query_processing_time = 0.0;
+    this->continuous_query_processing_time = 0.0;
+
+    // snapshot stat
+    this->select_greatest_entry_in_H_time = 0.0;
+    this->leaf_node_traverse_time = 0.0;
+    this->nonleaf_node_traverse_time = 0.0;
+    this->snapshot_compute_2r_hop_time = 0.0;
+    this->snapshot_compute_community_time = 0.0;
+    this->snapshot_compute_data_time = 0.0;
+    this->snapshot_filter_edge_time = 0.0;
+
+    // continuous stat
+    this->continuous_edge_maintain_time = 0.0;
+    this->continuous_graph_maintain_time = 0.0;
+    this->continuous_expired_recompute_community_time = 0.0;
+    this->continuous_expired_compute_data_time = 0.0;
+    this->continuous_expired_filter_edge_time = 0.0;
+    this->continuous_expired_refine_time = 0.0;
+    this->continuous_inserted_compute_2r_hop_time = 0.0;
+    this->continuous_inserted_compute_community_time = 0.0;
+    this->continuous_inserted_compute_data_time = 0.0;
+    this->continuous_inserted_filter_edge_time = 0.0;
+    this->continuous_inserted_refine_time = 0.0;
+    this->modify_result_set_time = 0.0;
+    this->average_continuous_query_time = 0.0;
+
+
+    this->vertex_pruning_counter = 0;
+    this->entry_pruning_counter = 0;
+    this->leaf_node_counter = 0;
+    this->leaf_node_visit_counter = 0;
 }
 
 std::string Statistic::GenerateStatisticResult()
@@ -161,9 +219,9 @@ bool Statistic::SaveStatisticResult()
         !result_of,
         "File Stream Error: The result output file stream open failed"
     );
-    for (auto result_subgraph: this->solver_result)
+    for (uint result_idx = 0; result_idx < this->solver_result.size(); result_idx++)
     {
-        result_of << result_subgraph->PrintMetaData() << '\n';
+        result_of << solver_result[result_idx]->PrintMetaData() << '\n';
     }
     result_of.close();
 
