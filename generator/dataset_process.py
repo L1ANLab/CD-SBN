@@ -4,6 +4,8 @@ import numpy as np
 from scipy.stats import zipf
 from tqdm import tqdm
 
+from query_keywords_generator import generate_query_keywords
+from synthetic_generator import generate_synthetic_dataset_uniform, generate_synthetic_dataset_powerlaw
 # ALL_KEYWORD_NUM = 20
 # KEYWORDS_PER_VERTEX_NUM = 3
 INITIAL_GRAPH_RATIO = 0.9999
@@ -36,7 +38,7 @@ class EdgeRawData:
         return ("{} {} {}").format(self.user, self.item, self.tstamp)
 
 
-def GenerateDataset(
+def generate_dataset(
     dir_name: str,
     file_name: str,
     distribution: str,
@@ -171,7 +173,7 @@ def GenerateDataset(
             wf.write("{}\n".format(keyword))
 
 
-def GenerateDatasetWithKeywords(dir_name: str, graph_file_name: str, keyword_file_name: str):
+def generate_dataset_with_keywords(dir_name: str, graph_file_name: str, keyword_file_name: str):
     print("Process [{}]".format(dir_name))
     # 0. Param settings
     graph_file_path = os.path.join(dir_name, graph_file_name)
@@ -296,19 +298,62 @@ def GenerateDatasetWithKeywords(dir_name: str, graph_file_name: str, keyword_fil
 
 
 if __name__ == "__main__":
-    # GenerateDataset("AM", "out.wang-amazon", "uniform", 20, 3)
-    # GenerateDataset("AR", "out.amazon-ratings", "uniform", 20, 3)
-    # GenerateDatasetWithKeywords("BS", "out.bibsonomy-2ui", "out.bibsonomy-2ti")
-    # GenerateDataset("CM", "out.librec-ciaodvd-movie_ratings", "uniform", 20, 3)
-    # GenerateDatasetWithKeywords("CU", "out.citeulike-ui", "out.citeulike-ti")
-    # GenerateDataset("DV", "out.digg-votes", "uniform", 20, 3)
-    # GenerateDatasetWithKeywords("ML", "out.movielens-10m_ui", "out.movielens-10m_ti")
-    # GenerateDataset("SX", "out.escorts", "uniform", 20, 3)
-    # GenerateDataset("TA", "out.wang-tripadvisor", "uniform", 20, 3)
-    # GenerateDataset("UF", "out.opsahl-ucforum", "uniform", 20, 3)
-    # GenerateDatasetWithKeywords("VU", "out.pics_ui", "out.pics_ti")
-    # GenerateDataset("WU", "out.munmun_twitterex_ut", "uniform", 20, 3)
+    # generate_dataset("AM", "out.wang-amazon", "uniform", 20, 3)
+    # generate_query_keywords("AM", "keywords_list.txt", 5, 5)
 
-    # GenerateDataset("PL", "out.pl-50k", "uniform", 20, 3)
-    # GenerateDataset("UD", "out.ud-50k", "uniform", 20, 3)
+    # generate_dataset("AR", "out.amazon-ratings", "uniform", 20, 3)
+    # generate_query_keywords("AR", "keywords_list.txt", 5, 5)
+
+    # generate_dataset_with_keywords("BS", "out.bibsonomy-2ui", "out.bibsonomy-2ti")
+    # generate_query_keywords("BS", "keywords_list.txt", 5, 5)
+
+    # generate_dataset("CM", "out.librec-ciaodvd-movie_ratings", "uniform", 20, 3)
+    # generate_query_keywords("CM", "keywords_list.txt", 5, 5)
+
+    # generate_dataset_with_keywords("CU", "out.citeulike-ui", "out.citeulike-ti")
+    # generate_query_keywords("CU", "keywords_list.txt", 5, 5)
+
+    # generate_dataset("DV", "out.digg-votes", "uniform", 20, 3)
+    # generate_query_keywords("DV", "keywords_list.txt", 5, 5)
+
+    # generate_dataset_with_keywords("ML", "out.movielens-10m_ui", "out.movielens-10m_ti")
+    # generate_query_keywords("ML", "keywords_list.txt", 5, 5)
+
+    # generate_dataset("SX", "out.escorts", "uniform", 20, 3)
+    # generate_query_keywords("SX", "keywords_list.txt", 5, 5)
+
+    # generate_dataset("TA", "out.wang-tripadvisor", "uniform", 20, 3)
+    # generate_query_keywords("TA", "keywords_list.txt", 5, 5)
+
+    # generate_dataset("UF", "out.opsahl-ucforum", "uniform", 20, 3)
+    # generate_query_keywords("UF", "keywords_list.txt", 5, 5)
+
+    # generate_dataset_with_keywords("VU", "out.pics_ui", "out.pics_ti")
+    # generate_query_keywords("VU", "keywords_list.txt", 5, 5)
+
+    # generate_dataset("WU", "out.munmun_twitterex_ut", "uniform", 20, 3)
+    # generate_query_keywords("WU", "keywords_list.txt", 5, 5)
+
+    generate_synthetic_dataset_powerlaw(
+        "PL",
+        "out.pl-50k",
+        50000,
+        50000,
+        1.5,
+        0.1
+    )
+    generate_dataset("PL", "out.pl-50k", "uniform", 20, 3)
+    generate_query_keywords("PL", "keywords_list.txt", 5, 5)
+
+    generate_synthetic_dataset_uniform(
+        "UD",
+        "out.ud-50k",
+        50000,
+        50000,
+        0.0005,
+        0.1
+    )
+    generate_dataset("UD", "out.ud-50k", "uniform", 20, 3)
+    generate_query_keywords("UD", "keywords_list.txt", 5, 5)
+
     pass

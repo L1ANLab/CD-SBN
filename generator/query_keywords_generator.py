@@ -4,7 +4,7 @@ from tqdm import tqdm
 # from fitter import fitter
 
 
-def GenerateQueryKeywords(dir_name: str, file_name: str, query_keywords_size: int, query_keywords_num: int):
+def generate_query_keywords(dir_name: str, file_name: str, query_keywords_size: int, query_keywords_num: int):
     # 0. Param settings
     keyword_file_path = os.path.join(dir_name, file_name)
 
@@ -47,19 +47,19 @@ def GenerateQueryKeywords(dir_name: str, file_name: str, query_keywords_size: in
 
 
 if __name__ == "__main__":
-    # GenerateQueryKeywords("AM", "keywords_list.txt", 5, 5)
-    # GenerateQueryKeywords("AR", "keywords_list.txt", 5, 5)
-    # GenerateQueryKeywords("BS", "keywords_list.txt", 5, 5)
-    # GenerateQueryKeywords("CM", "keywords_list.txt", 5, 5)
-    # GenerateQueryKeywords("CU", "keywords_list.txt", 5, 5)
-    # GenerateQueryKeywords("DV", "keywords_list.txt", 5, 5)
-    # GenerateQueryKeywords("ML", "keywords_list.txt", 5, 5)
-    # GenerateQueryKeywords("SX", "keywords_list.txt", 5, 5)
-    # GenerateQueryKeywords("TA", "keywords_list.txt", 5, 5)
-    # GenerateQueryKeywords("UF", "keywords_list.txt", 5, 5)
-    # GenerateQueryKeywords("VU", "keywords_list.txt", 5, 5)
-    # GenerateQueryKeywords("WU", "keywords_list.txt", 5, 5)
+    # generate_query_keywords("AM", "keywords_list.txt", 5, 5)
+    # generate_query_keywords("AR", "keywords_list.txt", 5, 5)
+    # generate_query_keywords("BS", "keywords_list.txt", 5, 5)
+    # generate_query_keywords("CM", "keywords_list.txt", 5, 5)
+    # generate_query_keywords("CU", "keywords_list.txt", 5, 5)
+    # generate_query_keywords("DV", "keywords_list.txt", 5, 5)
+    # generate_query_keywords("ML", "keywords_list.txt", 5, 5)
+    # generate_query_keywords("SX", "keywords_list.txt", 5, 5)
+    # generate_query_keywords("TA", "keywords_list.txt", 5, 5)
+    # generate_query_keywords("UF", "keywords_list.txt", 5, 5)
+    # generate_query_keywords("VU", "keywords_list.txt", 5, 5)
+    # generate_query_keywords("WU", "keywords_list.txt", 5, 5)
 
-    # GenerateQueryKeywords("PL", "keywords_list.txt", 5, 5)
-    # GenerateQueryKeywords("UD", "keywords_list.txt", 5, 5)
+    # generate_query_keywords("PL", "keywords_list.txt", 5, 5)
+    # generate_query_keywords("UD", "keywords_list.txt", 5, 5)
     pass
