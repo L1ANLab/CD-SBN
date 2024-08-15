@@ -12,7 +12,17 @@ Run the following command to install the python environment:
 conda env create -f environment.yaml
 ```
 
-## 1. Compile
+## 1.Dataset
+
+All of used dataset is from [KONECT](http://konect.cc/). To decompress the dataset zip file, run the commands:
+
+```bash
+tar -xjf <filename> -C <target-folder>
+```
+
+To process the raw graph data to the following format, please run the python scripts in `/generator`.
+
+## 2. Compile
 
 With the C++17 environment and GCC 11.4 compiler, run the commands to compile as follows:
 
@@ -33,7 +43,7 @@ const uint R_MAX = 3;          // the maximum value of query radius
 
 The input data consists of an initial graph, a bipartite streaming graph and a item label list.
 
-### 2.1 initial graph
+### 3.1 initial graph
 
 An initial graph is formatted as a series of edges with two end-vertices in two different layers. It is a text file containing multiple lines, where each line is in the form of `<user-vertex-id> <item-vertex-id>`. For example,
 
@@ -46,7 +56,7 @@ An initial graph is formatted as a series of edges with two end-vertices in two 
 2 1
 ```
 
-### 2.2 Item Label List
+### 3.2 Item Label List
 
 A item label list is list of labels for each item vertex. It is a text file containing multiple lines, where the first line is the size of keyword domain and  each following line is in the form of `<item-vertex-id> <label-id-list>`. Note that each label in `<label-id-list>` is separated by a comma. For example,
 
@@ -58,7 +68,7 @@ A item label list is list of labels for each item vertex. It is a text file cont
 3 1,5,6,7
 ```
 
-### 2.3 update stream
+### 3.3 update stream
 
 A update stream is formatted as a series of edges with two end-vertices in two different layers and a timestamp. It is a text file containing multiple lines, where each line is in the form of `<user-vertex-id> <item-vertex-id> <timestamp>`. For example,
 
@@ -68,7 +78,7 @@ A update stream is formatted as a series of edges with two end-vertices in two d
 2 2 3
 ```
 
-### 2.4 query keywords list
+### 3.4 query keywords list
 
 A update stream is a list of query keywords. It is a text file containing multiple lines, where the first line are two numbers where the former one is # of query keywords (`n`) and the latter one is the size of each query keywords (`m`). Then, the following `n` lines are query keywords list and each line consists of `m` numbers. For example,
 
@@ -83,7 +93,7 @@ A update stream is a list of query keywords. It is a text file containing multip
 
 Note that `<user-vertex-id>` represents the id of vertex in the upper layer (user vertex) and `<item-vertex-id>` represents the id of vertex in the lower layer (item vertex), and `<item-vertex-id>` should be mentioned in item label list.
 
-## 3. Usage
+## 4. Usage
 
 After the preparation of executable file and input data, our method can be executed by:
 
@@ -101,24 +111,17 @@ build/cdsbn -i dataset/BS/initial_graph.txt -l dataset/BS/label_list.txt -u data
 build/cdsbn -i dataset/BS/initial_graph.txt -l dataset/BS/label_list.txt -u dataset/BS/update_stream.txt -q dataset/BS/query_keywords_list-20.txt -t 599996400 -w 100 -k 4 -r 2 -s 2
 ```
 
-## 4. Dataset
-
-All of used dataset is from [KONECT](http://konect.cc/). To decompress the dataset zip file, run the commands:
-
-```bash
-cd dataset/<dir>
-tar -xjf <filename> -C <target-folder>
-```
-
 ## 5. Performance test
 
 ```bash
 gprof -b -p -q build/cdsbn gmon.out > report.txt
 
-valgrind --log-file=valReport --leak-check=full --show-reachable=yes --leak-resolution=low
+valgrind --log-file=valReport --leak-check=full --show-reachable=yes --leak-resolution=low build/cdsbn -i dataset/BS/initial_graph.txt -l dataset/BS/label_list.txt -u dataset/BS/update_stream.txt -q dataset/BS/query_keywords_list-1.txt -t 0 -w 100 -k 4 -r 2 -s 2
+
 ```
 
 ## Reference
 
 Command line parser: [CLI11](https://github.com/CLIUtils/CLI11)
 Dataset: [KONECT](http://konect.cc/)
+26751
