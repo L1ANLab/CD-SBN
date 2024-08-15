@@ -20,7 +20,7 @@ bool HeapEntry::operator > (const HeapEntry &right) const
     return this->score > right.score; 
 }
 
-bool CompareHeapEntry(const HeapEntry *left, const HeapEntry *right)
+bool CompareHeapEntry(const HeapEntry* left, const HeapEntry* right)
 {
     return *left < *right;
 }
@@ -41,10 +41,11 @@ QueryHandle::QueryHandle(
 , data_graph(data_graph_)
 , syn(syn_)
 {
+    this->query_BV.reset(new std::bitset<MAX_LABEL>(0));
     // hash the query keywords set to query_BV
     for (uint keyword : this->query_keywords)
     {
-        this->query_BV.set(keyword);
+        this->query_BV->set(keyword);
     }
     
     // transform the query radius
@@ -58,7 +59,7 @@ QueryHandle::~QueryHandle() {}
 bool QueryHandle::CheckPruningConditions(SynopsisNode* node)
 {
     // (Index-Level) Keyword Pruning
-    if ((node->GetBvR(this->query_radius_idx) & this->query_BV) == 0)
+    if ((*(node->GetBvR(this->query_radius_idx)) & *(this->query_BV)).none())
         return false;
     // (Index-Level) Support Pruning
     if (node->GetUbSupM(this->query_radius_idx) < query_support_threshold)
@@ -74,11 +75,11 @@ bool QueryHandle::CheckPruningConditions(SynopsisNode* node)
 /// @param to_insert_community 
 /// @return true if can be inserted, otherwise false
 bool QueryHandle::CheckCommunityInsert(
-    std::set<std::unique_ptr<InducedGraph>>& candidate_set,
+    std::set<InducedGraph*> candidate_set,
     const std::unique_ptr<InducedGraph>& to_insert_community
 )
 {
-    std::set<std::unique_ptr<InducedGraph>>::iterator iter = candidate_set.begin();
+    std::set<InducedGraph*>::iterator iter = candidate_set.begin();
     while(iter!=candidate_set.end())
     {
         // (1) compute the common users

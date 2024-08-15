@@ -66,7 +66,7 @@ Statistic::Statistic(
     this->graph_synopsis_maintain_time = 0.0;
     this->edge_maintain_time = 0.0;
     this->graph_maintain_time = 0.0;
-    this->synopsis_maintain_time;
+    this->synopsis_maintain_time = 0.0;
     this->snapshot_query_processing_time = 0.0;
     this->continuous_query_processing_time = 0.0;
 

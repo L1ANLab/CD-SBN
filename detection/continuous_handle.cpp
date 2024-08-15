@@ -33,9 +33,9 @@ bool hasSameElement(std::vector<uint> vec1, std::vector<uint> vec2)
     return false;
 }
 
-std::vector<std::unique_ptr<InducedGraph>> ContinuousHandle::ExecuteQuery(
+uint ContinuousHandle::ExecuteQuery(
     Statistic* stat,
-    std::vector<std::unique_ptr<InducedGraph>> result_list,
+    std::vector<InducedGraph*>& result_list,
     uint isRemoved, uint expire_edge_user_id, uint expire_edge_item_id,
     uint insert_edge_user_id, std::vector<uint> insert_related_user_list
 )
@@ -49,7 +49,7 @@ std::vector<std::unique_ptr<InducedGraph>> ContinuousHandle::ExecuteQuery(
     insert_2r_hop_time=0.0, insert_community_time=0.0, insert_refine_time=0.0;
 
     // 0.1. initialize a candidate set
-    std::set<std::unique_ptr<InducedGraph>> candidate_set_P;
+    std::set<InducedGraph*> candidate_set_P;
 
     // 1. process the expired edge if exists
     // recompute (k ,r, \sigma)-bitruss if subgraph contains a the expired edge
@@ -65,7 +65,7 @@ std::vector<std::unique_ptr<InducedGraph>> ContinuousHandle::ExecuteQuery(
             if (isRemoved > 0)
             {
                 std::vector<std::pair<uint, uint>>::iterator remove_iter;
-                if ((this->query_BV & result_list[idx]->graph.GetUserBv(expire_edge_user_id)).none())
+                if ((*(this->query_BV) & *(result_list[idx]->graph.GetUserBv(expire_edge_user_id))).none())
                 { // unqualified user so remove all edges
                     remove_iter = std::remove_if(
                         result_list[idx]->e_lists.begin(),
@@ -101,9 +101,10 @@ std::vector<std::unique_ptr<InducedGraph>> ContinuousHandle::ExecuteQuery(
             expired_refine_start_timestamp = Get_Time();
             if (!k_r_sigma_bitruss_subgraph->e_lists.empty() &&
                 CheckCommunityInsert(candidate_set_P, k_r_sigma_bitruss_subgraph))
-                candidate_set_P.emplace(k_r_sigma_bitruss_subgraph);
-            // else delete k_r_sigma_bitruss_subgraph;
+                candidate_set_P.emplace(k_r_sigma_bitruss_subgraph.release());
             expire_refine_time += Duration(expired_refine_start_timestamp);
+            // else delete k_r_sigma_bitruss_subgraph;
+            delete result_list[idx];
         }
         else // 1.2. add subgraph to set if subgraph contains none of related user
             candidate_set_P.emplace(result_list[idx]);
@@ -183,7 +184,7 @@ std::vector<std::unique_ptr<InducedGraph>> ContinuousHandle::ExecuteQuery(
             inserted_refine_start_timestamp = Get_Time();
             if (!k_r_sigma_bitruss_subgraph->e_lists.empty() &&
             CheckCommunityInsert(candidate_set_P, k_r_sigma_bitruss_subgraph))
-                candidate_set_P.emplace(k_r_sigma_bitruss_subgraph);
+                candidate_set_P.emplace(k_r_sigma_bitruss_subgraph.release());
             insert_refine_time += Duration(inserted_refine_start_timestamp);
         }
     }
@@ -196,8 +197,8 @@ std::vector<std::unique_ptr<InducedGraph>> ContinuousHandle::ExecuteQuery(
     // std::cout << "[" << user_computed_counter << "] Computed User" << std::endl;
 
     // 3. refine the candidate set
-    std::vector<std::unique_ptr<InducedGraph>> result_set_R;
-    result_set_R.assign(candidate_set_P.begin(), candidate_set_P.end());
-    return result_set_R;
+
+    result_list.assign(candidate_set_P.begin(), candidate_set_P.end());
+    return result_list.size();
 }
 

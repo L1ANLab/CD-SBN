@@ -23,7 +23,7 @@ SnapshotHandle::SnapshotHandle(
 
 SnapshotHandle::~SnapshotHandle() {}
 
-std::vector<std::unique_ptr<InducedGraph>> SnapshotHandle::ExecuteQuery(Statistic* stat)
+uint SnapshotHandle::ExecuteQuery(Statistic* stat, std::vector<InducedGraph*>& result_list)
 {
     // 0. initialization:
     std::chrono::high_resolution_clock::time_point start_timestamp,
@@ -31,10 +31,10 @@ std::vector<std::unique_ptr<InducedGraph>> SnapshotHandle::ExecuteQuery(Statisti
     compute_community_start_timestamp, refine_candidate_set_start_timestamp;
 
     // 0.1 initialize a candidate set
-    std::set<std::unique_ptr<InducedGraph>> candidate_set_P;
+    std::set<InducedGraph*> candidate_set_P;
 
     // 0.2. initialize a maximum heap
-    std::vector<std::unique_ptr<HeapEntry>> maximum_heap_H(0);
+    std::vector<HeapEntry*> maximum_heap_H(0);
     SynopsisNode* root_node = this->syn->GetRoot();
     maximum_heap_H.emplace_back(
         new HeapEntry(root_node, root_node->GetUbScore(query_radius_idx))
@@ -61,7 +61,7 @@ std::vector<std::unique_ptr<InducedGraph>> SnapshotHandle::ExecuteQuery(Statisti
         start_timestamp = Get_Time();
         // 1.1. get the maximum entry at the top of maximum heap. 
         std::pop_heap(maximum_heap_H.begin(), maximum_heap_H.end(), CompareHeapEntry);
-        std::unique_ptr<HeapEntry> now_heap_entry = std::move(maximum_heap_H.back());
+        HeapEntry* now_heap_entry = maximum_heap_H.back();
         maximum_heap_H.pop_back();
         stat->select_greatest_entry_in_H_time += (Duration(start_timestamp));
 
@@ -69,6 +69,7 @@ std::vector<std::unique_ptr<InducedGraph>> SnapshotHandle::ExecuteQuery(Statisti
         if(now_heap_entry->score < this->query_score_threshold)
         {
             std::cout << "!!!!Early termination!!!!" << std::endl;
+            delete now_heap_entry;
             break;
         }
         SynopsisNode* current_node = now_heap_entry->node;
@@ -122,6 +123,7 @@ std::vector<std::unique_ptr<InducedGraph>> SnapshotHandle::ExecuteQuery(Statisti
                     if (r_hop_subgraph->e_lists.empty())
                     {
                         stat->leaf_node_traverse_time += Duration(leaf_node_start_timestamp);
+                        delete now_heap_entry;
                         continue;
                     }
                     vertex_pruning_counter += 1;
@@ -147,19 +149,27 @@ std::vector<std::unique_ptr<InducedGraph>> SnapshotHandle::ExecuteQuery(Statisti
                     // (4) add subgraph into P if exists
                     if (!k_r_sigma_bitruss_subgraph->e_lists.empty() &&
                         CheckCommunityInsert(candidate_set_P, k_r_sigma_bitruss_subgraph))
-                        candidate_set_P.emplace(k_r_sigma_bitruss_subgraph);
+                        candidate_set_P.emplace(k_r_sigma_bitruss_subgraph.release());
                 }
             }
             stat->leaf_node_traverse_time += Duration(leaf_node_start_timestamp);
         }
+        delete now_heap_entry;
     }
+    
+    while (!maximum_heap_H.empty())
+    {
+        HeapEntry* now_heap_entry = maximum_heap_H.back();
+        maximum_heap_H.pop_back();
+        delete now_heap_entry;
+    }
+    
 
     stat->vertex_pruning_counter = (this->data_graph->UserVerticesNum() - vertex_pruning_counter);
     stat->entry_pruning_counter = entry_pruning_counter;
     stat->leaf_node_visit_counter = leaf_node_visit_counter;
 
-    std::vector<std::unique_ptr<InducedGraph>> result_set_R;
-    result_set_R.assign(candidate_set_P.begin(), candidate_set_P.end());
-    return result_set_R;
+    result_list.assign(candidate_set_P.begin(), candidate_set_P.end());
+    return result_list.size();
 }
 

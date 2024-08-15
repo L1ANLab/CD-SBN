@@ -18,9 +18,9 @@ public:
     );
     ~ContinuousHandle();
 
-    std::vector<std::unique_ptr<InducedGraph>> ExecuteQuery(
+    uint ExecuteQuery(
         Statistic* stat,
-        std::vector<std::unique_ptr<InducedGraph>> result_list,
+        std::vector<InducedGraph*>& result_list,
         uint isRemoved, uint expire_edge_user_id, uint expire_edge_item_id,
         uint insert_edge_user_id, std::vector<uint> insert_related_user_list
     );

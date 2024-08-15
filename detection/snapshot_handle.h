@@ -18,7 +18,7 @@ public:
     );
     ~SnapshotHandle();
 
-    std::vector<std::unique_ptr<InducedGraph>> ExecuteQuery(Statistic* stat);
+    uint ExecuteQuery(Statistic* stat, std::vector<InducedGraph*>& result_list);
 };
 
 

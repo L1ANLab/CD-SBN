@@ -9,20 +9,21 @@
 
 struct SynopsisData
 {
-    std::bitset<MAX_LABEL> bv_r;
+    std::shared_ptr<std::bitset<MAX_LABEL>> bv_r;
     uint ub_sup_M;
     uint ub_score;
 
     SynopsisData(): bv_r{}, ub_sup_M(0), ub_score(0){}
 
     SynopsisData(
-        std::bitset<MAX_LABEL> bv_r_,
+        std::shared_ptr<std::bitset<MAX_LABEL>> bv_r_,
         uint ub_sup_M_,
         uint ub_score_
-    ): bv_r(bv_r_)
-    , ub_sup_M(ub_sup_M_)
+    ): ub_sup_M(ub_sup_M_)
     , ub_score(ub_score_)
-    {}
+    {
+        bv_r = std::move(bv_r_);
+    }
 };
 
 class SynopsisNode
@@ -32,7 +33,7 @@ protected:
 
     uint id;
     uint level;
-    std::unique_ptr<SynopsisData> data[R_MAX];
+    std::shared_ptr<SynopsisData> data[R_MAX];
     std::vector<uint> user_set;
 
     std::vector<SynopsisNode*> children_entries;
@@ -43,14 +44,14 @@ public:
     ); // TreeNode & LeafNode construct 
     SynopsisNode(
         uint level_,
-        std::unique_ptr<SynopsisData> data_[],
+        std::shared_ptr<SynopsisData> data_[],
         uint user_id
     ); // Vertex entry construct
     ~SynopsisNode();
 
     uint GetID();
-    void SetBvR(std::bitset<MAX_LABEL> bv_r_, uint r);
-    std::bitset<MAX_LABEL> GetBvR(uint r) const;
+    void SetBvR(std::shared_ptr<std::bitset<MAX_LABEL>>& bv_r_, uint r);
+    const std::shared_ptr<std::bitset<MAX_LABEL>>& GetBvR(uint r) const;
     void SetUbSupM(uint ub_sup_M_, uint r);
     uint GetUbSupM(uint r) const;
     void SetUbScore(uint ub_score_, uint r);
@@ -90,9 +91,12 @@ public:
     SynopsisNode* GetRoot() const;
     uint CountLeafNodes(SynopsisNode* now_node) const;
 
-    std::vector<SynopsisNode*> PrecomputeSynopsisEntries(Graph* graph);
-    std::vector<SynopsisNode*> LoadSynopsisEntries(std::string synopsis_file_path);
-    SynopsisNode* BuildSynopsis(Graph* graph, std::vector<SynopsisNode*> vertex_entry_list);
+    bool PrecomputeSynopsisEntries(Graph* graph, std::vector<SynopsisNode*>& vertex_entry_list);
+    bool LoadSynopsisEntries(
+        std::string synopsis_file_path,
+        std::vector<SynopsisNode*>& vertex_entry_list
+    );
+    SynopsisNode* BuildSynopsis(Graph* graph, std::vector<SynopsisNode*>& vertex_entry_list);
 
     bool SaveSynopsisEntries(std::string synopsis_file_path, std::vector<SynopsisNode*> vertex_entry_list);
 

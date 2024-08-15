@@ -24,7 +24,6 @@ Graph::Graph()
 , edges_{}
 , updates_{}
 {}
-
 Graph::~Graph()
 {
     for(size_t i=0;i<user_neighbor_datas.size();i++)
@@ -37,15 +36,15 @@ Graph::~Graph()
     }
     std::vector<std::vector<UserData*>>().swap(user_neighbor_datas);
 
-    for(size_t i=0;i<edges_.size();i++)
-    {
-        for (size_t j=0;j<edges_[i].size();j++)
-        {
-            delete edges_[i][j];
-        }
-        std::vector<EdgeData*>().swap(edges_[i]);
-    }
-    std::vector<std::vector<EdgeData*>>().swap(edges_);
+    // for(size_t i=0;i<edges_.size();i++)
+    // {
+    //     for (size_t j=0;j<edges_[i].size();j++)
+    //     {
+    //         delete edges_[i][j];
+    //     }
+    //     std::vector<EdgeData*>().swap(edges_[i]);
+    // }
+    // std::vector<std::vector<EdgeData*>>().swap(edges_);
 }
 
 uint Graph::GetGraphTimestamp() const { return graph_timestamp; }
@@ -54,7 +53,7 @@ void Graph::SetGraphTimestamp(uint new_timestamp) { this->graph_timestamp = new_
 
 void Graph::SetItemLabels(uint item_id, std::string label_str)
 {
-    std::bitset<MAX_LABEL> bitvector = 0;
+    std::bitset<MAX_LABEL>* bitvector = new std::bitset<MAX_LABEL>(0);
     std::stringstream ss(label_str);
     std::stringstream trans;
     std::string label;
@@ -63,10 +62,10 @@ void Graph::SetItemLabels(uint item_id, std::string label_str)
         std::stringstream trans(label);
         uint label_num;
         trans >> label_num;
-        bitvector.set(label_num);
+        bitvector->set(label_num);
     }
     AddItemVertex(item_id);
-    item_bvs[item_id] = bitvector;
+    item_bvs[item_id].reset(bitvector);
 }
 
 
@@ -82,6 +81,8 @@ void Graph::AddUserVertex(uint user_id)
         user_ub_sups.resize(user_id + 1);
         user_neighbor_datas.resize(user_id + 1);
     }
+    if (user_bvs[user_id] == nullptr)
+        user_bvs[user_id].reset(new std::bitset<MAX_LABEL>(0));
 }
 
 /// @brief add a new item vertex into graph
@@ -103,7 +104,7 @@ void Graph::AddItemVertex(uint item_id)
 /// @return return a list of user whose properties changed
 std::vector<uint> Graph::MaintainAfterInsertion(uint user_id, uint item_id, uint addition_flag)
 {
-    EdgeData* inserted_edge = GetEdgeData(user_id, item_id);
+    std::shared_ptr<EdgeData> inserted_edge = this->GetEdgeData(user_id, item_id);
     std::set<uint> related_user_set;
     related_user_set.emplace(user_id);
 
@@ -139,7 +140,7 @@ std::vector<uint> Graph::MaintainAfterInsertion(uint user_id, uint item_id, uint
             item_bvs.size() <= item_id,
             "Item Entity Error: No such item BV."
         );
-        user_bvs[user_id] |= item_bvs[item_id];
+        *user_bvs[user_id] |= *item_bvs[item_id];
         
         // 2.2. re-compute the support 
         for(size_t i = 0;i < item_neighbors[item_id].size();i++)
@@ -210,7 +211,7 @@ uint Graph::InsertEdge(uint user_id, uint item_id)
 /// @param item_id 
 void Graph::MaintainBeforeExpiration(uint user_id, uint item_id)
 {
-    EdgeData* expired_edge = GetEdgeData(user_id, item_id);
+    std::shared_ptr<EdgeData> expired_edge = GetEdgeData(user_id, item_id);
     ErrorControl::assert_error(
         expired_edge == nullptr,
         "Edge Deletion Error: The edge does not exist in edges_!"
@@ -247,11 +248,11 @@ void Graph::MaintainBeforeExpiration(uint user_id, uint item_id)
             item_bvs.size() <= item_id,
             "Item Entity Error: No such item BV."
         );
-        user_bvs[user_id].reset();
+        user_bvs[user_id]->reset();
         for (uint n_item_id : user_neighbors[user_id])
         {
             if (n_item_id == item_id) continue;
-            user_bvs[user_id] |= item_bvs[n_item_id];
+            (*user_bvs[user_id]) |= (*item_bvs[n_item_id]);
         }
         
         // 2.2. re-compute the support 
@@ -292,7 +293,7 @@ void Graph::MaintainBeforeExpiration(uint user_id, uint item_id)
 void Graph::MaintainBVBeforeExpiration(uint user_id, uint item_id)
 {
     // 1. get edge info
-    EdgeData* expired_edge = GetEdgeData(user_id, item_id);
+    std::shared_ptr<EdgeData> expired_edge = GetEdgeData(user_id, item_id);
     ErrorControl::assert_error(
         expired_edge == nullptr,
         "Edge Deletion Error: The edge does not exist in edges_!"
@@ -306,11 +307,11 @@ void Graph::MaintainBVBeforeExpiration(uint user_id, uint item_id)
             item_bvs.size() <= item_id,
             "Item Entity Error: No such item BV."
         );
-        user_bvs[user_id].reset();
+        user_bvs[user_id]->reset();
         for (uint n_item_id : user_neighbors[user_id])
         {
             if (n_item_id == item_id) continue;
-            user_bvs[user_id] |= item_bvs[n_item_id];
+            (*user_bvs[user_id]) |= (*item_bvs[n_item_id]);
         }
     }
 }
@@ -383,11 +384,11 @@ uint Graph::GetUserDegree(uint user_id) const
     return user_neighbors[user_id].size();
 }
 
-const std::bitset<MAX_LABEL>& Graph::GetUserBv(uint user_id) const
+const std::shared_ptr<std::bitset<MAX_LABEL>>& Graph::GetUserBv(uint user_id) const
 {
     return user_bvs[user_id];
 }
-const std::bitset<MAX_LABEL>& Graph::GetItemBv(uint item_id) const
+const std::shared_ptr<std::bitset<MAX_LABEL>>& Graph::GetItemBv(uint item_id) const
 {
     return item_bvs[item_id];
 }
@@ -396,27 +397,26 @@ const std::bitset<MAX_LABEL>& Graph::GetItemBv(uint item_id) const
 /// @param user_id 
 /// @param item_id 
 /// @return return a EdgeData of edge[user_id][item_id]
-EdgeData* Graph::GetEdgeData(uint user_id, uint item_id) const
+std::shared_ptr<EdgeData> Graph::GetEdgeData(uint user_id, uint item_id) const
 {
-    const std::vector<uint> *nbrs = &GetUserNeighbors(user_id);
-    const std::vector<EdgeData*> *user_edge_weights = &edges_[user_id];
+    std::vector<uint> nbrs = GetUserNeighbors(user_id);
     uint other = item_id;
     
-    long start = 0, end = nbrs->size() - 1, mid;
+    long start = 0, end = nbrs.size() - 1, mid;
     while (start <= end)
     {
         mid = (start + end) / 2;
-        if (nbrs->at(mid) < other)
+        if (nbrs[mid] < other)
         {
             start = mid + 1;
         }
-        else if (nbrs->at(mid) > other)
+        else if (nbrs[mid] > other)
         {
             end = mid - 1;
         }
         else
         {
-            return user_edge_weights->at(mid);
+            return edges_[user_id][mid];
         }
     }
     return nullptr;
@@ -433,9 +433,9 @@ const std::vector<UserData*>& Graph::GetNeighborUserData(uint user_id) const
 /// @param user_id 
 /// @param item_id 
 /// @return return a user relationship score data of user_id and n_user_id
-UserData* Graph::GetNeighborUserData(uint user_id, uint n_user_id) const
+const UserData* Graph::GetNeighborUserData(uint user_id, uint n_user_id) const
 {
-    const std::vector<UserData*> nbrs = user_neighbor_datas[user_id];
+    const std::vector<UserData*>& nbrs = user_neighbor_datas[user_id];
     uint other = n_user_id;
     
     long start = 0, end = nbrs.size() - 1, mid;
@@ -452,7 +452,7 @@ UserData* Graph::GetNeighborUserData(uint user_id, uint n_user_id) const
         }
         else
         {
-            return nbrs.at(mid);
+            return nbrs[mid];
         }
     }
     return nullptr;
@@ -478,7 +478,7 @@ size_t Graph::InsertNeighborUserData(uint user_id, uint n_user_id)
     // insert new user data if not
     if (lower == user_neighbor_datas[user_id].end() || (*lower)->user_id != n_user_id)
     {
-        lower = user_neighbor_datas[user_id].insert(lower, new UserData(n_user_id, 0, 0));
+        lower = user_neighbor_datas[user_id].emplace(lower, new UserData(n_user_id, 0, 0));
     }
     // uint temp = user_neighbor_datas[user_id][0]->user_id;
     // return the index of inserted user data
@@ -537,7 +537,11 @@ std::tuple<std::vector<uint>, std::vector<uint>>  Graph::Get2rHopOfUser(uint cen
     return {user_map_, item_map_};
 }
 
-std::tuple<std::vector<uint>, std::vector<uint>>  Graph::Get2rHopOfUserByBV(uint center_user_id, uint r, std::bitset<MAX_LABEL> bv)
+std::tuple<std::vector<uint>, std::vector<uint>>  Graph::Get2rHopOfUserByBV(
+    uint center_user_id,
+    uint r,
+    const std::shared_ptr<std::bitset<MAX_LABEL>>& bv
+)
 {
     std::queue<uint> to_visit_users;
     std::set<uint> visited_users;
@@ -556,7 +560,7 @@ std::tuple<std::vector<uint>, std::vector<uint>>  Graph::Get2rHopOfUserByBV(uint
             for (size_t j = 0; j < user_neighbors[visit_user].size(); j++)
             {
                 if (visited_items.find(user_neighbors[visit_user][j]) != visited_items.end()) continue;
-                if ((bv & this->GetItemBv(user_neighbors[visit_user][j])).none()) continue;
+                if ((*bv & *(this->GetItemBv(user_neighbors[visit_user][j]))).none()) continue;
                 to_visit_items.push(user_neighbors[visit_user][j]);
                 visited_items.emplace(user_neighbors[visit_user][j]);
             }
@@ -569,7 +573,7 @@ std::tuple<std::vector<uint>, std::vector<uint>>  Graph::Get2rHopOfUserByBV(uint
             for (size_t j = 0; j < item_neighbors[visit_item].size(); j++)
             {
                 if (visited_users.find(item_neighbors[visit_item][j]) != visited_users.end()) continue;
-                if ((bv & this->GetUserBv(item_neighbors[visit_item][j])).none()) continue;
+                if ((*bv & *(this->GetUserBv(item_neighbors[visit_item][j]))).none()) continue;
                 to_visit_users.push(item_neighbors[visit_item][j]);
                 visited_users.emplace(item_neighbors[visit_item][j]);
             }
@@ -579,7 +583,7 @@ std::tuple<std::vector<uint>, std::vector<uint>>  Graph::Get2rHopOfUserByBV(uint
     {
         uint visit_user = to_visit_users.front();
         to_visit_users.pop();
-        if ((bv & this->GetUserBv(visit_user)).any()) continue;
+        if ((*bv & *(this->GetUserBv(visit_user))).any()) continue;
         visited_users.emplace(visit_user);
     }
 
