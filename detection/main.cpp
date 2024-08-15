@@ -104,15 +104,15 @@ int main(int argc, char *argv[])
     // 2.1. precompute or load synopsis entries
     std::cout << "------------ Precompute Synopsis Entries ------------" << std::endl;
     start = Get_Time();
-    std::vector<SynopsisNode*> vertex_entry_list;
+    std::vector<SynopsisNode*> vertex_entry_list(0);
     if (io::file_exists(synopsis_entries_file_path.c_str()))
     { // load from file if exists
-        vertex_entry_list = syn->LoadSynopsisEntries(synopsis_entries_file_path);
+        syn->LoadSynopsisEntries(synopsis_entries_file_path, vertex_entry_list);
         Print_Time_Now("Load part takes: ", start);
     }
     else
     { // precompute
-        vertex_entry_list = syn->PrecomputeSynopsisEntries(data_graph);
+        syn->PrecomputeSynopsisEntries(data_graph, vertex_entry_list);
         syn->SaveSynopsisEntries(synopsis_entries_file_path, vertex_entry_list);
         Print_Time_Now("Compute part takes: ", start);
     }
@@ -236,7 +236,6 @@ int main(int argc, char *argv[])
         }
         std::cout << "\n";
         // 4.1. find the answer for the snapshot query
-        std::vector<InducedGraph*> result_list;
         SnapshotHandle* snapshot_query = new SnapshotHandle(
             query_keywords,
             query_support_threshold,
@@ -246,9 +245,10 @@ int main(int argc, char *argv[])
             syn
         );
         start = Get_Time();
-        result_list = snapshot_query->ExecuteQuery(statistic);
+        std::vector<InducedGraph*> result_list(0);
+        snapshot_query->ExecuteQuery(statistic, result_list);
         std::cout << "Snapshot Result:[" << result_list.size() << "]" << std::endl;
-        statistic->solver_result = result_list;
+        // statistic->solver_result = result_list;
         statistic->snapshot_query_processing_time = Duration(start);
 
         // statistic->user_node_num = data_graph->UserVerticesNum();
@@ -341,27 +341,23 @@ int main(int argc, char *argv[])
                 start_idx += 1;
             }
             // 4.2.2. find the answer for the continuous query
-            result_list = continuous_query->ExecuteQuery(
+            continuous_query->ExecuteQuery(
                 statistic,
                 result_list,
                 isRemoved, expire_edge_user_id, expire_edge_item_id,
                 insert_edge_user_id, insert_related_user_list
             );
-            statistic->solver_result = result_list;
+            // statistic->solver_result = result_list;
             statistic->average_continuous_query_time = (statistic->average_continuous_query_time * (end_idx) + Duration(continuous_turn_start)) / (end_idx + 1);
             Print_Time_Now("Continuous Turn Time: ", continuous_turn_start);
             std::cout << "Continuous Result: [" << result_list.size() << "]" << " at " << update_stream[end_idx].timestamp << std::endl;
             Print_Time("Average Continuous Turn Time: ", statistic->average_continuous_query_time);
-            if (result_list.size() == 65)
-            {
-                for (auto result_subgraph: result_list)
-                {
-                    std::cout << result_subgraph->PrintMetaData() << std::endl;
-                }
-            }
+
             // move to next edge
             end_idx += 1;
         }
+
+        statistic->solver_result = result_list;
         statistic->continuous_query_processing_time = Duration(start);
 
         statistic->finish_timestamp = Get_Time();
@@ -385,11 +381,16 @@ int main(int argc, char *argv[])
             std::cout << "Print stat result successfully" << std::endl;
         }
 
-        for (auto subgraph :result_list)
+        delete snapshot_query;
+        delete continuous_query;
+
+        for (InducedGraph* result_subgraph: statistic->solver_result)
         {
-            delete subgraph;
+            delete result_subgraph;
         }
+        statistic->solver_result.clear();
     }
+    
     delete statistic;
     delete syn;
     delete data_graph;
