@@ -13,11 +13,12 @@ struct HeapEntry
     uint score;
 
     HeapEntry(SynopsisNode* node_, uint score_): node(node_), score(score_) {}
+    // ~HeapEntry() { delete node; }
     bool operator < (const HeapEntry &right) const;
     bool operator > (const HeapEntry &right) const;
 };
 
-bool CompareHeapEntry(const HeapEntry *left, const HeapEntry *right);
+bool CompareHeapEntry(const HeapEntry* left, const HeapEntry* right);
 
 class QueryHandle
 {
@@ -30,12 +31,12 @@ protected:
     Graph* data_graph;
     Synopsis* syn;
 
-    std::bitset<MAX_LABEL>  query_BV;
+    std::shared_ptr<std::bitset<MAX_LABEL>> query_BV;
     uint query_radius_idx;
     
     bool CheckPruningConditions(SynopsisNode* node);
     bool CheckCommunityInsert(
-        std::set<std::unique_ptr<InducedGraph>>& candidate_set,
+        std::set<InducedGraph*> candidate_set,
         const std::unique_ptr<InducedGraph>& to_insert_community
     );
 

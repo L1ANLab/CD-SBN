@@ -222,16 +222,21 @@ bool Synopsis::PrecomputeSynopsisEntries(Graph* graph, std::vector<SynopsisNode*
     inv_list.resize(graph->UserVerticesNum());
     // 1. package the vertex into synopsis vertex entry
     uint vertices_num = graph->UserVerticesNum();
+    #pragma omp parallel for num_threads(THREADS_NUM)
     for (uint i=0;i<vertices_num;i++)
     {
-        if (i%100 == 0)
-        {
-            std::cout << "\r" << i+1 << "/" << vertices_num;
-            std::cout << std::fixed << std::setprecision(2) << " ("  << (i+1)*100.0/vertices_num << "%)" << std::endl;
-        }
         SynopsisNode* node_pointer = CreateVertexEntry(i, graph);
-        vertex_entry_list.push_back(node_pointer);
         inv_list[i].emplace_back(node_pointer);
+
+        #pragma omp critical
+        {
+            vertex_entry_list.push_back(node_pointer);
+            if (i%100 == 0)
+            {
+                std::cout << "\r" << i+1 << "/" << vertices_num;
+                std::cout << std::fixed << std::setprecision(2) << " ("  << (i+1)*100.0/vertices_num << "%)" << std::endl;
+            }
+        }
     }
     std::cout << std::endl;
     return true;

@@ -14,7 +14,7 @@
 Graph::Graph()
 : graph_timestamp(0)
 , user_neighbors{}
-, user_bvs{}
+, user_bvs(1)
 , user_ub_sups{}
 , user_neighbor_datas{}
 , label_size(0)
@@ -23,7 +23,9 @@ Graph::Graph()
 , edge_count_(0)
 , edges_{}
 , updates_{}
-{}
+{
+    user_bvs[0].reset(new std::bitset<MAX_LABEL>(0));
+}
 Graph::~Graph()
 {
     for(size_t i=0;i<user_neighbor_datas.size();i++)
