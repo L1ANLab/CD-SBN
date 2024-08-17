@@ -1,4 +1,4 @@
 ,name,score,loc,scale,arg,params,model,bootstrap_score,bootstrap_pass,color
-0,pareto,1.0598747762793987e-08,-8794.661177570813,8794.661177570812,"(4.016798743229113,)","(4.016798743229113, -8794.661177570813, 8794.661177570812)",<scipy.stats._distn_infrastructure.rv_continuous_frozen object at 0x7e49420d0b10>,0,,#e41a1c
-1,lognorm,2.0757484811846892e-07,-3.406608214490435e-15,7.755886549562785,"(5.944532968717404,)","(5.944532968717404, -3.406608214490435e-15, 7.755886549562785)",<scipy.stats._distn_infrastructure.rv_continuous_frozen object at 0x7e493b13c510>,0,,#ff7f00
-2,uniform,2.99489009569478e-07,0.0,14969.0,(),"(0.0, 14969.0)",<scipy.stats._distn_infrastructure.rv_continuous_frozen object at 0x7e493b13e350>,0,,#999999
+0,lognorm,7.408038554621601e-06,-1.6068044054551207,66.99643392689102,"(1.3551587606890736,)","(1.3551587606890736, -1.6068044054551207, 66.99643392689102)",<scipy.stats._distn_infrastructure.rv_continuous_frozen object at 0x785fc22e1350>,0,,#e41a1c
+1,pareto,1.74223669426426e-05,-3899.6296165904623,3900.629616590462,"(30.9966353626657,)","(30.9966353626657, -3899.6296165904623, 3900.629616590462)",<scipy.stats._distn_infrastructure.rv_continuous_frozen object at 0x785fc1de6a90>,0,,#ff7f00
+2,uniform,9.883946845343741e-05,1.0,496.0,(),"(1.0, 496.0)",<scipy.stats._distn_infrastructure.rv_continuous_frozen object at 0x785fc8ad2a10>,0,,#999999

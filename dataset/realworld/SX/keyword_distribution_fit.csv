@@ -1,0 +1,4 @@
+,name,score,loc,scale,arg,params,model,bootstrap_score,bootstrap_pass,color
+0,lognorm,1.759592123437019e-05,-2.0609820349562127,67.18181329544842,"(1.3195122110545932,)","(1.3195122110545932, -2.0609820349562127, 67.18181329544842)",<scipy.stats._distn_infrastructure.rv_continuous_frozen object at 0x7dc33fbfe750>,0,,#e41a1c
+1,pareto,3.4914601134315053e-05,-1814.6767635625833,1815.6767635625831,"(15.20336504694543,)","(15.20336504694543, -1814.6767635625833, 1815.6767635625831)",<scipy.stats._distn_infrastructure.rv_continuous_frozen object at 0x7dc33fbffc10>,0,,#ff7f00
+2,uniform,0.0002193386834818427,1.0,498.0,(),"(1.0, 498.0)",<scipy.stats._distn_infrastructure.rv_continuous_frozen object at 0x7dc33f174210>,0,,#999999
