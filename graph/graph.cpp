@@ -83,8 +83,9 @@ void Graph::AddUserVertex(uint user_id)
         user_ub_sups.resize(user_id + 1);
         user_neighbor_datas.resize(user_id + 1);
     }
-    if (user_bvs[user_id] == nullptr)
-        user_bvs[user_id].reset(new std::bitset<MAX_LABEL>(0));
+    for (uint idx = 0;idx< user_bvs.size();idx++)
+        if (user_bvs[idx] == nullptr)
+            user_bvs[idx].reset(new std::bitset<MAX_LABEL>(0));
 }
 
 /// @brief add a new item vertex into graph
