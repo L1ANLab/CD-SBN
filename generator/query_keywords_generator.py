@@ -4,9 +4,9 @@ from tqdm import tqdm
 # from fitter import fitter
 
 
-def generate_query_keywords(dir_name: str, file_name: str, query_keywords_size: int, query_keywords_num: int):
+def generate_query_keywords(dataset_type: str, dir_name: str, file_name: str, query_keywords_size: int, query_keywords_num: int):
     # 0. Param settings
-    keyword_file_path = os.path.join(dir_name, file_name)
+    keyword_file_path = os.path.join(dataset_type, dir_name, file_name)
 
     # 1. keyword file read
     full_file_path = (os.path.join(os.getcwd(), "dataset", keyword_file_path))
@@ -40,7 +40,7 @@ def generate_query_keywords(dir_name: str, file_name: str, query_keywords_size: 
 
     # 4. save the query keywords
     query_keyword_file = "query_keywords_list-{}.txt".format(query_keywords_size)
-    with open(os.path.join(os.getcwd(), "dataset", dir_name, query_keyword_file), "w") as wf:
+    with open(os.path.join(os.getcwd(), "dataset", dataset_type, dir_name, query_keyword_file), "w") as wf:
         wf.write("{} {}\n".format(query_keywords_num, query_keywords_size))
         for query_keywords in tqdm(query_keywords_list):
             wf.write("{}\n".format(" ".join(map(str, query_keywords))))
