@@ -1,13 +1,14 @@
 import os
 
 import numpy as np
-from scipy.stats import zipf
+from scipy.stats import lognorm, pareto
 from tqdm import tqdm
+from matplotlib import pyplot as plt
+from distfit import distfit
 
 from query_keywords_generator import generate_query_keywords
-from synthetic_generator import generate_synthetic_dataset_uniform, generate_synthetic_dataset_powerlaw
-# ALL_KEYWORD_NUM = 20
-# KEYWORDS_PER_VERTEX_NUM = 3
+
+
 INITIAL_GRAPH_RATIO = 0.9999
 
 
@@ -39,6 +40,7 @@ class EdgeRawData:
 
 
 def generate_dataset(
+    dataset_type: str,
     dir_name: str,
     file_name: str,
     distribution: str,
@@ -47,7 +49,7 @@ def generate_dataset(
 ):
     print("Process [{}]".format(dir_name))
     # 0. Param settings
-    file_path = os.path.join(dir_name, file_name)
+    file_path = os.path.join(dataset_type, dir_name, file_name)
 
     # 1. File read
     full_file_path = (os.path.join(os.getcwd(), "dataset", file_path))
@@ -102,32 +104,68 @@ def generate_dataset(
 
     # 4. generate distribution sample
     item_label_list = []
+    keywords_set = []
     if distribution == "uniform":
         keywords_set = range(0, all_keyword_num)
-    elif distribution == "zipf":
-        # Zipf
-        a = 2  # param
-        zipf_dist = zipf(a)
+    elif distribution == "pareto":
+        # Pareto
+        arg_param = 1.5
+        loc_param = 1
+        scale_param = all_keyword_num
+        if all_keyword_num == 15000:  # -19231.79008351339  ,19232.790083513388     ,"(5.69997408561057,)"
+            arg_param = 5.70
+            loc_param = -19231.79
+            scale_param = 19232.79
+        elif all_keyword_num == 80000:  # -388.84576533729086 ,   389.8457653372908   ,"(0.6901126943354385,)"
+            arg_param = 0.69
+            loc_param = -389
+            scale_param = 390
+        elif all_keyword_num == 150000:  # -4124.0358721624125 ,     4125.035872162412   ,"(0.8103013210457232,)"
+            arg_param = 0.81
+            loc_param = -4124
+            scale_param = 4125
+        elif all_keyword_num == 200000:  # -3401.5253467891953  ,  3402.525346789195    ,"(0.5464479455054979,)"
+            arg_param = 0.55
+            loc_param = -3401
+            scale_param = 3402
         size = max_item + 1
-        keywords_set = zipf_dist.rvs(size * keywords_per_vertex_num)
-    elif distribution == "gauss":
-        # Gaussian
-        mean = 10
-        stddev = 3
-        if all_keyword_num == 10:
-            mean = 5
-            stddev = 1.5
-        elif all_keyword_num == 20:
-            mean = 10
-            stddev = 3
-        elif all_keyword_num == 50:
-            mean = 25
-            stddev = 7.5
-        elif all_keyword_num == 80:
-            mean = 40
-            stddev = 12
+        while len(keywords_set) < size * keywords_per_vertex_num:
+            add_size = size * keywords_per_vertex_num - len(keywords_set)
+            keywords_set.extend(pareto.rvs(b=arg_param, size=add_size, loc=loc_param, scale=scale_param))
+            keywords_set = [num for num in keywords_set if num >= 0 and num < all_keyword_num]
+    elif distribution == "lognorm":
+        # Log-Normal
+        arg_param = 1.5
+        loc_param = 0
+        scale_param = all_keyword_num
+        if all_keyword_num == 500:
+            arg_param = 2.38
+            loc_param = 1
+            scale_param = 250
+        elif all_keyword_num == 15000:  # -44.58722103972769, 1839.072875086526     ,"(1.5010218174412135,)"
+            arg_param = 1.5
+            loc_param = -44.58
+            scale_param = 1839
+        elif all_keyword_num == 80000:  # -0.5932967914583205 ,   808.7013050884292   ,"(1.9873671880000185,)"
+            arg_param = 1.987
+            loc_param = -0.59
+            scale_param = 800
+        elif all_keyword_num == 150000:  # -4.551298755677167  ,     5024.638869027135   ,"(2.1871830415933924,)"
+            arg_param = 2.18
+            loc_param = -4.55
+            scale_param = 5024
+        elif all_keyword_num == 200000:  # -0.11391367692277611 ,  9656.598374650848    ,"(2.3804364903581736,)"
+            arg_param = 2.38
+            loc_param = -0.11
+            scale_param = 9656.6
+        # lognorm_dist = lognorm(s=arg_param)
         size = max_item + 1
-        keywords_set = np.random.normal(mean, stddev, size)
+        # keywords_set = lognorm.rvs(s=arg_param, size=size * keywords_per_vertex_num, loc=loc_param, scale=scale_param)
+        print("Do Log-Normal")
+        while len(keywords_set) < size * keywords_per_vertex_num:
+            add_size = size * keywords_per_vertex_num - len(keywords_set)
+            keywords_set.extend(lognorm.rvs(s=arg_param, size=add_size, loc=loc_param, scale=scale_param))
+            keywords_set = [num for num in keywords_set if num >= 0 and num < all_keyword_num]
     keywords_set = np.clip(keywords_set, 0, all_keyword_num-1).astype(int)
 
     # 5. generate keywords following distribution
@@ -144,40 +182,56 @@ def generate_dataset(
             label_counter[keyword] += 1
         item_label_list.append(keywords)
 
+    print(label_counter)
+    all_keyword_list = np.array(all_keyword_list)
+    distr_list = ['pareto', "lognorm", "uniform"]
+    dfit = distfit(todf=True, distr=distr_list)
+    dfit.fit_transform(all_keyword_list)
+    dfit.plot()
+    fig_path = os.path.join(os.getcwd(), "dataset", dataset_type, dir_name, "./{}_keyword_vis".format(dir_name))
+    plt.savefig(fig_path)
+
+    dfit.plot_summary()
+    fig_path = os.path.join(os.getcwd(), "dataset", dataset_type, dir_name, "./{}_keyword_vis_summary".format(dir_name))
+    plt.savefig(fig_path)
+
+    output_path = os.path.join(os.getcwd(), "dataset", dataset_type, dir_name, "keyword_distribution_fit.csv")
+    dfit.summary.to_csv(output_path, sep=',', index=True, header=True)
+
     # 6. write dataset into files
     initial_graph_file = "initial_graph.txt"
     item_label_list_file = "label_list.txt"
     update_stream_file = "update_stream.txt"
     keyword_file = "keywords_list.txt"
     print("Save Graph Data")
-    with open(os.path.join(os.getcwd(), "dataset", dir_name, initial_graph_file), "w") as wf:
+    with open(os.path.join(os.getcwd(), "dataset", dataset_type, dir_name, initial_graph_file), "w") as wf:
         for data in tqdm(initial_graph):
             wf.write("{} {} {}\n".format(data.user, data.item, data.tstamp))
 
     print("Save Label Data")
-    with open(os.path.join(os.getcwd(), "dataset", dir_name, item_label_list_file), "w") as wf:
+    with open(os.path.join(os.getcwd(), "dataset", dataset_type, dir_name, item_label_list_file), "w") as wf:
         wf.write("{}\n".format(all_keyword_num))
         for item_id, labels in tqdm(enumerate(item_label_list)):
             wf.write("{} {}\n".format(item_id, ",".join([str(label) for label in labels])))
 
     print("Save Update Stream Data")
-    with open(os.path.join(os.getcwd(), "dataset", dir_name, update_stream_file), "w") as wf:
+    with open(os.path.join(os.getcwd(), "dataset", dataset_type, dir_name, update_stream_file), "w") as wf:
         wf.write("% min:{} max:{}\n".format(min_tstamp, max_tstamp))
         for data in tqdm(update_stream):
             wf.write("{} {} {}\n".format(data.user, data.item, data.tstamp))
 
     print("Save Keyword Data")
-    with open(os.path.join(os.getcwd(), "dataset", dir_name, keyword_file), "w") as wf:
+    with open(os.path.join(os.getcwd(), "dataset", dataset_type, dir_name, keyword_file), "w") as wf:
         wf.write("{}\n".format(all_keyword_num))
         for keyword in tqdm(all_keyword_list):
             wf.write("{}\n".format(keyword))
 
 
-def generate_dataset_with_keywords(dir_name: str, graph_file_name: str, keyword_file_name: str):
+def generate_dataset_with_keywords(dataset_type: str, dir_name: str, graph_file_name: str, keyword_file_name: str):
     print("Process [{}]".format(dir_name))
     # 0. Param settings
-    graph_file_path = os.path.join(dir_name, graph_file_name)
-    keyword_file_path = os.path.join(dir_name, keyword_file_name)
+    graph_file_path = os.path.join(dataset_type, dir_name, graph_file_name)
+    keyword_file_path = os.path.join(dataset_type, dir_name, keyword_file_name)
 
     # 1. Graph file read
     full_file_path = (os.path.join(os.getcwd(), "dataset", graph_file_path))
@@ -274,86 +328,64 @@ def generate_dataset_with_keywords(dir_name: str, graph_file_name: str, keyword_
     update_stream_file = "update_stream.txt"
     keyword_file = "keywords_list.txt"
     print("Save Graph Data")
-    with open(os.path.join(os.getcwd(), "dataset", dir_name, initial_graph_file), "w") as wf:
+    with open(os.path.join(os.getcwd(), "dataset", dataset_type, dir_name, initial_graph_file), "w") as wf:
         for data in tqdm(initial_graph):
             wf.write("{} {} {}\n".format(data.user, data.item, data.tstamp))
 
     print("Save Label Data")
-    with open(os.path.join(os.getcwd(), "dataset", dir_name, item_label_list_file), "w") as wf:
+    with open(os.path.join(os.getcwd(), "dataset", dataset_type, dir_name, item_label_list_file), "w") as wf:
         wf.write("{}\n".format(max_keyword+1))
         for (item_id, labels) in tqdm(keyword_list):
             wf.write("{} {}\n".format(item_id, ",".join([str(label) for label in sorted(labels)])))
 
     print("Save Update Stream Data")
-    with open(os.path.join(os.getcwd(), "dataset", dir_name, update_stream_file), "w") as wf:
+    with open(os.path.join(os.getcwd(), "dataset", dataset_type, dir_name, update_stream_file), "w") as wf:
         wf.write("% min:{} max:{}\n".format(min_tstamp, max_tstamp))
         for data in tqdm(update_stream):
             wf.write("{} {} {}\n".format(data.user, data.item, data.tstamp))
 
     print("Save Keyword Data")
-    with open(os.path.join(os.getcwd(), "dataset", dir_name, keyword_file), "w") as wf:
+    with open(os.path.join(os.getcwd(), "dataset", dataset_type, dir_name, keyword_file), "w") as wf:
         wf.write("{}\n".format(max_keyword+1))
         for keyword in tqdm(all_keyword_list):
             wf.write("{}\n".format(keyword))
 
 
 if __name__ == "__main__":
-    # generate_dataset("AM", "out.wang-amazon", "uniform", 20, 3)
-    # generate_query_keywords("AM", "keywords_list.txt", 5, 5)
+    # generate_dataset("realworld", "AM", "out.wang-amazon", "lognorm", 500, 3)
+    # generate_query_keywords("realworld", "AM", "keywords_list.txt", 10, 5)
 
-    # generate_dataset("AR", "out.amazon-ratings", "uniform", 20, 3)
-    # generate_query_keywords("AR", "keywords_list.txt", 5, 5)
+    # generate_dataset("realworld", "AR", "out.amazon-ratings", "lognorm", 500, 3)
+    # generate_query_keywords("realworld", "AR", "keywords_list.txt", 10, 5)
 
-    # generate_dataset_with_keywords("BS", "out.bibsonomy-2ui", "out.bibsonomy-2ti")
-    # generate_query_keywords("BS", "keywords_list.txt", 5, 5)
+    # generate_dataset_with_keywords("realworld", "BS", "out.bibsonomy-2ui", "out.bibsonomy-2ti")
+    # generate_query_keywords("realworld", "BS", "keywords_list.txt", 10, 5)
 
-    # generate_dataset("CM", "out.librec-ciaodvd-movie_ratings", "uniform", 20, 3)
-    # generate_query_keywords("CM", "keywords_list.txt", 5, 5)
+    # generate_dataset("realworld", "CM", "out.librec-ciaodvd-movie_ratings", "lognorm", 500, 3)
+    # generate_query_keywords("realworld", "CM", "keywords_list.txt", 10, 5)
 
-    # generate_dataset_with_keywords("CU", "out.citeulike-ui", "out.citeulike-ti")
-    # generate_query_keywords("CU", "keywords_list.txt", 5, 5)
+    # generate_dataset_with_keywords("realworld", "CU", "out.citeulike-ui", "out.citeulike-ti")
+    # generate_query_keywords("realworld", "CU", "keywords_list.txt", 10, 5)
 
-    # generate_dataset("DV", "out.digg-votes", "uniform", 20, 3)
-    # generate_query_keywords("DV", "keywords_list.txt", 5, 5)
+    # generate_dataset("realworld", "DV", "out.digg-votes", "lognorm", 500, 3)
+    # generate_query_keywords("realworld", "DV", "keywords_list.txt", 10, 5)
 
-    # generate_dataset_with_keywords("ML", "out.movielens-10m_ui", "out.movielens-10m_ti")
-    # generate_query_keywords("ML", "keywords_list.txt", 5, 5)
+    # generate_dataset_with_keywords("realworld", "ML", "out.movielens-10m_ui", "out.movielens-10m_ti")
+    # generate_query_keywords("realworld", "ML", "keywords_list.txt", 10, 5)
 
-    # generate_dataset("SX", "out.escorts", "uniform", 20, 3)
-    # generate_query_keywords("SX", "keywords_list.txt", 5, 5)
+    # generate_dataset("realworld", "SX", "out.escorts", "lognorm", 500, 3)
+    # generate_query_keywords("realworld", "SX", "keywords_list.txt", 10, 5)
 
-    # generate_dataset("TA", "out.wang-tripadvisor", "uniform", 20, 3)
-    # generate_query_keywords("TA", "keywords_list.txt", 5, 5)
+    # generate_dataset("realworld", "TA", "out.wang-tripadvisor", "lognorm", 500, 3)
+    # generate_query_keywords("realworld", "TA", "keywords_list.txt", 10, 5)
 
-    # generate_dataset("UF", "out.opsahl-ucforum", "uniform", 20, 3)
-    # generate_query_keywords("UF", "keywords_list.txt", 5, 5)
+    # generate_dataset("realworld", "UF", "out.opsahl-ucforum", "lognorm", 500, 3)
+    # generate_query_keywords("realworld", "UF", "keywords_list.txt", 10, 5)
 
-    # generate_dataset_with_keywords("VU", "out.pics_ui", "out.pics_ti")
-    # generate_query_keywords("VU", "keywords_list.txt", 5, 5)
+    # generate_dataset_with_keywords("realworld", "VU", "out.pics_ui", "out.pics_ti")
+    # generate_query_keywords("realworld", "VU", "keywords_list.txt", 10, 5)
 
-    # generate_dataset("WU", "out.munmun_twitterex_ut", "uniform", 20, 3)
-    # generate_query_keywords("WU", "keywords_list.txt", 5, 5)
-
-    generate_synthetic_dataset_powerlaw(
-        "PL",
-        "out.pl-50k",
-        50000,
-        50000,
-        1.5,
-        0.1
-    )
-    generate_dataset("PL", "out.pl-50k", "uniform", 20, 3)
-    generate_query_keywords("PL", "keywords_list.txt", 5, 5)
-
-    generate_synthetic_dataset_uniform(
-        "UD",
-        "out.ud-50k",
-        50000,
-        50000,
-        0.0005,
-        0.1
-    )
-    generate_dataset("UD", "out.ud-50k", "uniform", 20, 3)
-    generate_query_keywords("UD", "keywords_list.txt", 5, 5)
+    # generate_dataset("realworld", "WU", "out.munmun_twitterex_ut", "lognorm", 500, 3)
+    # generate_query_keywords("realworld", "WU", "keywords_list.txt", 10, 5)
 
     pass
