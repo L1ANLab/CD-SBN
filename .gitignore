@@ -35,7 +35,11 @@
 /build
 
 # dataset
-/dataset/*/*/
-/dataset/*/out.*
-/dataset/*/*.txt
+/dataset-backup/
+/dataset/*/*/*/
+/dataset/*/*/out.*
+/dataset/*/*/*.txt
 !/dataset/**/*.tar.bz2
+
+# result
+/result
