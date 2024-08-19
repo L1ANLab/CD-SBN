@@ -1,15 +1,17 @@
-build/cdsbn -i dataset/AM/initial_graph.txt -l dataset/AM/label_list.txt -u dataset/AM/update_stream.txt -q dataset/AM/query_keywords_list-5.txt -t 0 -w 100 -k 4 -r 2 -s 2
-build/cdsbn -i dataset/AR/initial_graph.txt -l dataset/AR/label_list.txt -u dataset/AR/update_stream.txt -q dataset/AR/query_keywords_list-5.txt -t 0 -w 100 -k 4 -r 2 -s 2
-build/cdsbn -i dataset/BS/initial_graph.txt -l dataset/BS/label_list.txt -u dataset/BS/update_stream.txt -q dataset/BS/query_keywords_list-5.txt -t 0 -w 100 -k 4 -r 2 -s 2
-build/cdsbn -i dataset/CM/initial_graph.txt -l dataset/CM/label_list.txt -u dataset/CM/update_stream.txt -q dataset/CM/query_keywords_list-5.txt -t 0 -w 100 -k 4 -r 2 -s 2
-build/cdsbn -i dataset/CU/initial_graph.txt -l dataset/CU/label_list.txt -u dataset/CU/update_stream.txt -q dataset/CU/query_keywords_list-5.txt -t 0 -w 100 -k 4 -r 2 -s 2
-build/cdsbn -i dataset/DV/initial_graph.txt -l dataset/DV/label_list.txt -u dataset/DV/update_stream.txt -q dataset/DV/query_keywords_list-5.txt -t 0 -w 100 -k 4 -r 2 -s 2
-build/cdsbn -i dataset/ML/initial_graph.txt -l dataset/ML/label_list.txt -u dataset/ML/update_stream.txt -q dataset/ML/query_keywords_list-5.txt -t 0 -w 100 -k 4 -r 2 -s 2
-build/cdsbn -i dataset/SX/initial_graph.txt -l dataset/SX/label_list.txt -u dataset/SX/update_stream.txt -q dataset/SX/query_keywords_list-5.txt -t 0 -w 100 -k 4 -r 2 -s 2
-build/cdsbn -i dataset/TA/initial_graph.txt -l dataset/TA/label_list.txt -u dataset/TA/update_stream.txt -q dataset/TA/query_keywords_list-5.txt -t 0 -w 100 -k 4 -r 2 -s 2
-build/cdsbn -i dataset/UF/initial_graph.txt -l dataset/UF/label_list.txt -u dataset/UF/update_stream.txt -q dataset/UF/query_keywords_list-5.txt -t 0 -w 100 -k 4 -r 2 -s 2
-build/cdsbn -i dataset/VU/initial_graph.txt -l dataset/VU/label_list.txt -u dataset/VU/update_stream.txt -q dataset/VU/query_keywords_list-5.txt -t 0 -w 100 -k 4 -r 2 -s 2
-build/cdsbn -i dataset/WU/initial_graph.txt -l dataset/WU/label_list.txt -u dataset/WU/update_stream.txt -q dataset/WU/query_keywords_list-5.txt -t 0 -w 100 -k 4 -r 2 -s 2
+cd /home/yons/projects/CD-SBN/
 
-build/cdsbn -i dataset/PL/initial_graph.txt -l dataset/PL/label_list.txt -u dataset/PL/update_stream.txt -q dataset/PL/query_keywords_list-5.txt -t 0 -w 100 -k 4 -r 2 -s 2
-build/cdsbn -i dataset/UD/initial_graph.txt -l dataset/UD/label_list.txt -u dataset/UD/update_stream.txt -q dataset/UD/query_keywords_list-5.txt -t 0 -w 100 -k 4 -r 2 -s 2
+build/cdsbn -i dataset/realworld/AM/initial_graph.txt -l dataset/realworld/AM/label_list.txt -u dataset/realworld/AM/update_stream.txt -q dataset/realworld/AM/query_keywords_list-5.txt -t 0 -w 100 -k 4 -r 2 -s 2
+# build/cdsbn -i dataset/realworld/AR/initial_graph.txt -l dataset/realworld/AR/label_list.txt -u dataset/realworld/AR/update_stream.txt -q dataset/realworld/AR/query_keywords_list-5.txt -t 0 -w 100 -k 4 -r 2 -s 2
+build/cdsbn -i dataset/realworld/BS/initial_graph.txt -l dataset/realworld/BS/label_list.txt -u dataset/realworld/BS/update_stream.txt -q dataset/realworld/BS/query_keywords_list-5.txt -t 0 -w 100 -k 4 -r 2 -s 2
+build/cdsbn -i dataset/realworld/CM/initial_graph.txt -l dataset/realworld/CM/label_list.txt -u dataset/realworld/CM/update_stream.txt -q dataset/realworld/CM/query_keywords_list-5.txt -t 0 -w 100 -k 4 -r 2 -s 2
+build/cdsbn -i dataset/realworld/CU/initial_graph.txt -l dataset/realworld/CU/label_list.txt -u dataset/realworld/CU/update_stream.txt -q dataset/realworld/CU/query_keywords_list-5.txt -t 0 -w 100 -k 4 -r 2 -s 2
+# build/cdsbn -i dataset/realworld/DV/initial_graph.txt -l dataset/realworld/DV/label_list.txt -u dataset/realworld/DV/update_stream.txt -q dataset/realworld/DV/query_keywords_list-5.txt -t 0 -w 100 -k 4 -r 2 -s 2
+build/cdsbn -i dataset/realworld/ML/initial_graph.txt -l dataset/realworld/ML/label_list.txt -u dataset/realworld/ML/update_stream.txt -q dataset/realworld/ML/query_keywords_list-5.txt -t 0 -w 100 -k 4 -r 2 -s 2
+build/cdsbn -i dataset/realworld/SX/initial_graph.txt -l dataset/realworld/SX/label_list.txt -u dataset/realworld/SX/update_stream.txt -q dataset/realworld/SX/query_keywords_list-5.txt -t 0 -w 100 -k 4 -r 2 -s 2
+build/cdsbn -i dataset/realworld/TA/initial_graph.txt -l dataset/realworld/TA/label_list.txt -u dataset/realworld/TA/update_stream.txt -q dataset/realworld/TA/query_keywords_list-5.txt -t 0 -w 100 -k 4 -r 2 -s 2
+build/cdsbn -i dataset/realworld/UF/initial_graph.txt -l dataset/realworld/UF/label_list.txt -u dataset/realworld/UF/update_stream.txt -q dataset/realworld/UF/query_keywords_list-5.txt -t 0 -w 100 -k 4 -r 2 -s 2
+# build/cdsbn -i dataset/realworld/VU/initial_graph.txt -l dataset/realworld/VU/label_list.txt -u dataset/realworld/VU/update_stream.txt -q dataset/realworld/VU/query_keywords_list-5.txt -t 0 -w 100 -k 4 -r 2 -s 2
+build/cdsbn -i dataset/realworld/WU/initial_graph.txt -l dataset/realworld/WU/label_list.txt -u dataset/realworld/WU/update_stream.txt -q dataset/realworld/WU/query_keywords_list-5.txt -t 0 -w 100 -k 4 -r 2 -s 2
+
+# build/cdsbn -i dataset/realworld/PL/initial_graph.txt -l dataset/realworld/PL/label_list.txt -u dataset/realworld/PL/update_stream.txt -q dataset/realworld/PL/query_keywords_list-5.txt -t 0 -w 100 -k 4 -r 2 -s 2
+# build/cdsbn -i dataset/realworld/UD/initial_graph.txt -l dataset/realworld/UD/label_list.txt -u dataset/realworld/UD/update_stream.txt -q dataset/realworld/UD/query_keywords_list-5.txt -t 0 -w 100 -k 4 -r 2 -s 2
