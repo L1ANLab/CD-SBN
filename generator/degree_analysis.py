@@ -12,13 +12,14 @@ def analyze_degree(dir_name: str, graph_file_name: str):
     file_path = os.path.join(dir_name, graph_file_name)
 
     # 1. File read
-    full_file_path = (os.path.join(os.getcwd(), "dataset", file_path))
+    full_file_path = (os.path.join(os.getcwd(), "dataset", "realworld", file_path))
     raw_data_list = []
     with open(full_file_path, "r") as f:
         raw_data_list = f.readlines()
 
     # 2. Raw data process
     all_user_degree_list = []
+    user_degree_dict = dict()
     counter = 0
     print("Process Graph Data")
     for line in tqdm(raw_data_list):
@@ -38,8 +39,15 @@ def analyze_degree(dir_name: str, graph_file_name: str):
 
         all_user_degree_list.append(user)
 
+        if user in user_degree_dict:
+            user_degree_dict[user] += 1
+        else:
+            user_degree_dict[user] = 1
         counter += 1
-
+    # print(user_degree_dict)
+    max_user_list = sorted(user_degree_dict.items(), key=lambda x: -x[1], reverse=False)
+    (max_user, max_value) = max_user_list.pop(0)
+    print("%Max:{}, {}".format(max_user, max_value))
     all_user_degree_list = np.array(all_user_degree_list)
 
     # plt.switch_backend('agg')
@@ -67,28 +75,28 @@ def analyze_degree(dir_name: str, graph_file_name: str):
 
 if __name__ == "__main__":
 
-    analyze_degree("AM", "out.wang-amazon")
+    analyze_degree("AM", "out.wang-amazon")  # %Max:1433, 44
 
-    analyze_degree("AR", "out.amazon-ratings")
+    analyze_degree("AR", "out.amazon-ratings")  # %Max:10662, 12217
 
-    analyze_degree("BS", "out.bibsonomy-2ui")
+    analyze_degree("BS", "out.bibsonomy-2ui")  # %Max:5065, 428436
 
-    analyze_degree("CM", "out.librec-ciaodvd-movie_ratings")
+    analyze_degree("CM", "out.librec-ciaodvd-movie_ratings")  # %Max:1075, 1106
 
-    analyze_degree("CU", "out.citeulike-ui")
+    analyze_degree("CU", "out.citeulike-ui")  # %Max:19718, 57706
 
-    analyze_degree("DV", "out.digg-votes")
+    analyze_degree("DV", "out.digg-votes")  # %Max:364, 10526
 
-    analyze_degree("ML", "out.movielens-10m_ui")
+    analyze_degree("ML", "out.movielens-10m_ui")  # %Max:615, 6012
 
-    analyze_degree("SX", "out.escorts")
+    analyze_degree("SX", "out.escorts")  # %Max:2283, 134
 
-    analyze_degree("TA", "out.wang-tripadvisor")
+    analyze_degree("TA", "out.wang-tripadvisor")  # %Max:6060, 22
 
-    analyze_degree("UF", "out.opsahl-ucforum")
+    analyze_degree("UF", "out.opsahl-ucforum")  # %Max:213, 1792
 
-    analyze_degree("VU", "out.pics_ti")
+    analyze_degree("VU", "out.pics_ti")  # %Max:243, 405429
 
-    analyze_degree("WU", "out.munmun_twitterex_ut")
+    analyze_degree("WU", "out.munmun_twitterex_ut")  # %Max:61560, 2431
 
     pass

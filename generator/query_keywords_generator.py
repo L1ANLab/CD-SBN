@@ -47,19 +47,19 @@ def generate_query_keywords(dataset_type: str, dir_name: str, file_name: str, qu
 
 
 if __name__ == "__main__":
-    # generate_query_keywords("AM", "keywords_list.txt", 5, 5)
-    # generate_query_keywords("AR", "keywords_list.txt", 5, 5)
-    # generate_query_keywords("BS", "keywords_list.txt", 5, 5)
-    # generate_query_keywords("CM", "keywords_list.txt", 5, 5)
-    # generate_query_keywords("CU", "keywords_list.txt", 5, 5)
-    # generate_query_keywords("DV", "keywords_list.txt", 5, 5)
-    # generate_query_keywords("ML", "keywords_list.txt", 5, 5)
-    # generate_query_keywords("SX", "keywords_list.txt", 5, 5)
-    # generate_query_keywords("TA", "keywords_list.txt", 5, 5)
-    # generate_query_keywords("UF", "keywords_list.txt", 5, 5)
-    # generate_query_keywords("VU", "keywords_list.txt", 5, 5)
-    # generate_query_keywords("WU", "keywords_list.txt", 5, 5)
+    # generate_query_keywords("realworld", "AM", "keywords_list.txt", 5, 10)
+    # generate_query_keywords("realworld", "AR", "keywords_list.txt", 5, 10)
+    # generate_query_keywords("realworld", "BS", "keywords_list.txt", 5, 10)
+    # generate_query_keywords("realworld", "CM", "keywords_list.txt", 5, 10)
+    # generate_query_keywords("realworld", "CU", "keywords_list.txt", 5, 10)
+    # generate_query_keywords("realworld", "DV", "keywords_list.txt", 5, 10)
+    # generate_query_keywords("realworld", "ML", "keywords_list.txt", 5, 10)
+    # generate_query_keywords("realworld", "SX", "keywords_list.txt", 5, 10)
+    # generate_query_keywords("realworld", "TA", "keywords_list.txt", 5, 10)
+    # generate_query_keywords("realworld", "UF", "keywords_list.txt", 5, 10)
+    # generate_query_keywords("realworld", "VU", "keywords_list.txt", 5, 10)
+    # generate_query_keywords("realworld", "WU", "keywords_list.txt", 5, 10)
 
-    # generate_query_keywords("PL", "keywords_list.txt", 5, 5)
-    # generate_query_keywords("UD", "keywords_list.txt", 5, 5)
+    # generate_query_keywords("synthetic", "PL", "keywords_list.txt", 5, 10)
+    # generate_query_keywords("synthetic", "UD", "keywords_list.txt", 5, 10)
     pass
