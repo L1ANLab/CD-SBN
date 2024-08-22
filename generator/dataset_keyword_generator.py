@@ -110,6 +110,10 @@ def generate_dataset(
         arg_param = 1.5
         loc_param = 1
         scale_param = all_keyword_num
+        if all_keyword_num == 500:
+            arg_param = 0.7
+            loc_param = -50
+            scale_param = 51
         if all_keyword_num == 15000:  # -19231.79008351339  ,19232.790083513388     ,"(5.69997408561057,)"
             arg_param = 5.70
             loc_param = -19231.79
@@ -209,7 +213,7 @@ def generate_dataset(
     print("Save Label Data")
     with open(os.path.join(os.getcwd(), "dataset", dataset_type, dir_name, item_label_list_file), "w") as wf:
         wf.write("{}\n".format(all_keyword_num))
-        for item_id, labels in tqdm(enumerate(item_label_list)):
+        for item_id, labels in enumerate(tqdm(item_label_list)):
             wf.write("{} {}\n".format(item_id, ",".join([str(label) for label in labels])))
 
     print("Save Update Stream Data")
