@@ -86,6 +86,7 @@ Statistic::Statistic(
     this->continuous_expired_compute_data_time = 0.0;
     this->continuous_expired_filter_edge_time = 0.0;
     this->continuous_expired_refine_time = 0.0;
+    this->influenced_subgraph_compute_time = 0.0;
     this->continuous_inserted_compute_2r_hop_time = 0.0;
     this->continuous_inserted_compute_community_time = 0.0;
     this->continuous_inserted_compute_data_time = 0.0;
@@ -181,6 +182,7 @@ std::string Statistic::GenerateStatisticResult()
     result += "Expiration Recompute Community Time: " + std::to_string(continuous_expired_recompute_community_time) + "\n";
     result += "Expiration Compute Data time: " + std::to_string(continuous_expired_compute_data_time) + "\n";
     result += "Expiration Filter Edge time: " + std::to_string(continuous_expired_filter_edge_time) + "\n";
+    result += "Influenced Subgraph time: " + std::to_string(influenced_subgraph_compute_time) + "\n";
     result += "Insertion Compute 2R-Hop time: " + std::to_string(continuous_inserted_compute_2r_hop_time) + "\n";
     result += "Insertion Compute Community time: " + std::to_string(continuous_inserted_compute_community_time) + "\n";
     result += "Insertion Compute Data time: " + std::to_string(continuous_inserted_compute_data_time) + "\n";

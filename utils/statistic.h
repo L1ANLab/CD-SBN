@@ -76,6 +76,7 @@ public:
     float continuous_expired_compute_data_time;
     float continuous_expired_filter_edge_time;
     float continuous_expired_refine_time;
+    float influenced_subgraph_compute_time;
     float continuous_inserted_compute_2r_hop_time;
     float continuous_inserted_compute_community_time;
     float continuous_inserted_compute_data_time;
