@@ -34,12 +34,24 @@
 # build files
 /build
 
+# Python cache files
+*.pyc
+
 # dataset
 /dataset-backup/
-/dataset/*/*/*/
+# realworld
+/dataset/*/*/experiment*
 /dataset/*/*/out.*
 /dataset/*/*/*.txt
-!/dataset/**/*.tar.bz2
+!/dataset/*/*/*.tar.bz2
+# synthetic
+/dataset/*/*/*/experiment*
+/dataset/*/*/*/out.*
+/dataset/*/*/*/*.txt
+/dataset/*/*/*/*.png
+/dataset/*/*/*/*.csv
+!/dataset/*/*/*/*.tar.bz2
+
 
 # result
 /result
