@@ -43,8 +43,8 @@ uint ContinuousHandle::ExecuteQuery(
     // 0. initialization:
     std::chrono::high_resolution_clock::time_point start_timestamp,
     expired_recompute_community_start_timestamp, expired_refine_start_timestamp,
-    inserted_compute_2r_hop_start_timestamp, inserted_compute_community_start_timestamp,
-    inserted_refine_start_timestamp;
+    influenced_subgraph_start_timestamp, inserted_compute_2r_hop_start_timestamp,
+    inserted_compute_community_start_timestamp, inserted_refine_start_timestamp;
     float expire_community_time=0.0, expire_refine_time=0.0,
     insert_2r_hop_time=0.0, insert_community_time=0.0, insert_refine_time=0.0;
 
@@ -119,20 +119,30 @@ uint ContinuousHandle::ExecuteQuery(
     stat->continuous_expired_refine_time += expire_refine_time;
 
     // 2. get the 2r-hop of the ending user of insert edge
-    std::tuple<std::vector<uint>, std::vector<uint>> result_tuple = data_graph->Get2rHopOfUserByBV(
-        insert_edge_user_id,
-        query_radius,
-        query_BV
-    );
+    influenced_subgraph_start_timestamp = Get_Time();
+
+    /*
+    std::tuple<std::vector<uint>, std::vector<uint>> result_tuple(0, 0);
+    if (insert_edge_user_id != UINT_MAX)
+    {
+        result_tuple = data_graph->Get2rHopOfUserByBV(
+            insert_edge_user_id,
+            query_radius,
+            query_BV
+        );
+    }
     std::vector<uint> insert_user_2r_hop_user_list = std::get<0>(result_tuple);
     std::cout << insert_user_2r_hop_user_list.size() << std::endl;
     // uint user_computed_counter = 0;
+    // 3. get the subgraph made of the influenced users and items
+    std::set<uint> influenced_user_set;
+    std::set<uint> influenced_item_set;
+
 #pragma omp parallel for num_threads(THREADS_NUM)
-    for(uint user_id: insert_user_2r_hop_user_list)
+    for(uint center_user_id: insert_user_2r_hop_user_list)
     {
         inserted_compute_2r_hop_start_timestamp = Get_Time();
-        // 2.1. get the vertex
-        uint center_user_id = user_id;
+        // 3.1. get the vertex
         // pruning the vertex if its synopsis node is unqualified
         std::vector<SynopsisNode*> synopsis_node_list(0);
         if (center_user_id < this->syn->GetInvListSize())
@@ -155,6 +165,64 @@ uint ContinuousHandle::ExecuteQuery(
             query_radius,
             query_BV
         );
+        // 2.3 gather the user and item in 2r-hop subgraph
+        #pragma omp critical
+        {
+            for (uint num: user_list)
+                influenced_user_set.emplace(num);
+            for (uint num: item_list)
+                influenced_item_set.emplace(num);
+        }
+    }
+
+    std::cout << influenced_user_set.size() << " " << influenced_item_set.size() << std::endl;
+    std::vector<uint> influenced_user_list(0);
+    influenced_user_list.assign(influenced_user_set.begin(), influenced_user_set.end());
+    std::vector<uint> influenced_item_list(0);
+    influenced_item_list.assign(influenced_item_set.begin(), influenced_item_set.end());
+    */
+
+    std::vector<uint> influenced_user_list(0), influenced_item_list(0);
+    if (insert_edge_user_id != UINT_MAX)
+    {
+        std::tie(influenced_user_list, influenced_item_list) = data_graph->Get2rHopOfUserByBV(
+            insert_edge_user_id,
+            2*query_radius,
+            query_BV
+        );
+    }
+    std::cout << influenced_user_list.size() << std::endl;
+    // 2.4 return if no user 
+    if (influenced_user_list.size() < 2) return result_list.size();
+
+    // 3. compute the (k,r,σ)-bitruss from influenced subgraph
+    std::unique_ptr<InducedGraph> influenced_subgraph(new InducedGraph(*data_graph, influenced_user_list, influenced_item_list));
+    inserted_compute_community_start_timestamp = Get_Time();
+    std::unique_ptr<InducedGraph> influenced_k_r_sigma_bitruss_subgraph(
+        influenced_subgraph->ComputeKRSigmaBitruss(
+            query_support_threshold,
+            query_score_threshold,
+            stat->continuous_inserted_compute_data_time,
+            stat->continuous_inserted_filter_edge_time
+        )
+    );
+    stat->influenced_subgraph_compute_time += Duration(influenced_subgraph_start_timestamp);
+
+    // 4. compute the 2r-hop of the rest user vertices
+#pragma omp parallel for num_threads(THREADS_NUM)
+    for(uint user_id: influenced_k_r_sigma_bitruss_subgraph->user_map)
+    {
+        inserted_compute_2r_hop_start_timestamp = Get_Time();
+        // 4.1. get the vertex
+        uint candidate_user_id = user_id;
+        
+        // 4.2. compute the 2r-hop of user
+        std::vector<uint> user_list, item_list;
+        std::tie(user_list, item_list) = data_graph->Get2rHopOfUserByBV(
+            candidate_user_id,
+            query_radius,
+            query_BV
+        );
         std::unique_ptr<InducedGraph> r_hop_subgraph(new InducedGraph(*data_graph, user_list, item_list));
         insert_2r_hop_time += Duration(inserted_compute_2r_hop_start_timestamp);
         // pruning the vertex if its 2r-hop does not contain the related subgraph
@@ -166,7 +234,7 @@ uint ContinuousHandle::ExecuteQuery(
         }
         // user_computed_counter ++;
 
-        // 2.3. compute the (k,r,σ)-bitruss
+        // 4.3. compute the (k,r,σ)-bitruss
         inserted_compute_community_start_timestamp = Get_Time();
         std::unique_ptr<InducedGraph> k_r_sigma_bitruss_subgraph(
             r_hop_subgraph->ComputeKRSigmaBitruss(
@@ -180,7 +248,7 @@ uint ContinuousHandle::ExecuteQuery(
         {
             insert_community_time += Duration(inserted_compute_community_start_timestamp);
 
-            // (3) add subgraph into P if exists
+            // add subgraph into P if exists
             inserted_refine_start_timestamp = Get_Time();
             if (!k_r_sigma_bitruss_subgraph->e_lists.empty() &&
             CheckCommunityInsert(candidate_set_P, k_r_sigma_bitruss_subgraph))
@@ -196,7 +264,7 @@ uint ContinuousHandle::ExecuteQuery(
     Print_Time("Insert Refine Set: ", insert_refine_time);
     // std::cout << "[" << user_computed_counter << "] Computed User" << std::endl;
 
-    // 3. refine the candidate set
+    // 5. refine the candidate set
 
     result_list.assign(candidate_set_P.begin(), candidate_set_P.end());
     return result_list.size();

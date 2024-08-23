@@ -291,33 +291,40 @@ int main(int argc, char *argv[])
         while (end_idx < update_stream.size())
         {
             continuous_turn_start = Get_Time();
-            uint insert_edge_user_id = update_stream[end_idx].user_id;
-            uint insert_edge_item_id = update_stream[end_idx].item_id;
-            // 4.2.1. maintain the graph and synopsis once
-            // (1) insert edge
-            std::cout << "Insert edge (" << insert_edge_user_id << "," << insert_edge_item_id << ")";
-            std::cout << " at " << update_stream[end_idx].timestamp << std::endl;
-            edge_maintain_start = Get_Time();
-            uint addition_flag = data_graph->InsertEdge(
-                insert_edge_user_id,
-                insert_edge_item_id
-            );
-            statistic->continuous_edge_maintain_time += Duration(edge_maintain_start);
-            // Print_Time_Now("[Insert] in ",  edge_maintain_start);
-            // (2) maintain grpah
-            graph_maintain_start = Get_Time();
-            std::vector<uint> insert_related_user_list = data_graph->MaintainAfterInsertion(
-                insert_edge_user_id,
-                insert_edge_item_id,
-                addition_flag
-            );
-            statistic->continuous_graph_maintain_time += Duration(graph_maintain_start);
+            uint insert_edge_user_id = UINT_MAX;
+            uint insert_edge_item_id = UINT_MAX;
+            std::vector<uint> insert_related_user_list(0);
+            uint isInserted = 0;
+            if (end_idx < update_stream.size())
+            {
+                insert_edge_user_id = update_stream[end_idx].user_id;
+                insert_edge_item_id = update_stream[end_idx].item_id;
+                // 4.2.1. maintain the graph and synopsis once
+                // (1) insert edge
+                std::cout << "Insert edge (" << insert_edge_user_id << "," << insert_edge_item_id << ")";
+                std::cout << " at " << update_stream[end_idx].timestamp << std::endl;
+                edge_maintain_start = Get_Time();
+                isInserted = data_graph->InsertEdge(
+                    insert_edge_user_id,
+                    insert_edge_item_id
+                );
+                statistic->continuous_edge_maintain_time += Duration(edge_maintain_start);
+                // Print_Time_Now("[Insert] in ",  edge_maintain_start);
+                // (2) maintain grpah
+                graph_maintain_start = Get_Time();
+                insert_related_user_list = data_graph->MaintainAfterInsertion(
+                    insert_edge_user_id,
+                    insert_edge_item_id,
+                    isInserted
+                );
+                statistic->continuous_graph_maintain_time += Duration(graph_maintain_start);
+            }
             // Print_Time_Now("[Maintain] in ",  graph_maintain_start);
             uint expire_edge_user_id = UINT_MAX;
             uint expire_edge_item_id = UINT_MAX;
             uint isRemoved = 0;
             if (end_idx - start_idx + 1 > sliding_window_size)
-            {   
+            {
                 expire_edge_user_id = update_stream[start_idx].user_id;
                 expire_edge_item_id = update_stream[start_idx].item_id;
                 std::cout << "Expire edge (" << update_stream[start_idx].user_id << "," << update_stream[start_idx].item_id << ")";
@@ -347,14 +354,13 @@ int main(int argc, char *argv[])
                 isRemoved, expire_edge_user_id, expire_edge_item_id,
                 insert_edge_user_id, insert_related_user_list
             );
-            // statistic->solver_result = result_list;
+            // move to next edge
+            end_idx += 1;
+            // statistic
             statistic->average_continuous_query_time = (statistic->average_continuous_query_time * (end_idx) + Duration(continuous_turn_start)) / (end_idx + 1);
             Print_Time_Now("Continuous Turn Time: ", continuous_turn_start);
             std::cout << "Continuous Result: [" << result_list.size() << "]" << " at " << update_stream[end_idx].timestamp << std::endl;
             Print_Time("Average Continuous Turn Time: ", statistic->average_continuous_query_time);
-
-            // move to next edge
-            end_idx += 1;
         }
 
         statistic->solver_result = result_list;
