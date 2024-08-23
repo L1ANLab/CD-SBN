@@ -75,7 +75,7 @@ bool QueryHandle::CheckPruningConditions(SynopsisNode* node)
 /// @param to_insert_community 
 /// @return true if can be inserted, otherwise false
 bool QueryHandle::CheckCommunityInsert(
-    std::set<InducedGraph*> candidate_set,
+    std::set<InducedGraph*>& candidate_set,
     const std::unique_ptr<InducedGraph>& to_insert_community
 )
 {

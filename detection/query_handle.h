@@ -36,7 +36,7 @@ protected:
     
     bool CheckPruningConditions(SynopsisNode* node);
     bool CheckCommunityInsert(
-        std::set<InducedGraph*> candidate_set,
+        std::set<InducedGraph*>& candidate_set,
         const std::unique_ptr<InducedGraph>& to_insert_community
     );
 
