@@ -13,5 +13,5 @@ build/cdsbn -i dataset/realworld/UF/initial_graph.txt -l dataset/realworld/UF/la
 # build/cdsbn -i dataset/realworld/VU/initial_graph.txt -l dataset/realworld/VU/label_list.txt -u dataset/realworld/VU/update_stream.txt -q dataset/realworld/VU/query_keywords_list-5.txt -t 0 -w 100 -k 4 -r 2 -s 2
 build/cdsbn -i dataset/realworld/WU/initial_graph.txt -l dataset/realworld/WU/label_list.txt -u dataset/realworld/WU/update_stream.txt -q dataset/realworld/WU/query_keywords_list-5.txt -t 0 -w 100 -k 4 -r 2 -s 2
 
-# build/cdsbn -i dataset/realworld/PL/initial_graph.txt -l dataset/realworld/PL/label_list.txt -u dataset/realworld/PL/update_stream.txt -q dataset/realworld/PL/query_keywords_list-5.txt -t 0 -w 100 -k 4 -r 2 -s 2
-# build/cdsbn -i dataset/realworld/UD/initial_graph.txt -l dataset/realworld/UD/label_list.txt -u dataset/realworld/UD/update_stream.txt -q dataset/realworld/UD/query_keywords_list-5.txt -t 0 -w 100 -k 4 -r 2 -s 2
+# build/cdsbn -i dataset/synthetic/dB/dBkL/initial_graph.txt -l dataset/synthetic/dB/dBkL/label_list.txt -u dataset/synthetic/dB/dBkL/update_stream.txt -q dataset/synthetic/dB/dBkL/query_keywords_list-5.txt -t 0 -w 100 -k 4 -r 2 -s 2
+# build/cdsbn -i dataset/synthetic/dP/dPkL/initial_graph.txt -l dataset/synthetic/dP/dPkL/label_list.txt -u dataset/synthetic/dP/dPkL/update_stream.txt -q dataset/synthetic/dP/dPkL/query_keywords_list-5.txt -t 0 -w 100 -k 4 -r 2 -s 2
