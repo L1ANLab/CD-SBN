@@ -114,7 +114,23 @@ def generate_dataset(
             arg_param = 0.7
             loc_param = -50
             scale_param = 51
-        if all_keyword_num == 15000:  # -19231.79008351339  ,19232.790083513388     ,"(5.69997408561057,)"
+        elif all_keyword_num == 100:
+            arg_param = 0.7
+            loc_param = -10
+            scale_param = 11
+        elif all_keyword_num == 200:
+            arg_param = 0.7
+            loc_param = -20
+            scale_param = 21
+        elif all_keyword_num == 800:
+            arg_param = 0.7
+            loc_param = -80
+            scale_param = 81
+        elif all_keyword_num == 1000:
+            arg_param = 0.7
+            loc_param = -100
+            scale_param = 101
+        elif all_keyword_num == 15000:  # -19231.79008351339  ,19232.790083513388     ,"(5.69997408561057,)"
             arg_param = 5.70
             loc_param = -19231.79
             scale_param = 19232.79
@@ -144,6 +160,22 @@ def generate_dataset(
             arg_param = 2.38
             loc_param = 1
             scale_param = 250
+        elif all_keyword_num == 100:
+            arg_param = 2.38
+            loc_param = 1
+            scale_param = 50
+        elif all_keyword_num == 200:
+            arg_param = 2.38
+            loc_param = 1
+            scale_param = 100
+        elif all_keyword_num == 800:
+            arg_param = 2.38
+            loc_param = 1
+            scale_param = 400
+        elif all_keyword_num == 1000:
+            arg_param = 2.38
+            loc_param = 1
+            scale_param = 500
         elif all_keyword_num == 15000:  # -44.58722103972769, 1839.072875086526     ,"(1.5010218174412135,)"
             arg_param = 1.5
             loc_param = -44.58

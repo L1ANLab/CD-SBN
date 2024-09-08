@@ -14,7 +14,7 @@ from distfit import distfit
 ADD_EDGE_PROBABILIRY = 0.1
 
 
-def generate_graph_by_distr(dir_name: str, user_num: int, item_num: int, distr: str):
+def generate_graph_by_distr(dir_type_name: str, dir_name: str, user_num: int, item_num: int, distr: str):
     # 1. Generate degree sequences
     top_degree_list = []
     bottom_degree_list = []
@@ -47,7 +47,8 @@ def generate_graph_by_distr(dir_name: str, user_num: int, item_num: int, distr: 
         # UF1k   0.9999999999999999   ,        898.0000000000001    ,"(0.6569864709983231,)"
         # VU15k  0.9999999999999999  , 82034.00000000001     ,"(0.20889796629344404,)"
         # WU150k 0.9999999999999999 ,       175213.00000000003     ,"(0.6129378066141103,)"
-        arg_param = 0.04
+        top_arg_param = 1000/user_num
+        bottom_arg_param = 1000/item_num
         loc_param = 1
         top_scale_param = user_num/200
         bottom_scale_param = item_num/200
@@ -55,11 +56,11 @@ def generate_graph_by_distr(dir_name: str, user_num: int, item_num: int, distr: 
         bottom_degree_list = []
         while len(top_degree_list) < user_num:
             add_size = user_num - len(top_degree_list)
-            top_degree_list.extend(powerlaw.rvs(a=arg_param, size=add_size, loc=loc_param, scale=top_scale_param))
+            top_degree_list.extend(powerlaw.rvs(a=top_arg_param, size=add_size, loc=loc_param, scale=top_scale_param))
             top_degree_list = [num for num in top_degree_list if num >= 0 and num < top_scale_param]
         while len(bottom_degree_list) < item_num:
             add_size = item_num - len(bottom_degree_list)
-            bottom_degree_list.extend(powerlaw.rvs(a=arg_param, size=add_size, loc=loc_param, scale=bottom_scale_param))
+            bottom_degree_list.extend(powerlaw.rvs(a=bottom_arg_param, size=add_size, loc=loc_param, scale=bottom_scale_param))
             bottom_degree_list = [num for num in bottom_degree_list if num >= 0 and num < bottom_scale_param]
     elif distr == "beta":
         print("Do Beta")
@@ -75,7 +76,8 @@ def generate_graph_by_distr(dir_name: str, user_num: int, item_num: int, distr: 
         # UF1k   0.9999999999999999   ,        902.4417624619954    ,"(0.9258096236521509, 1.7208744945675574)"
         # VU15k  0.9999999999999999  ,678264.8818477776      ,"(0.6209163154972581, 210.52780274892902)"
         # WU150k 0.9999999999999999 ,       175223.061925438       ,"(0.7872391787005166, 1.44342138235131)"
-        arg_a_param = 0.04
+        top_arg_a_param = 1000/user_num
+        bottom_arg_a_param = 1000/item_num
         arg_b_param = 1
         loc_param = 1
         top_scale_param = user_num/200
@@ -84,18 +86,18 @@ def generate_graph_by_distr(dir_name: str, user_num: int, item_num: int, distr: 
         bottom_degree_list = []
         while len(top_degree_list) < user_num:
             add_size = user_num - len(top_degree_list)
-            top_degree_list.extend(beta.rvs(a=arg_a_param, b=arg_b_param, size=add_size, loc=loc_param, scale=top_scale_param))
+            top_degree_list.extend(beta.rvs(a=top_arg_a_param, b=arg_b_param, size=add_size, loc=loc_param, scale=top_scale_param))
             top_degree_list = [num for num in top_degree_list if num >= 0 and num < top_scale_param]
         while len(bottom_degree_list) < item_num:
             add_size = item_num - len(bottom_degree_list)
-            bottom_degree_list.extend(beta.rvs(a=arg_a_param, b=arg_b_param, size=add_size, loc=loc_param, scale=bottom_scale_param))
+            bottom_degree_list.extend(beta.rvs(a=bottom_arg_a_param, b=arg_b_param, size=add_size, loc=loc_param, scale=bottom_scale_param))
             bottom_degree_list = [num for num in bottom_degree_list if num >= 0 and num < bottom_scale_param]
     else:
         raise Exception("Type Error: wrong distribution <{}>".format(distr))
 
     top_degree_list = np.clip(top_degree_list, 0, user_num/200).astype(int)
     bottom_degree_list = np.clip(bottom_degree_list, 0, item_num/200).astype(int)
-    print(top_degree_list[:100])
+    # print(top_degree_list[:100])
     print(max(top_degree_list))
     # 2. Adjust degree sequences to ensure their sums match
     total_top_degree_sum = np.sum(top_degree_list)
@@ -103,8 +105,8 @@ def generate_graph_by_distr(dir_name: str, user_num: int, item_num: int, distr: 
     print(total_top_degree_sum, total_bottom_degree_sum)
     if total_top_degree_sum != total_bottom_degree_sum:
         # Scale the degree sequences to match the total degrees
-        scaling_factor = (total_bottom_degree_sum*1.0) / (total_top_degree_sum*1.0)
-        top_degree_list = np.round(top_degree_list * scaling_factor).astype(int)
+        scaling_factor = (total_top_degree_sum*1.0) / (total_bottom_degree_sum*1.0)
+        bottom_degree_list = np.round(bottom_degree_list * scaling_factor).astype(int)
     total_top_degree_sum = np.sum(top_degree_list)
     total_bottom_degree_sum = np.sum(bottom_degree_list)
 
@@ -112,14 +114,14 @@ def generate_graph_by_distr(dir_name: str, user_num: int, item_num: int, distr: 
     dfit = distfit(todf=True, distr=distr_list)
     dfit.fit_transform(top_degree_list)
     dfit.plot()
-    fig_path = os.path.join(os.getcwd(), "dataset", "synthetic", dir_name, "./{}_user_degree_vis".format(dir_name))
+    fig_path = os.path.join(os.getcwd(), "dataset", dir_type_name, dir_name, "./{}_user_degree_vis".format(dir_name))
     plt.savefig(fig_path)
 
     dfit.plot_summary()
-    fig_path = os.path.join(os.getcwd(), "dataset", "synthetic", dir_name, "./{}_user_degree_vis_summary".format(dir_name))
+    fig_path = os.path.join(os.getcwd(), "dataset", dir_type_name, dir_name, "./{}_user_degree_vis_summary".format(dir_name))
     plt.savefig(fig_path)
 
-    output_path = os.path.join(os.getcwd(), "dataset", "synthetic", dir_name, "user_degree_distribution_fit.csv")
+    output_path = os.path.join(os.getcwd(), "dataset", dir_type_name, dir_name, "user_degree_distribution_fit.csv")
     dfit.summary.to_csv(output_path, sep=',', index=True, header=True)
 
     # 3. clip each element until the equal degree sum
@@ -144,6 +146,7 @@ def generate_graph_by_distr(dir_name: str, user_num: int, item_num: int, distr: 
 
 
 def generate_synthetic_dataset(
+    dir_type_name: str,
     dir_name: str,
     file_name: str,
     user_num: int,
@@ -151,8 +154,12 @@ def generate_synthetic_dataset(
     distr: str,
 ):
     print("Process [{}]".format(file_name))
+    full_file_folder = os.path.join(os.getcwd(), "dataset", dir_type_name, dir_name)
+    full_file_path = (os.path.join(full_file_folder, file_name))
+    if not os.path.exists(full_file_folder):
+        os.makedirs(full_file_folder)
     # 1. generate bipartite graph for different type
-    data_graph = generate_graph_by_distr(dir_name, user_num, item_num, distr)
+    data_graph = generate_graph_by_distr(dir_type_name, dir_name, user_num, item_num, distr)
     # 2. extract the edge list
     edge_list = []
     # print(data_graph.edges)
@@ -164,8 +171,6 @@ def generate_synthetic_dataset(
         if flag > 0:
             edge_list.insert(idx, (edge[0], edge[1]))
     # 3. save the edge file
-    graph_file_path = os.path.join(dir_name, file_name)
-    full_file_path = (os.path.join(os.getcwd(), "dataset", "synthetic", graph_file_path))
     with open(full_file_path, "w") as wf:
         wf.write("% {} {} {}\n".format(user_num, item_num, len(edge_list)))
         for edge in tqdm(edge_list):
@@ -173,17 +178,147 @@ def generate_synthetic_dataset(
 
 
 if __name__ == "__main__":
+    # generate_synthetic_dataset(
+    #     "synthetic",
+    #     "dP",
+    #     "out.pl-25k",
+    #     25000,
+    #     25000,
+    #     "powerlaw"
+    # )
+    # generate_synthetic_dataset(
+    #     "synthetic",
+    #     "dB",
+    #     "out.bd-25k",
+    #     25000,
+    #     25000,
+    #     "beta"
+    # )
     generate_synthetic_dataset(
+        "synthetic-L10k",
         "dP",
-        "out.pl-25k",
+        "out.pl-L10k",
         25000,
+        10000,
+        "powerlaw"
+    )
+    generate_synthetic_dataset(
+        "synthetic-L10k",
+        "dB",
+        "out.bd-L10k",
+        25000,
+        10000,
+        "beta"
+    )
+    generate_synthetic_dataset(
+        "synthetic-L15k",
+        "dP",
+        "out.pl-L15k",
+        25000,
+        15000,
+        "powerlaw"
+    )
+    generate_synthetic_dataset(
+        "synthetic-L15k",
+        "dB",
+        "out.bd-L15k",
+        25000,
+        15000,
+        "beta"
+    )
+    generate_synthetic_dataset(
+        "synthetic-L50k",
+        "dP",
+        "out.pl-L50k",
+        25000,
+        50000,
+        "powerlaw"
+    )
+    generate_synthetic_dataset(
+        "synthetic-L50k",
+        "dB",
+        "out.bd-L50k",
+        25000,
+        50000,
+        "beta"
+    )
+    generate_synthetic_dataset(
+        "synthetic-L100k",
+        "dP",
+        "out.pl-L100k",
+        25000,
+        100000,
+        "powerlaw"
+    )
+    generate_synthetic_dataset(
+        "synthetic-L100k",
+        "dB",
+        "out.bd-L100k",
+        25000,
+        100000,
+        "beta"
+    )
+    generate_synthetic_dataset(
+        "synthetic-U10k",
+        "dP",
+        "out.pl-U10k",
+        10000,
         25000,
         "powerlaw"
     )
     generate_synthetic_dataset(
+        "synthetic-U10k",
         "dB",
-        "out.bd-25k",
+        "out.bd-U10k",
+        10000,
         25000,
+        "beta"
+    )
+    generate_synthetic_dataset(
+        "synthetic-U15k",
+        "dP",
+        "out.pl-U15k",
+        15000,
+        25000,
+        "powerlaw"
+    )
+    generate_synthetic_dataset(
+        "synthetic-U15k",
+        "dB",
+        "out.bd-U15k",
+        15000,
+        25000,
+        "beta"
+    )
+    generate_synthetic_dataset(
+        "synthetic-U50k",
+        "dP",
+        "out.pl-U50k",
+        50000,
+        25000,
+        "powerlaw"
+    )
+    generate_synthetic_dataset(
+        "synthetic-U50k",
+        "dB",
+        "out.bd-U50k",
+        50000,
+        25000,
+        "beta"
+    )
+    generate_synthetic_dataset(
+        "synthetic-U100k",
+        "dP",
+        "out.pl-U100k",
+        100000,
+        25000,
+        "powerlaw"
+    )
+    generate_synthetic_dataset(
+        "synthetic-U100k",
+        "dB",
+        "out.bd-U100k",
+        100000,
         25000,
         "beta"
     )
