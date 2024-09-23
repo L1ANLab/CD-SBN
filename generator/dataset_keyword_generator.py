@@ -1,5 +1,5 @@
 import os
-
+import random
 import numpy as np
 from scipy.stats import lognorm, pareto
 from tqdm import tqdm
@@ -7,7 +7,7 @@ from matplotlib import pyplot as plt
 from distfit import distfit
 
 
-INITIAL_GRAPH_RATIO = 0.9999
+UPDATE_STREAM_SIZE = 6000
 
 
 class EdgeRawData:
@@ -93,12 +93,13 @@ def generate_dataset(
             # if now_data.weight > 1:
             #     print(now_data)
         counter += 1
-    data_list = sorted(data_list)
+    # data_list = sorted(data_list)
 
     # 3. divide inital graph and update stream
-    initial_graph_size = int(len(data_list) * INITIAL_GRAPH_RATIO)
-    initial_graph = data_list[:initial_graph_size]
-    update_stream = data_list[initial_graph_size:]
+    random.shuffle(data_list)
+    initial_graph_size = int(len(data_list) - UPDATE_STREAM_SIZE)
+    initial_graph = sorted(data_list[:initial_graph_size])
+    update_stream = sorted(data_list[initial_graph_size:])
 
     # 4. generate distribution sample
     item_label_list = []
@@ -311,12 +312,13 @@ def generate_dataset_with_keywords(dataset_type: str, dir_name: str, graph_file_
             if now_data.weight > 1:
                 print(now_data)
         counter += 1
-    data_list = sorted(data_list)
+    # data_list = sorted(data_list)
 
     # 3. divide inital graph and update stream
-    initial_graph_size = int(len(data_list) * INITIAL_GRAPH_RATIO)
-    initial_graph = data_list[:initial_graph_size]
-    update_stream = data_list[initial_graph_size:]
+    random.shuffle(data_list)
+    initial_graph_size = int(len(data_list) - UPDATE_STREAM_SIZE)
+    initial_graph = sorted(data_list[:initial_graph_size])
+    update_stream = sorted(data_list[initial_graph_size:])
 
     # 4. read the keyword file
     full_keyword_file_path = (os.path.join(os.getcwd(), "dataset", keyword_file_path))
