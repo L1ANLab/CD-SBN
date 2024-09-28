@@ -66,7 +66,8 @@ void Graph::SetItemLabels(uint item_id, std::string label_str)
         trans >> label_num;
         bitvector->set(label_num);
     }
-    AddItemVertex(item_id);
+
+    if (item_id >= item_bvs.size()) item_bvs.resize(item_id + 1);
     item_bvs[item_id].reset(bitvector);
 }
 
@@ -95,7 +96,6 @@ void Graph::AddItemVertex(uint item_id)
     if (item_id >= item_neighbors.size())
     {
         item_neighbors.resize(item_id + 1);
-        item_bvs.resize(item_id + 1);
     }
 }
 
@@ -599,8 +599,200 @@ std::tuple<std::vector<uint>, std::vector<uint>>  Graph::Get2rHopOfUserByBV(
     return {user_map_, item_map_};
 }
 
-
 std::vector<InsertUnit> Graph::GetUpdateStream() const { return this->updates_; }
+
+
+void Graph::ComputeTrussnessReplaceSupport()
+{
+    // 0.initialize the data structures
+    std::vector<std::vector<uint>> temp_user_neighbors(this->user_neighbors);
+    std::vector<std::vector<uint>> temp_item_neighbors(this->item_neighbors);
+    std::vector<std::vector<std::pair<uint, uint>>> temp_edges;
+    // 1. sort the edges by support and store as a dict
+    std::vector<std::vector<std::pair<uint, uint>>> edge_k_dict(edges_.size());
+
+    for (uint user_id=0;user_id<this->edges_.size();user_id++)
+    {
+        for (uint item_idx = 0; edges_[user_id].size(); item_idx++)
+        {
+            uint edge_support = edges_[user_id][item_idx]->ub_sup;
+            if (edge_k_dict.size() <= edge_support)
+            {
+                edge_k_dict.resize(edge_support + 1);
+            }
+            edge_k_dict[edge_support].push_back(std::pair(user_id, this->user_neighbors[user_id][item_idx]));
+            temp_edges[user_id].push_back(std::pair(this->user_neighbors[user_id][item_idx], edge_support));
+        }
+    }
+
+    // 2. decompose the k-bitruss and compute the value.
+    // if there exists edge with support smaller than k-2 (means equal to k-3)
+    uint k = 1;
+    while (edge_k_dict[k-1].size() > 0)
+    {
+        // print compute info
+        std::cout << "Start to process " << edge_k_dict[k-1].size() << " edges with sup " << k-1 << std::endl;
+        for (uint k_idx = 0; k_idx < edge_k_dict.size(); k_idx++)
+        {
+            std::cout << "(" << k_idx << "," << edge_k_dict[k_idx].size() << ")" << std::endl;
+        }
+
+        // 2.1. maintain support of edges related to low support edges 
+        for (std::pair<uint, uint> edge : edge_k_dict[k-1])
+        {
+            // (1) extract the drop edge info
+            uint user = edge.first;
+            uint item = edge.second;
+            for (size_t i = 0; i<temp_edges[user].size(); i++)
+            {
+                uint item_neighbor = temp_edges[user][i].first;
+                if (item_neighbor == item)
+                {
+                    if (temp_edges[user][i].second == 0) break;
+                    continue;
+                }
+
+                std::vector<uint> common_neighbors(
+                    temp_item_neighbors[item].size() +
+                    temp_item_neighbors[item_neighbor].size()
+                );
+                std::vector<uint>::iterator it = std::set_intersection(
+                    temp_item_neighbors[item].begin(),
+                    temp_item_neighbors[item].end(),
+                    temp_item_neighbors[item_neighbor].begin(),
+                    temp_item_neighbors[item_neighbor].end(),
+                    common_neighbors.begin()
+                );
+                common_neighbors.resize(it - common_neighbors.begin());
+
+                if (common_neighbors.size() < 2) continue;
+                
+                for (uint another_user : common_neighbors)
+                {
+                    // (3) maintain the sup info
+                    if (another_user == user) continue;
+                    uint cn_sup = temp_edges[user][i].second;
+                    for (auto iter = edge_k_dict[cn_sup].begin();iter != edge_k_dict[cn_sup].end();)
+                    {
+                        if (iter->first == user && iter->second == item_neighbor)
+                        {
+                            edge_k_dict[cn_sup].erase(iter);
+                            break;
+                        }
+                    }
+
+                    // if ub_sup_u_cn-1 < k-1
+                    if (cn_sup < k)
+                    {
+                        // remove item neighbor
+                        std::vector<uint>::iterator remove_it = std::remove(
+                            temp_item_neighbors[item_neighbor].begin(),
+                            temp_item_neighbors[item_neighbor].end(),
+                            user
+                        );
+                        temp_item_neighbors[item_neighbor].resize(remove_it - temp_item_neighbors[item_neighbor].begin());
+                        // remove user neighbor and edge
+                        auto lower = std::lower_bound(
+                            temp_user_neighbors[user].begin(),
+                            temp_user_neighbors[user].end(),
+                            item_neighbor
+                        );
+                        // size_t dis = std::distance(temp_user_neighbors[user].begin(), lower);
+                        temp_user_neighbors[user].erase(lower);
+                        temp_edges[user][i].second = 0;
+                        // set trussness
+                        edges_[user][i]->ub_sup = k-1;
+                    }
+                    else
+                    {
+                        edge_k_dict[cn_sup-1].push_back(std::pair(user, item_neighbor));
+                        temp_edges[user][i].second = cn_sup-1;
+                    }
+
+                    int count = 0;
+                    for (uint idx = 0; idx < temp_edges[another_user].size(); idx++)
+                    {
+                        uint now_item = temp_edges[another_user][idx].first;
+                        if (now_item == item_neighbor || now_item == item)
+                        {
+                            uint now_sup = temp_edges[user][idx].second;
+                            for (auto iter = edge_k_dict[now_sup].begin(); iter != edge_k_dict[now_sup].end();)
+                            {
+                                if (iter->first == another_user && iter->second == now_item)
+                                {
+                                    edge_k_dict[now_sup].erase(iter);
+                                    break;
+                                }
+                            }
+
+                            // if ub_sup_u_cn-1 < k-1
+                            if (now_sup < k)
+                            {
+                                // remove item neighbor
+                                std::vector<uint>::iterator remove_it = std::remove(
+                                    temp_item_neighbors[now_item].begin(),
+                                    temp_item_neighbors[now_item].end(),
+                                    another_user
+                                );
+                                temp_item_neighbors[now_item].resize(remove_it - temp_item_neighbors[now_item].begin());
+                                // remove user neighbor and edge
+                                auto lower = std::lower_bound(
+                                    temp_user_neighbors[another_user].begin(),
+                                    temp_user_neighbors[another_user].end(),
+                                    now_item
+                                );
+                                temp_user_neighbors[another_user].erase(lower);
+                                temp_edges[another_user][idx].second = 0;
+                                // Set trussness
+                                edges_[user][idx]->ub_sup = k-1;
+                            }
+                            else
+                            {
+                                edge_k_dict[now_sup-1].push_back(std::pair(another_user, now_item));
+                                temp_edges[user][idx].second = now_sup-1;
+                            }
+                            count ++;
+                        }
+                        if (count == 2) break;
+                    }
+                }
+            }
+        }
+
+
+        // clear the array of now support
+        std::cout << "Start to process " << edge_k_dict[k-1].size() << " edges with sup " << k-1 << std::endl;
+        for (uint k_idx = 0; k_idx < edge_k_dict.size(); k_idx++)
+        {
+            std::cout << "(" << k_idx << "," << edge_k_dict[k_idx].size() << ")" << std::endl;
+        }
+        for (auto discard_edge : edge_k_dict[k-1])
+        {
+            uint u = discard_edge.first;
+            uint v = discard_edge.second;
+            // remove item neighbor
+            std::vector<uint>::iterator remove_it = std::remove(
+                temp_item_neighbors[v].begin(),
+                temp_item_neighbors[v].end(),
+                u
+            );
+            temp_item_neighbors[v].resize(remove_it - temp_item_neighbors[v].begin());
+            // remove user neighbor and edge
+            auto lower = std::lower_bound(
+                temp_user_neighbors[u].begin(),
+                temp_user_neighbors[u].end(),
+                v
+            );
+            size_t dis = std::distance(temp_user_neighbors[u].begin(), lower);
+            temp_user_neighbors[u].erase(lower);
+            (temp_edges[u].begin() + dis)->second = 0;
+            // set trussness
+            (edges_[u].begin() + dis)->get()->ub_sup = k-1;
+        }
+        edge_k_dict[k-1].clear();
+        k = k + 1;
+    }
+}
 
 void Graph::LoadInitialGraph(const std::string &path)
 {

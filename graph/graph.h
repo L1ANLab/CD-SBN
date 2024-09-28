@@ -96,6 +96,8 @@ public:
     );
     std::vector<InsertUnit> GetUpdateStream() const;
 
+    void ComputeTrussnessReplaceSupport();
+
     void LoadInitialGraph(const std::string &path);
     void LoadItemLabel(const std::string &path);
     void LoadUpdateStream(const std::string &path);

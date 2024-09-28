@@ -13,6 +13,7 @@
 #include "graph/graph.h"
 #include "detection/snapshot_handle.h"
 #include "detection/continuous_handle.h"
+#include "detection/baseline_handle.h"
 #include "detection/synopsis.h"
 
 
@@ -25,13 +26,13 @@ int main(int argc, char *argv[])
 {
     CLI::App app{"App description"};
 
-    // bool is_continuous_flag = false;
+    bool is_baseline_flag = false;
     std::string initial_graph_path = "", item_label_list_path = "",
     update_stream_path = "", query_keywords_list_path = "";
     uint query_timestamp = 0, sliding_window_size = 0;
     uint query_support_threshold = 0, query_radius = 0, query_score_threshold = 0;
 
-    // app.add_flag("-c", is_continuous_flag, "whether it is a continuous query");
+    app.add_flag("-b,--baseline", is_baseline_flag, "whether using baseline");
     app.add_option("-i,--initial", initial_graph_path, "initial graph path")->required();
     app.add_option("-l,--labels", item_label_list_path, "initial data graph path")->required();
     app.add_option("-u,--update", update_stream_path, "update stream path")->required();
@@ -101,7 +102,14 @@ int main(int argc, char *argv[])
 
     // 2. build synopsis
     Synopsis* syn = new Synopsis();
-    // 2.1. precompute or load synopsis entries
+    // 2.1. do extra computation for baseline
+    if (is_baseline_flag)
+    {
+        // store the whole graph as a subgraph
+        data_graph->ComputeTrussnessReplaceSupport();
+    }
+
+    // 2.2. precompute or load synopsis entries
     std::cout << "------------ Precompute Synopsis Entries ------------" << std::endl;
     start = Get_Time();
     std::vector<SynopsisNode*> vertex_entry_list(0);
@@ -116,14 +124,14 @@ int main(int argc, char *argv[])
         syn->SaveSynopsisEntries(synopsis_entries_file_path, vertex_entry_list);
         Print_Time_Now("Compute part takes: ", start);
     }
-    // 2.2. precompute or load synopsis entries 
+    // 2.3. precompute or load synopsis entries 
     std::cout << "------------ Building Synopsis ------------" << std::endl;
     start = Get_Time();
     syn->BuildSynopsis(data_graph, vertex_entry_list);
     Print_Time_Now("Build part takes ", start);
     statistic->synopsis_building_time = Duration(start);
     statistic->leaf_node_counter = syn->CountLeafNodes(syn->GetRoot());
-    // 2. print time cost of Building Synopsis
+    // print time cost of Building Synopsis
     Print_Time("Building Synopsis Time Cost: ", statistic->synopsis_building_time);
     std::cout << "*********** Preprocessing complete ***********" << std::endl;
     Print_Time_Now("Offline Total Time: ", statistic->start_timestamp);
@@ -291,6 +299,7 @@ int main(int argc, char *argv[])
         while (end_idx < update_stream.size())
         {
             continuous_turn_start = Get_Time();
+            // 4.2.1. Insertion maintanance
             uint insert_edge_user_id = UINT_MAX;
             uint insert_edge_item_id = UINT_MAX;
             std::vector<uint> insert_related_user_list(0);
@@ -299,7 +308,6 @@ int main(int argc, char *argv[])
             {
                 insert_edge_user_id = update_stream[end_idx].user_id;
                 insert_edge_item_id = update_stream[end_idx].item_id;
-                // 4.2.1. maintain the graph and synopsis once
                 // (1) insert edge
                 std::cout << "Insert edge (" << insert_edge_user_id << "," << insert_edge_item_id << ")";
                 std::cout << " at " << update_stream[end_idx].timestamp << std::endl;
@@ -320,6 +328,7 @@ int main(int argc, char *argv[])
                 statistic->continuous_graph_maintain_time += Duration(graph_maintain_start);
             }
             // Print_Time_Now("[Maintain] in ",  graph_maintain_start);
+            // 4.2.2. Expiration maintanance
             uint expire_edge_user_id = UINT_MAX;
             uint expire_edge_item_id = UINT_MAX;
             uint isRemoved = 0;
@@ -344,23 +353,23 @@ int main(int argc, char *argv[])
                     update_stream[start_idx].item_id
                 );
                 statistic->continuous_edge_maintain_time += Duration(edge_maintain_start);
-                // Print_Time_Now("[Expire] in ",  edge_maintain_start);
+
+                // 4.3. find the answer for the continuous query
+                continuous_query->ExecuteQuery(
+                    statistic,
+                    result_list,
+                    isRemoved, expire_edge_user_id, expire_edge_item_id,
+                    insert_edge_user_id, insert_related_user_list
+                );
+                // statistic
+                statistic->average_continuous_query_time = (statistic->average_continuous_query_time * (end_idx) + Duration(continuous_turn_start)) / (end_idx + 1);
+                Print_Time_Now("Continuous Turn Time: ", continuous_turn_start);
+                std::cout << "Continuous Result: [" << result_list.size() << "]" << " at " << update_stream[end_idx].timestamp << std::endl;
+                Print_Time("Average Continuous Turn Time: ", statistic->average_continuous_query_time);
                 start_idx += 1;
             }
-            // 4.2.2. find the answer for the continuous query
-            continuous_query->ExecuteQuery(
-                statistic,
-                result_list,
-                isRemoved, expire_edge_user_id, expire_edge_item_id,
-                insert_edge_user_id, insert_related_user_list
-            );
             // move to next edge
             end_idx += 1;
-            // statistic
-            statistic->average_continuous_query_time = (statistic->average_continuous_query_time * (end_idx) + Duration(continuous_turn_start)) / (end_idx + 1);
-            Print_Time_Now("Continuous Turn Time: ", continuous_turn_start);
-            std::cout << "Continuous Result: [" << result_list.size() << "]" << " at " << update_stream[end_idx].timestamp << std::endl;
-            Print_Time("Average Continuous Turn Time: ", statistic->average_continuous_query_time);
         }
 
         statistic->solver_result = result_list;

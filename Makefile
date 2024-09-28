@@ -73,6 +73,14 @@ $(OBJ)/continuous_handle.o: $(ALGORITHM)/continuous_handle.cpp \
 	$(CC) -c $(FLAGS) $(ALGORITHM)/continuous_handle.cpp \
 		-o $(OBJ)/continuous_handle.o
 
+$(OBJ)/baseline_handle.o: $(ALGORITHM)/baseline_handle.cpp \
+		$(UTILS)/types.h $(UTILS)/globals.h \
+		$(GRAPH)/graph.h \
+		$(OBJ)/induced_graph.o $(OBJ)/statistic.o \
+		$(ALGORITHM)/baseline_handle.h
+	$(CC) -c $(FLAGS) $(ALGORITHM)/baseline_handle.cpp \
+		-o $(OBJ)/baseline_handle.o
+
 $(OBJ)/synopsis.o: $(ALGORITHM)/synopsis.cpp \
 		$(UTILS)/types.h $(UTILS)/globals.h \
 		$(GRAPH)/graph.h $(OBJ)/induced_graph.o \
