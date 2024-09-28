@@ -43,8 +43,12 @@
 /dataset/*/*/experiment*
 /dataset/*/*/out.*
 /dataset/*/*/*.txt
+/dataset/*/*/*.png
+/dataset/*/*/*.csv
 !/dataset/*/*/*.tar.bz2
 # synthetic
+/dataset/synthetic-s/
+/dataset/baseline/
 /dataset/*/*/*/experiment*
 /dataset/*/*/*/out.*
 /dataset/*/*/*/*.txt
@@ -55,3 +59,4 @@
 
 # result
 /result
+/result-default-2
