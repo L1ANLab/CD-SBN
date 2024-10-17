@@ -50,8 +50,8 @@ def generate_graph_by_distr(dir_type_name: str, dir_name: str, user_num: int, it
         top_arg_param = 1000/user_num
         bottom_arg_param = 1000/item_num
         loc_param = 1
-        top_scale_param = user_num/200
-        bottom_scale_param = item_num/200
+        top_scale_param = user_num/300
+        bottom_scale_param = item_num/300
         top_degree_list = []
         bottom_degree_list = []
         while len(top_degree_list) < user_num:
@@ -80,8 +80,8 @@ def generate_graph_by_distr(dir_type_name: str, dir_name: str, user_num: int, it
         bottom_arg_a_param = 1000/item_num
         arg_b_param = 1
         loc_param = 1
-        top_scale_param = user_num/200
-        bottom_scale_param = item_num/200
+        top_scale_param = user_num/300
+        bottom_scale_param = item_num/300
         top_degree_list = []
         bottom_degree_list = []
         while len(top_degree_list) < user_num:
@@ -95,8 +95,8 @@ def generate_graph_by_distr(dir_type_name: str, dir_name: str, user_num: int, it
     else:
         raise Exception("Type Error: wrong distribution <{}>".format(distr))
 
-    top_degree_list = np.clip(top_degree_list, 0, user_num/200).astype(int)
-    bottom_degree_list = np.clip(bottom_degree_list, 0, item_num/200).astype(int)
+    top_degree_list = np.clip(top_degree_list, 0, user_num/300).astype(int)
+    bottom_degree_list = np.clip(bottom_degree_list, 0, item_num/300).astype(int)
     # print(top_degree_list[:100])
     print(max(top_degree_list))
     # 2. Adjust degree sequences to ensure their sums match
