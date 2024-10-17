@@ -64,26 +64,26 @@ uint ContinuousHandle::ExecuteQuery(
             // (1) recompute k-bitruss if edge is removed
             if (isRemoved > 0)
             {
-                std::vector<std::pair<uint, uint>>::iterator remove_iter;
-                if ((*(this->query_BV) & *(result_list[idx]->graph.GetUserBv(expire_edge_user_id))).none())
+                if ((*(this->query_BV) & *(data_graph->GetUserBv(expire_edge_user_id))).none())
                 { // unqualified user so remove all edges
-                    remove_iter = std::remove_if(
+                    auto remove_iter = std::remove_if(
                         result_list[idx]->e_lists.begin(),
                         result_list[idx]->e_lists.end(),
                         [expire_edge_user_id] (std::pair<uint, uint> edge) {
                             return edge.first == expire_edge_user_id;
                         }
                     );
+                    result_list[idx]->e_lists.resize(remove_iter - result_list[idx]->e_lists.begin());
                 }
                 else
                 {
-                    remove_iter = std::remove(
+                    auto remove_iter = std::remove(
                         result_list[idx]->e_lists.begin(),
                         result_list[idx]->e_lists.end(),
                         std::pair{expire_edge_user_id, expire_edge_item_id}
                     );
+                    result_list[idx]->e_lists.resize(remove_iter - result_list[idx]->e_lists.begin());
                 }
-                result_list[idx]->e_lists.resize(remove_iter - result_list[idx]->e_lists.begin());
             }
             expired_recompute_community_start_timestamp = Get_Time();
             // (2) compute the (k,r,σ)-bitruss
@@ -107,7 +107,9 @@ uint ContinuousHandle::ExecuteQuery(
             delete result_list[idx];
         }
         else // 1.2. add subgraph to set if subgraph contains none of related user
+        {
             candidate_set_P.emplace(result_list[idx]);
+        }
     }
     if (candidate_set_P.size() < result_list.size())
     {
@@ -121,67 +123,6 @@ uint ContinuousHandle::ExecuteQuery(
     // 2. get the 2r-hop of the ending user of insert edge
     influenced_subgraph_start_timestamp = Get_Time();
 
-    /*
-    std::tuple<std::vector<uint>, std::vector<uint>> result_tuple(0, 0);
-    if (insert_edge_user_id != UINT_MAX)
-    {
-        result_tuple = data_graph->Get2rHopOfUserByBV(
-            insert_edge_user_id,
-            query_radius,
-            query_BV
-        );
-    }
-    std::vector<uint> insert_user_2r_hop_user_list = std::get<0>(result_tuple);
-    std::cout << insert_user_2r_hop_user_list.size() << std::endl;
-    // uint user_computed_counter = 0;
-    // 3. get the subgraph made of the influenced users and items
-    std::set<uint> influenced_user_set;
-    std::set<uint> influenced_item_set;
-
-#pragma omp parallel for num_threads(THREADS_NUM)
-    for(uint center_user_id: insert_user_2r_hop_user_list)
-    {
-        inserted_compute_2r_hop_start_timestamp = Get_Time();
-        // 3.1. get the vertex
-        // pruning the vertex if its synopsis node is unqualified
-        std::vector<SynopsisNode*> synopsis_node_list(0);
-        if (center_user_id < this->syn->GetInvListSize())
-            synopsis_node_list = this->syn->GetInvListByUser(center_user_id);
-        bool isSkip = false;
-        for (auto node: synopsis_node_list)
-        {
-            if (!CheckPruningConditions(node))
-            {
-                isSkip = true;
-                break;
-            }
-        }
-        if (isSkip) continue;
-        
-        // 2.2. compute the 2r-hop of user
-        std::vector<uint> user_list, item_list;
-        std::tie(user_list, item_list) = data_graph->Get2rHopOfUserByBV(
-            center_user_id,
-            query_radius,
-            query_BV
-        );
-        // 2.3 gather the user and item in 2r-hop subgraph
-        #pragma omp critical
-        {
-            for (uint num: user_list)
-                influenced_user_set.emplace(num);
-            for (uint num: item_list)
-                influenced_item_set.emplace(num);
-        }
-    }
-
-    std::cout << influenced_user_set.size() << " " << influenced_item_set.size() << std::endl;
-    std::vector<uint> influenced_user_list(0);
-    influenced_user_list.assign(influenced_user_set.begin(), influenced_user_set.end());
-    std::vector<uint> influenced_item_list(0);
-    influenced_item_list.assign(influenced_item_set.begin(), influenced_item_set.end());
-    */
-
     std::vector<uint> influenced_user_list(0), influenced_item_list(0);
     if (insert_edge_user_id != UINT_MAX)
     {
@@ -193,7 +134,11 @@ uint ContinuousHandle::ExecuteQuery(
     }
     std::cout << influenced_user_list.size() << std::endl;
     // 2.4 return if no user 
-    if (influenced_user_list.size() < 2) return result_list.size();
+    if (influenced_user_list.size() < 2)
+    {
+        result_list.assign(candidate_set_P.begin(), candidate_set_P.end());
+        return result_list.size();
+    }
 
     // 3. compute the (k,r,σ)-bitruss from influenced subgraph
     std::unique_ptr<InducedGraph> influenced_subgraph(new InducedGraph(*data_graph, influenced_user_list, influenced_item_list));
@@ -217,17 +162,40 @@ uint ContinuousHandle::ExecuteQuery(
         uint candidate_user_id = user_id;
         
         // 4.2. compute the 2r-hop of user
-        std::vector<uint> user_list, item_list;
-        std::tie(user_list, item_list) = data_graph->Get2rHopOfUserByBV(
+        std::vector<uint> raw_user_list, raw_item_list;
+        std::tie(raw_user_list, raw_item_list) = data_graph->Get2rHopOfUserByBV(
             candidate_user_id,
             query_radius,
             query_BV
         );
+        std::vector<uint> user_list(
+            raw_user_list.size() + influenced_k_r_sigma_bitruss_subgraph->user_map.size()
+        );
+        std::vector<uint>::iterator user_it = std::set_intersection(
+            raw_user_list.begin(), raw_user_list.end(),
+            influenced_k_r_sigma_bitruss_subgraph->user_map.begin(),
+            influenced_k_r_sigma_bitruss_subgraph->user_map.end(),
+            user_list.begin()
+        );
+        user_list.resize(user_it - user_list.begin());
+
+        std::vector<uint> item_list(
+            raw_item_list.size() + influenced_k_r_sigma_bitruss_subgraph->item_map.size()
+        );
+        std::vector<uint>::iterator item_it = std::set_intersection(
+            raw_item_list.begin(), raw_item_list.end(),
+            influenced_k_r_sigma_bitruss_subgraph->item_map.begin(),
+            influenced_k_r_sigma_bitruss_subgraph->item_map.end(),
+            item_list.begin()
+        );
+        item_list.resize(item_it - item_list.begin());
+
         std::unique_ptr<InducedGraph> r_hop_subgraph(new InducedGraph(*data_graph, user_list, item_list));
         insert_2r_hop_time += Duration(inserted_compute_2r_hop_start_timestamp);
         // pruning the vertex if its 2r-hop does not contain the related subgraph
         if (r_hop_subgraph->e_lists.empty() ||
-            !hasSameElement(r_hop_subgraph->user_map, insert_related_user_list)
+            !hasSameElement(r_hop_subgraph->user_map, insert_related_user_list) ||
+            ((r_hop_subgraph->user_map.size() - 1) * (r_hop_subgraph->item_map.size() - 1) < this->query_support_threshold)
         )
         {
             continue;
