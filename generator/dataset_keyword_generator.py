@@ -7,7 +7,7 @@ from matplotlib import pyplot as plt
 from distfit import distfit
 
 
-UPDATE_STREAM_SIZE = 6000
+# UPDATE_STREAM_SIZE = 6000
 
 
 class EdgeRawData:
@@ -43,7 +43,8 @@ def generate_dataset(
     file_name: str,
     distribution: str,
     all_keyword_num: int,
-    keywords_per_vertex_num: int
+    keywords_per_vertex_num: int,
+    update_stream_size: int
 ):
     print("Process [{}]".format(dir_name))
     # 0. Param settings
@@ -93,11 +94,11 @@ def generate_dataset(
             # if now_data.weight > 1:
             #     print(now_data)
         counter += 1
-    # data_list = sorted(data_list)
 
     # 3. divide inital graph and update stream
-    random.shuffle(data_list)
-    initial_graph_size = int(len(data_list) - UPDATE_STREAM_SIZE)
+    data_list = sorted(data_list)
+    # random.shuffle(data_list)
+    initial_graph_size = int(len(data_list) - update_stream_size)
     initial_graph = sorted(data_list[:initial_graph_size])
     update_stream = sorted(data_list[initial_graph_size:])
 
@@ -262,7 +263,13 @@ def generate_dataset(
             wf.write("{}\n".format(keyword))
 
 
-def generate_dataset_with_keywords(dataset_type: str, dir_name: str, graph_file_name: str, keyword_file_name: str):
+def generate_dataset_with_keywords(
+    dataset_type: str,
+    dir_name: str,
+    graph_file_name: str,
+    keyword_file_name: str,
+    update_stream_size: str
+):
     print("Process [{}]".format(dir_name))
     # 0. Param settings
     graph_file_path = os.path.join(dataset_type, dir_name, graph_file_name)
@@ -312,11 +319,11 @@ def generate_dataset_with_keywords(dataset_type: str, dir_name: str, graph_file_
             if now_data.weight > 1:
                 print(now_data)
         counter += 1
-    # data_list = sorted(data_list)
 
     # 3. divide inital graph and update stream
-    random.shuffle(data_list)
-    initial_graph_size = int(len(data_list) - UPDATE_STREAM_SIZE)
+    data_list = sorted(data_list)
+    # random.shuffle(data_list)
+    initial_graph_size = int(len(data_list) - update_stream_size)
     initial_graph = sorted(data_list[:initial_graph_size])
     update_stream = sorted(data_list[initial_graph_size:])
 
