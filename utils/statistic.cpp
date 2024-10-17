@@ -192,7 +192,6 @@ std::string Statistic::GenerateStatisticResult()
     return result;
 }
 
-
 bool Statistic::SaveStatisticResult()
 {
     fs::path initial_graph_folder = fs::path(initial_graph_path_str).parent_path();
@@ -229,4 +228,125 @@ bool Statistic::SaveStatisticResult()
 
     std::cout << "Result is saved in " << stat_file_path.string() << std::endl;
     return true;
+}
+
+
+bool Statistic::SaveSnapshotResult()
+{
+    fs::path initial_graph_folder = fs::path(initial_graph_path_str).parent_path();
+
+    std::string query_keywords_str = "";
+    for (uint i=0; i<query_keywords.size(); i++)
+    {
+        query_keywords_str += (std::to_string(query_keywords[i]));
+        if (i < query_keywords.size() - 1)
+            query_keywords_str += "-";
+    }
+    std::string snapshot_result_file_name = query_keywords_str + ".txt";
+    fs::path snapshot_result_folder = fs::path("snapshot_result");
+
+    // Create folder
+    if (!fs::exists(initial_graph_folder / snapshot_result_folder))
+        fs::create_directory(initial_graph_folder / snapshot_result_folder);
+
+    // Save result
+    fs::path result_file_path = initial_graph_folder/ snapshot_result_folder / fs::path(snapshot_result_file_name);
+    std::ofstream result_of(result_file_path.string(), std::ios::out);
+    ErrorControl::assert_error(
+        !result_of,
+        "File Stream Error: The result output file stream open failed"
+    );
+    for (uint result_idx = 0; result_idx < this->solver_result.size(); result_idx++)
+    {
+        result_of << solver_result[result_idx]->PrintMetaData() << '\n';
+    }
+    result_of.close();
+
+    std::cout << "Result is saved in " << result_file_path.string() << std::endl;
+    return true;
+}
+
+bool Statistic::LoadSnapshotResultExist(std::vector<InducedGraph*>& result_list)
+{
+    fs::path initial_graph_folder = fs::path(initial_graph_path_str).parent_path();
+    // Construct query keyword string
+    std::string query_keywords_str = "";
+    for (uint i=0; i<query_keywords.size(); i++)
+    {
+        query_keywords_str += (std::to_string(query_keywords[i]));
+        if (i < query_keywords.size() - 1)
+            query_keywords_str += "-";
+    }
+    std::string snapshot_result_file_name = query_keywords_str + ".txt";
+    // Load file by FS
+    fs::path snapshot_result_folder = fs::path("snapshot_result");
+    fs::path result_file_path = initial_graph_folder / snapshot_result_folder / fs::path(snapshot_result_file_name);
+    if (fs::exists(result_file_path))
+    {
+        ErrorControl::assert_error(
+            !io::file_exists(result_file_path.string().c_str()),
+            "File Error: The input <" + result_file_path.string()  + "> file does not exists"
+        );
+        std::ifstream ifs(result_file_path.string());
+        ErrorControl::assert_error(
+            !ifs,
+            "File Stream Error: The input file stream open failed"
+        );
+        std::string line_str;
+        while (std::getline(ifs, line_str))
+        {
+            if (line_str.find("List") != line_str.npos) continue;
+
+            std::string header, user_id_str, item_id_str, edge_str, edge_user_id_str, edge_item_id_str;
+            std::vector<uint> user_list(0), item_list(0);
+            std::vector<std::pair<uint, uint>> edge_list(0);
+
+            // For user list
+            std::stringstream ss(line_str);
+            ss >> header;
+            while (std::getline(ss, user_id_str, ' '))
+            {
+                std::stringstream trans(user_id_str);
+                uint user_id;
+                trans >> user_id;
+                user_list.emplace_back(user_id);
+            }
+            // For item list
+            std::getline(ifs, line_str);
+            ss << line_str;
+            ss >> header;
+            while (std::getline(ss, item_id_str, ' '))
+            {
+                std::stringstream trans(item_id_str);
+                uint item_id;
+                trans >> item_id;
+                item_list.emplace_back(item_id);
+            }
+            // For edge list
+            std::getline(ifs, line_str);
+            ss << line_str;
+            ss >> header;
+            // Split the line into multiple edge strings (user_id, item_id)
+            while (std::getline(ss, edge_str, ' '))
+            {
+                // Extract the id pair of each edge string
+                std::stringstream pair_split(edge_str.substr(1, edge_str.size()-2));
+                // Get user_id
+                std::getline(pair_split, edge_user_id_str, ',');
+                std::stringstream trans1(edge_user_id_str);
+                uint edge_user_id;
+                trans1 >> edge_user_id;
+                // Get item_id
+                std::getline(pair_split, edge_item_id_str, ',');
+                std::stringstream trans2(edge_item_id_str);
+                uint edge_item_id;
+                trans2 >> edge_item_id;
+                edge_list.emplace_back(std::pair(edge_user_id, edge_item_id));
+            }
+
+        }
+        ifs.close();
+        return true;
+    }
+    return false;
 }

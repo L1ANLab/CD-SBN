@@ -243,35 +243,51 @@ int main(int argc, char *argv[])
             std::cout << query_keywords[i] << " ";
         }
         std::cout << "\n";
-        // 4.1. find the answer for the snapshot query
-        SnapshotHandle* snapshot_query = new SnapshotHandle(
-            query_keywords,
-            query_support_threshold,
-            query_radius,
-            query_score_threshold,
-            data_graph,
-            syn
-        );
-        start = Get_Time();
+
         std::vector<InducedGraph*> result_list(0);
-        snapshot_query->ExecuteQuery(statistic, result_list);
-        std::cout << "Snapshot Result:[" << result_list.size() << "]" << std::endl;
-        // statistic->solver_result = result_list;
-        statistic->snapshot_query_processing_time = Duration(start);
+        // Load snapshot result from file ()
+        if (!statistic->LoadSnapshotResultExist(result_list))
+        {
+            // 4.1. find the answer for the snapshot query
+            SnapshotHandle* snapshot_query = new SnapshotHandle(
+                query_keywords,
+                query_support_threshold,
+                query_radius,
+                query_score_threshold,
+                data_graph,
+                syn
+            );
+            start = Get_Time();
+            snapshot_query->ExecuteQuery(statistic, result_list);
+            statistic->snapshot_query_processing_time = Duration(start);
 
-        // statistic->user_node_num = data_graph->UserVerticesNum();
-        // statistic->item_node_num = data_graph->ItemVerticesNum();
-        // statistic->edge_num = data_graph->NumEdges();
-        // std::cout << std::endl << statistic->GenerateStatisticResult() << std::endl;
+            // statistic->user_node_num = data_graph->UserVerticesNum();
+            // statistic->item_node_num = data_graph->ItemVerticesNum();
+            // statistic->edge_num = data_graph->NumEdges();
+            // std::cout << std::endl << statistic->GenerateStatisticResult() << std::endl;
 
-        // if (statistic->SaveStatisticResult())
-        // {
-        //     std::cout << "Print stat result successfully" << std::endl;
-        // }
+            // if (statistic->SaveStatisticResult())
+            // {
+            //     std::cout << "Print stat result successfully" << std::endl;
+            // }
 
-        std::cout << "*********** Snapshot query complete ***********" << std::endl;
-        std::cout << std::endl;
+            std::cout << "*********** Snapshot query complete ***********" << std::endl;
+            std::cout << std::endl;
 
+            std::cout << "Snapshot Result:[" << result_list.size() << "]" << std::endl;
+            statistic->solver_result = result_list;
+            if (statistic->SaveSnapshotResult())
+            {
+                std::cout << "Save snapshot result successfully" << std::endl;
+            }
+            
+            delete snapshot_query;
+        }
+        else
+        {
+            // Load result from file
+
+        }
 
         // 4.2. maintain the answer for the continuous query
         std::cout << "------------ Start continuous query ------------" << std::endl;
@@ -396,7 +412,6 @@ int main(int argc, char *argv[])
             std::cout << "Print stat result successfully" << std::endl;
         }
 
-        delete snapshot_query;
         delete continuous_query;
 
         for (InducedGraph* result_subgraph: statistic->solver_result)
@@ -411,7 +426,6 @@ int main(int argc, char *argv[])
     delete data_graph;
     return 0;
 }
-
 
 std::vector<std::vector<uint>> load_query_keywords_list(std::string path)
 {
@@ -444,3 +458,4 @@ std::vector<std::vector<uint>> load_query_keywords_list(std::string path)
 
     return query_keywords_list;
 }
+

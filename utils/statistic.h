@@ -93,6 +93,8 @@ public:
 
     std::string GenerateStatisticResult();
     bool SaveStatisticResult();
+    bool SaveSnapshotResult();
+    bool LoadSnapshotResultExist(std::vector<InducedGraph*>& result_list);
 };
 
 
