@@ -42,7 +42,7 @@
 /dataset-test/
 # realworld
 /dataset/*/*/experiment*
-/dataset/*/*/snapshot_result
+/dataset/*/*/snapshot_result*
 /dataset/*/*/out.*
 /dataset/*/*/*.txt
 /dataset/*/*/*.png
@@ -52,7 +52,7 @@
 /dataset/synthetic-s/
 /dataset/baseline/
 /dataset/*/*/*/experiment*
-/dataset/*/*/*/snapshot_result
+/dataset/*/*/*/snapshot_result*
 /dataset/*/*/*/out.*
 /dataset/*/*/*/*.txt
 /dataset/*/*/*/*.png
