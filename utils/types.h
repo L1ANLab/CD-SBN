@@ -11,7 +11,11 @@
 #define MAX_LEVEL UINT_MAX
 
 const uint THREADS_NUM = 20;
-const uint MAX_LABEL = 210000;
+// const uint MAX_LABEL = 17000; // ML
+// const uint MAX_LABEL = 83000; // VU
+// const uint MAX_LABEL = 160000; // CU
+// const uint MAX_LABEL = 210000; // BS
+const uint MAX_LABEL = 1000;
 const uint SYNOPSIS_SIZE = 32;
 const uint R_MAX = 3;
 
