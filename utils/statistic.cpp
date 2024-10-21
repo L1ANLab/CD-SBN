@@ -248,6 +248,7 @@ bool Statistic::SaveSnapshotResult()
     snapshot_result_folder_name += "-k" + std::to_string(query_support_threshold);
     snapshot_result_folder_name += "-r" + std::to_string(query_radius);
     snapshot_result_folder_name += "-S" + std::to_string(query_score_threshold);
+    snapshot_result_folder_name += "-Q" + std::to_string(query_keywords.size());
     fs::path snapshot_result_folder = fs::path(snapshot_result_folder_name);
 
     // Create folder
@@ -289,6 +290,7 @@ bool Statistic::LoadSnapshotResultExist(std::vector<InducedGraph*>& result_list)
     snapshot_result_folder_name += "-k" + std::to_string(query_support_threshold);
     snapshot_result_folder_name += "-r" + std::to_string(query_radius);
     snapshot_result_folder_name += "-S" + std::to_string(query_score_threshold);
+    snapshot_result_folder_name += "-Q" + std::to_string(query_keywords.size());
     fs::path snapshot_result_folder = fs::path(snapshot_result_folder_name);
     fs::path result_file_path = initial_graph_folder / snapshot_result_folder / fs::path(snapshot_result_file_name);
     if (fs::exists(result_file_path))
