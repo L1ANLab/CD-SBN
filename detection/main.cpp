@@ -246,7 +246,7 @@ int main(int argc, char *argv[])
 
         std::vector<InducedGraph*> result_list(0);
         // Load snapshot result from file ()
-        if (!statistic->LoadSnapshotResultExist(result_list))
+        if (!statistic->LoadSnapshotResultExist(result_list, *data_graph))
         {
             // 4.1. find the answer for the snapshot query
             SnapshotHandle* snapshot_query = new SnapshotHandle(

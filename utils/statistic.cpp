@@ -272,7 +272,7 @@ bool Statistic::SaveSnapshotResult()
     return true;
 }
 
-bool Statistic::LoadSnapshotResultExist(std::vector<InducedGraph*>& result_list)
+bool Statistic::LoadSnapshotResultExist(std::vector<InducedGraph*>& result_list, const Graph& graph)
 {
     fs::path initial_graph_folder = fs::path(initial_graph_path_str).parent_path();
     // Construct query keyword string
@@ -307,40 +307,46 @@ bool Statistic::LoadSnapshotResultExist(std::vector<InducedGraph*>& result_list)
         std::string line_str;
         while (std::getline(ifs, line_str))
         {
-            if (line_str.find("List") != line_str.npos) continue;
-
-            std::string header, user_id_str, item_id_str, edge_str, edge_user_id_str, edge_item_id_str;
+            if (line_str.size() == 0) continue;
+            std::string header1, header2, user_id_str, item_id_str, edge_str, edge_user_id_str, edge_item_id_str;
             std::vector<uint> user_list(0), item_list(0);
             std::vector<std::pair<uint, uint>> edge_list(0);
 
             // For user list
             std::stringstream ss(line_str);
-            ss >> header;
+            ss >> header1 >> header2;
             while (std::getline(ss, user_id_str, ' '))
             {
+                if (user_id_str.size() == 0) continue;
                 std::stringstream trans(user_id_str);
-                uint user_id;
+                uint user_id = 0;
                 trans >> user_id;
                 user_list.emplace_back(user_id);
             }
             // For item list
+            ss.str("");
+            ss.clear();
             std::getline(ifs, line_str);
             ss << line_str;
-            ss >> header;
+            ss >> header1 >> header2;
             while (std::getline(ss, item_id_str, ' '))
             {
+                if (item_id_str.size() == 0) continue;
                 std::stringstream trans(item_id_str);
                 uint item_id;
                 trans >> item_id;
                 item_list.emplace_back(item_id);
             }
             // For edge list
+            ss.str("");
+            ss.clear();
             std::getline(ifs, line_str);
             ss << line_str;
-            ss >> header;
+            ss >> header1 >> header2;
             // Split the line into multiple edge strings (user_id, item_id)
             while (std::getline(ss, edge_str, ' '))
             {
+                if (edge_str.size() == 0) continue;
                 // Extract the id pair of each edge string
                 std::stringstream pair_split(edge_str.substr(1, edge_str.size()-2));
                 // Get user_id
@@ -355,6 +361,16 @@ bool Statistic::LoadSnapshotResultExist(std::vector<InducedGraph*>& result_list)
                 trans2 >> edge_item_id;
                 edge_list.emplace_back(std::pair(edge_user_id, edge_item_id));
             }
+            ss.str("");
+
+            result_list.push_back(
+                new InducedGraph(
+                    graph,
+                    user_list,
+                    item_list,
+                    edge_list
+                )
+            );
 
         }
         ifs.close();
