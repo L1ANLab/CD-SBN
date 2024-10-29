@@ -120,8 +120,11 @@ uint SnapshotHandle::ExecuteQuery(Statistic* stat, std::vector<InducedGraph*>& r
                     );
                     std::unique_ptr<InducedGraph> r_hop_subgraph(new InducedGraph(*data_graph, user_list, item_list));
                     stat->snapshot_compute_2r_hop_time += Duration(compute_2r_hop_start_timestamp);
+                    // vertex_pruning_counter += 1;
                     if (r_hop_subgraph->e_lists.empty())
                     {
+                        // std::cout << "(" << center_user_id << ") ";
+                        // std::cout << r_hop_subgraph->PrintShortMetaData() << "\n"; 
                         stat->leaf_node_traverse_time += Duration(leaf_node_start_timestamp);
                         delete now_heap_entry;
                         continue;

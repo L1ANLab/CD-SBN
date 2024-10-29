@@ -246,7 +246,9 @@ int main(int argc, char *argv[])
 
         std::vector<InducedGraph*> result_list(0);
         // Load snapshot result from file ()
+
         if (!statistic->LoadSnapshotResultExist(result_list, *data_graph))
+        // if (true)
         {
             // 4.1. find the answer for the snapshot query
             SnapshotHandle* snapshot_query = new SnapshotHandle(
@@ -283,12 +285,7 @@ int main(int argc, char *argv[])
             
             delete snapshot_query;
         }
-        else
-        {
-            // Load result from file
-
-        }
-
+        // /*
         // 4.2. maintain the answer for the continuous query
         std::cout << "------------ Start continuous query ------------" << std::endl;
         ContinuousHandle* continuous_query = new ContinuousHandle(
@@ -395,6 +392,8 @@ int main(int argc, char *argv[])
         std::cout << "*********** Continuous query complete ***********" << std::endl;
         std::cout << "*********** Query processing complete ***********" << std::endl;
         std::cout << std::endl;
+        // */
+
         // print result
         // for (InducedGraph* subgraph: result_list)
         // {
