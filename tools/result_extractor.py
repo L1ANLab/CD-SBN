@@ -21,8 +21,8 @@ if __name__ == "__main__":
     # "dP/dPkL"
     # "dP/dPkP"
     # "dP/dPkU"
-    dataset_type = "ablation"  # baseline realworld synthetic ablation
-    dir_name = "AM"
+    dataset_type = "synthetic-w-4"  # baseline realworld synthetic ablation
+    dir_name = "dB/dBkP"
     folder_path = os.path.join(os.getcwd(), folder_path, dataset_type, dir_name)
     print("------{}------".format(folder_path))
 
@@ -57,12 +57,12 @@ if __name__ == "__main__":
                             total_user_node = line.rstrip().split(' ')[3]
                         if line.startswith("Pruning Vertices:"):
                             pruning_user_node = line.rstrip().split(' ')[2]
-                        # if line.startswith("Average Query Process Time:"):
-                        #     continuous_process_time = line.rstrip().split(' ')[4]
+                        if line.startswith("Average Query Process Time:"):
+                            continuous_process_time = line.rstrip().split(' ')[4]
                     pruning_ratio = float(pruning_user_node)*100/float(total_user_node)
-                    result_list.append([snapshot_process_time, pruning_user_node, total_user_node,  pruning_ratio])
+                    result_list.append([continuous_process_time])
             print(dir_name)
             print(query_k, query_s)
             for uni_result in result_list:
                 # print(uni_result[1], sep="\t")
-                print(uni_result[0], uni_result[1], sep="\t")
+                print(uni_result[0], sep="\t")
