@@ -50,8 +50,8 @@ def generate_graph_by_distr(dir_type_name: str, dir_name: str, user_num: int, it
         top_arg_param = 1000/user_num
         bottom_arg_param = 1000/item_num
         loc_param = 1
-        top_scale_param = user_num/300
-        bottom_scale_param = item_num/300
+        top_scale_param = user_num/200
+        bottom_scale_param = item_num/200
         top_degree_list = []
         bottom_degree_list = []
         while len(top_degree_list) < user_num:
@@ -80,8 +80,8 @@ def generate_graph_by_distr(dir_type_name: str, dir_name: str, user_num: int, it
         bottom_arg_a_param = 1000/item_num
         arg_b_param = 1
         loc_param = 1
-        top_scale_param = user_num/300
-        bottom_scale_param = item_num/300
+        top_scale_param = user_num/200
+        bottom_scale_param = item_num/200
         top_degree_list = []
         bottom_degree_list = []
         while len(top_degree_list) < user_num:
@@ -95,8 +95,8 @@ def generate_graph_by_distr(dir_type_name: str, dir_name: str, user_num: int, it
     else:
         raise Exception("Type Error: wrong distribution <{}>".format(distr))
 
-    top_degree_list = np.clip(top_degree_list, 0, user_num/300).astype(int)
-    bottom_degree_list = np.clip(bottom_degree_list, 0, item_num/300).astype(int)
+    top_degree_list = np.clip(top_degree_list, 0, user_num/200).astype(int)
+    bottom_degree_list = np.clip(bottom_degree_list, 0, item_num/200).astype(int)
     # print(top_degree_list[:100])
     print(max(top_degree_list))
     # 2. Adjust degree sequences to ensure their sums match
@@ -151,6 +151,7 @@ def generate_synthetic_dataset(
     file_name: str,
     user_num: int,
     item_num: int,
+    edge_weight_upper: int,
     distr: str,
 ):
     print("Process [{}]".format(file_name))
@@ -166,10 +167,34 @@ def generate_synthetic_dataset(
     for edge in tqdm(data_graph.edges):
         edge_list.append((edge[0], edge[1]-user_num))
     # edge_set = set(edge_list)
-    for idx, edge in enumerate(tqdm(edge_list)):
-        [flag] = np.random.choice([0, 1], size=1, p=[1-ADD_EDGE_PROBABILIRY, ADD_EDGE_PROBABILIRY])
-        if flag > 0:
-            edge_list.insert(idx, (edge[0], edge[1]))
+    if edge_weight_upper == 2:
+        for idx, edge in enumerate(tqdm(edge_list)):
+            [flag] = np.random.choice([0, 1], size=1, p=[1-ADD_EDGE_PROBABILIRY, ADD_EDGE_PROBABILIRY])
+            if flag > 0:
+                edge_list.insert(idx, (edge[0], edge[1]))
+    else:  # edge_weight_upper == 3 or 4
+        # Gaussian
+        mean = 10
+        stddev = 3
+        if edge_weight_upper == 3:
+            mean = 2
+            stddev = 0.5
+        elif edge_weight_upper == 4:
+            mean = 2.5
+            stddev = 0.75
+        size = len(edge_list)
+        weight_sample_list = np.random.normal(mean, stddev, size)
+        weight_sample_list = np.clip(weight_sample_list, 1, edge_weight_upper).astype(int)
+        print(weight_sample_list)
+        label_counter = [0 for _ in range(edge_weight_upper+1)]
+        add_edges = []
+        for i, edge in enumerate(tqdm(edge_list)):
+            weight = np.random.choice(weight_sample_list)
+            label_counter[weight] += 1
+            for _ in range(weight):
+                add_edges.insert(i, (edge[0], edge[1]))
+        edge_list.extend(add_edges)
+        print(label_counter)
     # 3. save the edge file
     with open(full_file_path, "w") as wf:
         wf.write("% {} {} {}\n".format(user_num, item_num, len(edge_list)))
@@ -184,6 +209,7 @@ if __name__ == "__main__":
     #     "out.pl-25k",
     #     25000,
     #     25000,
+    #     2
     #     "powerlaw"
     # )
     # generate_synthetic_dataset(
@@ -192,133 +218,186 @@ if __name__ == "__main__":
     #     "out.bd-25k",
     #     25000,
     #     25000,
+    #     2,
     #     "beta"
     # )
+    # generate_synthetic_dataset(
+    #     "synthetic-w-3",
+    #     "dP",
+    #     "out.pl-25k",
+    #     25000,
+    #     25000,
+    #     3,
+    #     "powerlaw"
+    # )
     generate_synthetic_dataset(
-        "synthetic-L10k",
-        "dP",
-        "out.pl-L10k",
-        25000,
-        10000,
-        "powerlaw"
-    )
-    generate_synthetic_dataset(
-        "synthetic-L10k",
+        "synthetic-w-3",
         "dB",
-        "out.bd-L10k",
+        "out.bd-25k",
         25000,
-        10000,
+        25000,
+        3,
         "beta"
     )
     generate_synthetic_dataset(
-        "synthetic-L15k",
+        "synthetic-w-4",
         "dP",
-        "out.pl-L15k",
+        "out.pl-25k",
         25000,
-        15000,
+        25000,
+        4,
         "powerlaw"
     )
-    generate_synthetic_dataset(
-        "synthetic-L15k",
-        "dB",
-        "out.bd-L15k",
-        25000,
-        15000,
-        "beta"
-    )
-    generate_synthetic_dataset(
-        "synthetic-L50k",
-        "dP",
-        "out.pl-L50k",
-        25000,
-        50000,
-        "powerlaw"
-    )
-    generate_synthetic_dataset(
-        "synthetic-L50k",
-        "dB",
-        "out.bd-L50k",
-        25000,
-        50000,
-        "beta"
-    )
-    generate_synthetic_dataset(
-        "synthetic-L100k",
-        "dP",
-        "out.pl-L100k",
-        25000,
-        100000,
-        "powerlaw"
-    )
-    generate_synthetic_dataset(
-        "synthetic-L100k",
-        "dB",
-        "out.bd-L100k",
-        25000,
-        100000,
-        "beta"
-    )
-    generate_synthetic_dataset(
-        "synthetic-U10k",
-        "dP",
-        "out.pl-U10k",
-        10000,
-        25000,
-        "powerlaw"
-    )
-    generate_synthetic_dataset(
-        "synthetic-U10k",
-        "dB",
-        "out.bd-U10k",
-        10000,
-        25000,
-        "beta"
-    )
-    generate_synthetic_dataset(
-        "synthetic-U15k",
-        "dP",
-        "out.pl-U15k",
-        15000,
-        25000,
-        "powerlaw"
-    )
-    generate_synthetic_dataset(
-        "synthetic-U15k",
-        "dB",
-        "out.bd-U15k",
-        15000,
-        25000,
-        "beta"
-    )
-    generate_synthetic_dataset(
-        "synthetic-U50k",
-        "dP",
-        "out.pl-U50k",
-        50000,
-        25000,
-        "powerlaw"
-    )
-    generate_synthetic_dataset(
-        "synthetic-U50k",
-        "dB",
-        "out.bd-U50k",
-        50000,
-        25000,
-        "beta"
-    )
-    generate_synthetic_dataset(
-        "synthetic-U100k",
-        "dP",
-        "out.pl-U100k",
-        100000,
-        25000,
-        "powerlaw"
-    )
-    generate_synthetic_dataset(
-        "synthetic-U100k",
-        "dB",
-        "out.bd-U100k",
-        100000,
-        25000,
-        "beta"
-    )
+    # generate_synthetic_dataset(
+    #     "synthetic-w-4",
+    #     "dB",
+    #     "out.bd-25k",
+    #     25000,
+    #     25000,
+    #     4,
+    #     "beta"
+    # )
+    # generate_synthetic_dataset(
+    #     "synthetic-L10k",
+    #     "dP",
+    #     "out.pl-L10k",
+    #     25000,
+    #     10000,
+    #     2,
+    #     "powerlaw"
+    # )
+    # generate_synthetic_dataset(
+    #     "synthetic-L10k",
+    #     "dB",
+    #     "out.bd-L10k",
+    #     25000,
+    #     10000,
+    #     2,
+    #     "beta"
+    # )
+    # generate_synthetic_dataset(
+    #     "synthetic-L15k",
+    #     "dP",
+    #     "out.pl-L15k",
+    #     25000,
+    #     15000,
+    #     2,
+    #     "powerlaw"
+    # )
+    # generate_synthetic_dataset(
+    #     "synthetic-L15k",
+    #     "dB",
+    #     "out.bd-L15k",
+    #     25000,
+    #     15000,
+    #     2,
+    #     "beta"
+    # )
+    # generate_synthetic_dataset(
+    #     "synthetic-L50k",
+    #     "dP",
+    #     "out.pl-L50k",
+    #     25000,
+    #     50000,
+    #     2,
+    #     "powerlaw"
+    # )
+    # generate_synthetic_dataset(
+    #     "synthetic-L50k",
+    #     "dB",
+    #     "out.bd-L50k",
+    #     25000,
+    #     50000,
+    #     2,
+    #     "beta"
+    # )
+    # generate_synthetic_dataset(
+    #     "synthetic-L100k",
+    #     "dP",
+    #     "out.pl-L100k",
+    #     25000,
+    #     100000,
+    #     2,
+    #     "powerlaw"
+    # )
+    # generate_synthetic_dataset(
+    #     "synthetic-L100k",
+    #     "dB",
+    #     "out.bd-L100k",
+    #     25000,
+    #     100000,
+    #     2,
+    #     "beta"
+    # )
+    # generate_synthetic_dataset(
+    #     "synthetic-U10k",
+    #     "dP",
+    #     "out.pl-U10k",
+    #     10000,
+    #     25000,
+    #     2,
+    #     "powerlaw"
+    # )
+    # generate_synthetic_dataset(
+    #     "synthetic-U10k",
+    #     "dB",
+    #     "out.bd-U10k",
+    #     10000,
+    #     25000,
+    #     2,
+    #     "beta"
+    # )
+    # generate_synthetic_dataset(
+    #     "synthetic-U15k",
+    #     "dP",
+    #     "out.pl-U15k",
+    #     15000,
+    #     25000,
+    #     2,
+    #     "powerlaw"
+    # )
+    # generate_synthetic_dataset(
+    #     "synthetic-U15k",
+    #     "dB",
+    #     "out.bd-U15k",
+    #     15000,
+    #     25000,
+    #     2,
+    #     "beta"
+    # )
+    # generate_synthetic_dataset(
+    #     "synthetic-U50k",
+    #     "dP",
+    #     "out.pl-U50k",
+    #     50000,
+    #     25000,
+    #     2,
+    #     "powerlaw"
+    # )
+    # generate_synthetic_dataset(
+    #     "synthetic-U50k",
+    #     "dB",
+    #     "out.bd-U50k",
+    #     50000,
+    #     25000,
+    #     2,
+    #     "beta"
+    # )
+    # generate_synthetic_dataset(
+    #     "synthetic-U100k",
+    #     "dP",
+    #     "out.pl-U100k",
+    #     100000,
+    #     25000,
+    #     2,
+    #     "powerlaw"
+    # )
+    # generate_synthetic_dataset(
+    #     "synthetic-U100k",
+    #     "dB",
+    #     "out.bd-U100k",
+    #     100000,
+    #     25000,
+    #     2,
+    #     "beta"
+    # )

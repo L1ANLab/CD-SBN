@@ -57,6 +57,35 @@ if __name__ == "__main__":
     # generate_dataset(os.path.join("synthetic", "dP"), "dPkP", "out.pl-25k", "pareto", 500, 3, 2000)
     # generate_query_keywords(os.path.join("synthetic", "dP"), "dPkP", "keywords_list.txt", 5, 10)
 
+    # Param w range
+    # generate_dataset(os.path.join("synthetic-w-3", "dB"), "dBkL", "out.bd-25k", "lognorm", 500, 3, 1000)
+    # generate_dataset(os.path.join("synthetic-w-3", "dP"), "dPkL", "out.pl-25k", "lognorm", 500, 3, 1000)
+    # generate_dataset(os.path.join("synthetic-w-3", "dB"), "dBkP", "out.bd-25k", "pareto", 500, 3, 1000)
+    # generate_dataset(os.path.join("synthetic-w-3", "dP"), "dPkP", "out.pl-25k", "pareto", 500, 3, 1000)
+    # generate_dataset(os.path.join("synthetic-w-3", "dB"), "dBkU", "out.bd-25k", "uniform", 500, 3, 1000)
+    # generate_dataset(os.path.join("synthetic-w-3", "dP"), "dPkU", "out.pl-25k", "uniform", 500, 3, 1000)
+    # generate_query_keywords(os.path.join("synthetic-w-3", "dB"), "dBkL", "keywords_list.txt", 5, 10)
+    # generate_query_keywords(os.path.join("synthetic-w-3", "dP"), "dPkL", "keywords_list.txt", 5, 10)
+    # generate_query_keywords(os.path.join("synthetic-w-3", "dB"), "dBkP", "keywords_list.txt", 5, 10)
+    # generate_query_keywords(os.path.join("synthetic-w-3", "dP"), "dPkP", "keywords_list.txt", 5, 10)
+    # generate_query_keywords(os.path.join("synthetic-w-3", "dB"), "dBkU", "keywords_list.txt", 5, 10)
+    # generate_query_keywords(os.path.join("synthetic-w-3", "dP"), "dPkU", "keywords_list.txt", 5, 10)
+
+    # generate_dataset(os.path.join("synthetic-w-4", "dB"), "dBkL", "out.bd-25k", "lognorm", 500, 3, 1000)
+    # generate_dataset(os.path.join("synthetic-w-4", "dP"), "dPkL", "out.pl-25k", "lognorm", 500, 3, 1000)
+    # generate_dataset(os.path.join("synthetic-w-4", "dB"), "dBkP", "out.bd-25k", "pareto", 500, 3, 1000)
+    # generate_dataset(os.path.join("synthetic-w-4", "dP"), "dPkP", "out.pl-25k", "pareto", 500, 3, 1000)
+    # generate_dataset(os.path.join("synthetic-w-4", "dB"), "dBkU", "out.bd-25k", "uniform", 500, 3, 1000)
+    # generate_dataset(os.path.join("synthetic-w-4", "dP"), "dPkU", "out.pl-25k", "uniform", 500, 3, 1000)
+    # generate_query_keywords(os.path.join("synthetic-w-4", "dB"), "dBkL", "keywords_list.txt", 5, 10)
+    # generate_query_keywords(os.path.join("synthetic-w-4", "dP"), "dPkL", "keywords_list.txt", 5, 10)
+    # generate_query_keywords(os.path.join("synthetic-w-4", "dB"), "dBkP", "keywords_list.txt", 5, 10)
+    # generate_query_keywords(os.path.join("synthetic-w-4", "dP"), "dPkP", "keywords_list.txt", 5, 10)
+    # generate_query_keywords(os.path.join("synthetic-w-4", "dB"), "dBkU", "keywords_list.txt", 5, 10)
+    # generate_query_keywords(os.path.join("synthetic-w-4", "dP"), "dPkU", "keywords_list.txt", 5, 10)
+
+
+
     # Param Size U
     # generate_dataset(os.path.join("synthetic-U10k", "dB"), "dBkL", "out.bd-U10k", "lognorm", 500, 3, 1000)
     # generate_dataset(os.path.join("synthetic-U10k", "dP"), "dPkL", "out.pl-U10k", "lognorm", 500, 3, 1000)
