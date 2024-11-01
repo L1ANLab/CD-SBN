@@ -567,6 +567,7 @@ std::tuple<std::vector<uint>, std::vector<uint>>  Graph::Get2rHopOfUserByBV(
                 to_visit_items.push(user_neighbors[visit_user][j]);
                 visited_items.emplace(user_neighbors[visit_user][j]);
             }
+            visited_users.emplace(visit_user);
         }
 
         while (!to_visit_items.empty())
@@ -580,6 +581,7 @@ std::tuple<std::vector<uint>, std::vector<uint>>  Graph::Get2rHopOfUserByBV(
                 to_visit_users.push(item_neighbors[visit_item][j]);
                 visited_users.emplace(item_neighbors[visit_item][j]);
             }
+            visited_items.emplace(visit_item);
         }
     }
     while (!to_visit_users.empty())
