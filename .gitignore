@@ -44,6 +44,7 @@
 /dataset/*/*/experiment*
 /dataset/*/*/snapshot_result*
 /dataset/*/*/out.*
+/dataset/*/*/ent.*
 /dataset/*/*/*.txt
 /dataset/*/*/*.png
 /dataset/*/*/*.csv
@@ -51,6 +52,7 @@
 # synthetic
 /dataset/synthetic-s/
 /dataset/baseline/
+/dataset/ablation/
 /dataset/*/*/*/experiment*
 /dataset/*/*/*/snapshot_result*
 /dataset/*/*/*/out.*
