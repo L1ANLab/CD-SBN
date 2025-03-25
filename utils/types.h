@@ -10,7 +10,7 @@
 #define UNMATCHED UINT_MAX
 #define MAX_LEVEL UINT_MAX
 
-const uint THREADS_NUM = 20;
+const uint THREADS_NUM = 100;
 // const uint MAX_LABEL = 17000; // ML
 // const uint MAX_LABEL = 83000; // VU
 // const uint MAX_LABEL = 160000; // CU
@@ -37,6 +37,21 @@ struct InsertUnit {
     InsertUnit(uint user_id_, uint item_id_, uint timestamp_)
     : user_id(user_id_), item_id(item_id_), timestamp(timestamp_) {}
 };
+
+struct UserData {
+    uint user_id;
+    uint x_data;
+    uint y_data;
+    std::vector<uint> wedge_item_list;     // element: item id
+    std::vector<uint> wedge_score_list;     // element: wedge score
+
+    UserData() 
+        : user_id(0), x_data(0), y_data(0), wedge_item_list(0), wedge_score_list(0) {}
+
+    UserData(uint user_id_, uint x_data_, uint y_data_, std::vector<uint> wedge_item_list_, std::vector<uint> wedge_score_list_) 
+        : user_id(user_id_), x_data(x_data_), y_data(y_data_), wedge_item_list(wedge_item_list_), wedge_score_list(wedge_score_list_) {}
+};
+
 
 // from boost (functional/hash):
 // see http://www.boost.org/doc/libs/1_35_0/doc/html/hash/combine.html template

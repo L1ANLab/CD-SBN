@@ -126,6 +126,7 @@ std::string Statistic::GenerateStatisticResult()
     result += "Total Edges: " + std::to_string(edge_num) + "\n";
     result += "All Keywords: " + std::to_string(all_keyword_num) + "\n";
     result += "Distribution: " + distribution + "\n";
+    result += "Thread Num: " + std::to_string(THREADS_NUM) + "\n";
     result += "\n";
     result += "-------------QUERY INFO-------------\n";
     std::string query_keywords_str = "";
