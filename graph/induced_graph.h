@@ -13,6 +13,7 @@ public:
     std::vector<uint> user_map;
     std::vector<uint> item_map;
     std::vector<std::pair<uint, uint>> e_lists;
+    std::vector<std::vector<UserData *>> user_neighbor_datas;      // The list of X and Y data for each user
 
 public:
     InducedGraph();

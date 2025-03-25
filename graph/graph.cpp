@@ -26,6 +26,47 @@ Graph::Graph()
 {
     user_bvs[0].reset(new std::bitset<MAX_LABEL>(0));
 }
+
+Graph::Graph(const Graph& g)
+{
+    graph_timestamp = g.GetGraphTimestamp();
+    user_neighbors.resize(g.user_neighbors.size());
+    for (uint i=0;i<user_neighbors.size();i++)
+    {
+        user_neighbors[i] = g.user_neighbors[i];
+    }
+    user_bvs.resize(g.user_bvs.size());
+    user_bvs = g.user_bvs;
+    user_ub_sups = g.user_ub_sups;
+
+    user_neighbor_datas.resize(g.user_neighbor_datas.size());
+    for (uint i=0;i<user_neighbor_datas.size();i++)
+    {
+        for (uint j=0;j<g.user_neighbor_datas[i].size();j++)
+        {
+            UserData* user_data = new UserData(*g.user_neighbor_datas[i][j]);
+            user_neighbor_datas[i].emplace_back(user_data);
+        }
+    }
+
+    label_size = g.label_size;
+    item_neighbors.resize(g.item_neighbors.size());
+    for (uint i=0;i<g.item_neighbors.size();i++)
+    {
+        item_neighbors[i] = g.item_neighbors[i];
+    }
+    item_bvs = g.item_bvs;
+    
+    edge_count_ = g.edge_count_;
+
+    edges_.resize(g.edges_.size());
+    for (uint i=0;i<edges_.size();i++)
+    {
+        edges_[i] = g.edges_[i];
+    }
+    updates_ = g.updates_;
+}
+
 Graph::~Graph()
 {
     for(size_t i=0;i<user_neighbor_datas.size();i++)
@@ -117,8 +158,8 @@ std::vector<uint> Graph::MaintainAfterInsertion(uint user_id, uint item_id, uint
         uint n_user_id = item_neighbors[item_id][i];
         if (n_user_id == user_id) continue;  // skip the user of <user_id>
         // 1.1. make sure new user neighbor has data
-        size_t n_user_data_index = InsertNeighborUserData(user_id, n_user_id);
-        size_t user_data_index = InsertNeighborUserData(n_user_id, user_id);
+        size_t n_user_data_index = InsertNeighborUserData(user_id, n_user_id, item_id);
+        size_t user_data_index = InsertNeighborUserData(n_user_id, user_id, item_id);
         uint wedge_score = GetEdgeData(n_user_id, item_id)->weight;
         if (inserted_edge->weight <= wedge_score)
         {
@@ -131,6 +172,38 @@ std::vector<uint> Graph::MaintainAfterInsertion(uint user_id, uint item_id, uint
         
             user_neighbor_datas[n_user_id][user_data_index]->x_data += lambda;
             user_neighbor_datas[n_user_id][user_data_index]->y_data += (2*lambda*wedge_score+lambda*lambda);
+            
+            // 1.3. apply the increment
+            auto lower = std::lower_bound(
+                user_neighbor_datas[user_id][n_user_data_index]->wedge_item_list.begin(),
+                user_neighbor_datas[user_id][n_user_data_index]->wedge_item_list.end(),
+                item_id
+            );
+            size_t dis = std::distance(user_neighbor_datas[user_id][n_user_data_index]->wedge_item_list.begin(), lower);
+            // if 
+            if (lower != user_neighbor_datas[user_id][n_user_data_index]->wedge_item_list.end() && *lower == item_id)
+            {
+                user_neighbor_datas[user_id][n_user_data_index]->wedge_score_list[dis] = wedge_score;
+                user_neighbor_datas[n_user_id][user_data_index]->wedge_score_list[dis] = wedge_score;
+            }
+            else
+            {
+                user_neighbor_datas[user_id][n_user_data_index]->wedge_item_list.emplace(lower, item_id);
+                user_neighbor_datas[user_id][n_user_data_index]->wedge_score_list.emplace(
+                    user_neighbor_datas[user_id][n_user_data_index]->wedge_score_list.begin() + dis,
+                    wedge_score
+                );
+
+                user_neighbor_datas[n_user_id][user_data_index]->wedge_item_list.emplace(
+                    user_neighbor_datas[n_user_id][user_data_index]->wedge_item_list.begin()+dis,
+                    item_id
+                );
+                user_neighbor_datas[n_user_id][user_data_index]->wedge_score_list.emplace(
+                    user_neighbor_datas[n_user_id][user_data_index]->wedge_score_list.begin() + dis,
+                    wedge_score
+                );
+            }
+
             related_user_set.emplace(n_user_id);
         }
     }
@@ -181,6 +254,73 @@ std::vector<uint> Graph::MaintainAfterInsertion(uint user_id, uint item_id, uint
     return related_user;
 }
 
+
+
+
+/// @brief maintain auxiliary data (BV, ub_sup, X, Y) after edge insertion
+/// @param user_id 
+/// @param item_id 
+/// @param addition_flag 1 if new edge was added, else 0
+/// @return return a list of user whose properties changed
+std::vector<uint> Graph::MaintainBVAfterInsertion(uint user_id, uint item_id, uint addition_flag)
+{
+    std::shared_ptr<EdgeData> inserted_edge = this->GetEdgeData(user_id, item_id);
+    std::set<uint> related_user_set;
+    related_user_set.emplace(user_id);
+
+    // 1. re-compute user relationship score
+    for(size_t i = 0;i < item_neighbors[item_id].size();i++)
+    {   
+        uint n_user_id = item_neighbors[item_id][i];
+        if (n_user_id == user_id) continue;  // skip the user of <user_id>
+
+        uint wedge_score = GetEdgeData(n_user_id, item_id)->weight;
+        if (inserted_edge->weight <= wedge_score)
+        {
+            related_user_set.emplace(n_user_id);
+        }
+    }
+
+    // 2. if new edge was added (addition_flag == 1)
+    if (addition_flag == 1)
+    {
+        // 2.1. add item.BV to user.BV
+        ErrorControl::assert_error(
+            item_bvs.size() <= item_id,
+            "Item Entity Error: No such item BV."
+        );
+        *user_bvs[user_id] |= *item_bvs[item_id];
+        
+        // 2.2. re-compute the support 
+        for(size_t i = 0;i < item_neighbors[item_id].size();i++)
+        {   
+            uint n_user_id = item_neighbors[item_id][i];
+            if (n_user_id == user_id) continue;  // skip the user of <user_id>
+            std::vector<uint> common_neighbors(
+                user_neighbors[user_id].size() + user_neighbors[n_user_id].size()
+            );
+            std::vector<uint>::iterator it = std::set_intersection(
+                user_neighbors[user_id].begin(), user_neighbors[user_id].end(),
+                user_neighbors[n_user_id].begin(), user_neighbors[n_user_id].end(),
+                common_neighbors.begin()
+            );
+            common_neighbors.resize(it - common_neighbors.begin());
+            size_t cn_num = common_neighbors.size() - 1;  // skip the item of <item_id>
+            if (cn_num > 0)
+            {
+                related_user_set.emplace(n_user_id);
+            }
+        }
+    }
+
+    std::vector<uint> related_user;
+    related_user.assign(related_user_set.begin(), related_user_set.end());
+    return related_user;
+}
+
+
+
+
 /// @brief insert an edge into graph
 /// @param user_id 
 /// @param item_id 
@@ -226,24 +366,57 @@ void Graph::MaintainBeforeExpiration(uint user_id, uint item_id)
         uint n_user_id = item_neighbors[item_id][i];
         if (n_user_id == user_id) continue;  // delete the user of <user_id>
         // 1.1. make sure new user neighbor has data
-        size_t n_user_data_index = InsertNeighborUserData(user_id, n_user_id);
-        size_t user_data_index = InsertNeighborUserData(n_user_id, user_id);
+        size_t n_user_data_index = InsertNeighborUserData(user_id, n_user_id, item_id);
+        size_t user_data_index = InsertNeighborUserData(n_user_id, user_id, item_id);
         uint wedge_score = GetEdgeData(n_user_id, item_id)->weight;
         if (expired_edge->weight - 1 < wedge_score)
         {
             uint lambda = 1;
-            wedge_score = expired_edge->weight;
+            wedge_score = expired_edge->weight - 1;
 
             // 1.2. apply the increment
             user_neighbor_datas[user_id][n_user_data_index]->x_data -= lambda;
             user_neighbor_datas[user_id][n_user_data_index]->y_data -= (2*lambda*wedge_score+lambda*lambda);
+            // user_neighbor_datas[user_id][n_user_data_index]->wedge_item_list.remove(item_id);
 
             user_neighbor_datas[n_user_id][user_data_index]->x_data -= lambda;
             user_neighbor_datas[n_user_id][user_data_index]->y_data -= (2*lambda*wedge_score+lambda*lambda);
+            // user_neighbor_datas[user_id][n_user_data_index]->wedge_item_list.remove(item_id);
+
+            // 1.3. update the wedge score
+            auto lower = std::lower_bound(
+                user_neighbor_datas[user_id][n_user_data_index]->wedge_item_list.begin(),
+                user_neighbor_datas[user_id][n_user_data_index]->wedge_item_list.end(),
+                item_id
+            );
+            size_t dis = std::distance(user_neighbor_datas[user_id][n_user_data_index]->wedge_item_list.begin(), lower);
+
+            if (expired_edge->weight > 1)
+            {
+                // 1.3.1. update the wedge score if the wedge exists
+                user_neighbor_datas[user_id][n_user_data_index]->wedge_score_list[dis] = wedge_score;
+                user_neighbor_datas[n_user_id][user_data_index]->wedge_score_list[dis] = wedge_score;
+            }
+            else
+            {
+                // 1.3.2. remove the wedge if the wedge does not exist
+                user_neighbor_datas[user_id][n_user_data_index]->wedge_item_list.erase(
+                    user_neighbor_datas[user_id][n_user_data_index]->wedge_item_list.begin()+dis
+                );
+                user_neighbor_datas[user_id][n_user_data_index]->wedge_score_list.erase(
+                    user_neighbor_datas[user_id][n_user_data_index]->wedge_score_list.begin()+dis
+                );
+                user_neighbor_datas[n_user_id][user_data_index]->wedge_item_list.erase(
+                    user_neighbor_datas[n_user_id][user_data_index]->wedge_item_list.begin()+dis
+                );
+                user_neighbor_datas[n_user_id][user_data_index]->wedge_score_list.erase(
+                    user_neighbor_datas[n_user_id][user_data_index]->wedge_score_list.begin()+dis
+                );
+            }
         }
     }
 
-    // 2. if edge will be removed (inserted_edge->weight == 1)
+    // 2. if edge will be removed (expired_edge->weight == 1)
     if (expired_edge->weight == 1)
     {
         // 2.1. recompute user.BV from all item.BV
@@ -279,7 +452,7 @@ void Graph::MaintainBeforeExpiration(uint user_id, uint item_id)
                 GetEdgeData(n_user_id, item_id)->ub_sup -= uint(cn_num);
                 for(size_t j = 0; j < common_neighbors.size(); j++)
                 {
-                    uint cn_item_id = common_neighbors[j];
+                    uint cn_item_id = common_neighbors[ j];
                     if (cn_item_id == item_id) continue;
                     GetEdgeData(user_id, cn_item_id)->ub_sup -= 1;
                     GetEdgeData(n_user_id, cn_item_id)->ub_sup -= 1;
@@ -465,9 +638,9 @@ const UserData* Graph::GetNeighborUserData(uint user_id, uint n_user_id) const
 /// @param user_id 
 /// @param n_user_id 
 /// @return the index of inserted user data
-size_t Graph::InsertNeighborUserData(uint user_id, uint n_user_id)
+size_t Graph::InsertNeighborUserData(uint user_id, uint n_user_id, uint item_id)
 {
-    const UserData* other = new UserData(n_user_id, 0, 0);
+    const UserData* other = new UserData(n_user_id, 0, 0, std::vector<uint>{item_id}, std::vector<uint>{0});
     auto lower = std::lower_bound(
         user_neighbor_datas[user_id].begin(),
         user_neighbor_datas[user_id].end(),
@@ -481,7 +654,8 @@ size_t Graph::InsertNeighborUserData(uint user_id, uint n_user_id)
     // insert new user data if not
     if (lower == user_neighbor_datas[user_id].end() || (*lower)->user_id != n_user_id)
     {
-        lower = user_neighbor_datas[user_id].emplace(lower, new UserData(n_user_id, 0, 0));
+        // std::cout << "Created a new data for user " << user_id << " and " << n_user_id << std::endl;
+        lower = user_neighbor_datas[user_id].emplace(lower, new UserData(n_user_id, 0, 0, std::vector<uint>{item_id}, std::vector<uint>{0}));
     }
     // uint temp = user_neighbor_datas[user_id][0]->user_id;
     // return the index of inserted user data
@@ -807,25 +981,25 @@ void Graph::LoadInitialGraph(const std::string &path)
         !ifs,
         "File Stream Error: The input file stream open failed"
     );
-    uint from_id=0, to_id=0, initial_timestamp=0;
+    uint from_id=0, to_id=0, now_timestamp=0;
     while (!ifs.eof())
     {
-        {
-            ifs >> from_id >> to_id >> initial_timestamp;
-            uint addition_flag = InsertEdge(from_id, to_id);
-            // if (addition_flag == 1)
-            // {
-            //     std::cout << "Added new edge: (" << from_id << "," << to_id << ")" << "\n";
-            // }
-            // else
-            // {
-            //     std::cout << "Inserted new edge: (" << from_id << "," << to_id << ")" << "\n";
-            // }
-            MaintainAfterInsertion(from_id, to_id, addition_flag);
-        }
+        ifs >> from_id >> to_id >> now_timestamp;
+        uint addition_flag = InsertEdge(from_id, to_id);
+        // if (addition_flag == 1)
+        // {
+        //     std::cout << "Added new edge: (" << from_id << "," << to_id << ")" << "\n";
+        // }
+        // else
+        // {
+        //     std::cout << "Inserted new edge: (" << from_id << "," << to_id << ")" << "\n";
+        // }
+        MaintainAfterInsertion(from_id, to_id, addition_flag);
+        updates_.emplace_back(from_id, to_id, now_timestamp);
     }
     ifs.close();
-    this->graph_timestamp = initial_timestamp;
+    updates_.shrink_to_fit();
+    this->graph_timestamp = now_timestamp;
 }
 
 void Graph::LoadItemLabel(const std::string &path)

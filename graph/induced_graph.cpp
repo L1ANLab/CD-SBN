@@ -12,6 +12,7 @@ InducedGraph::InducedGraph()
 , user_map{}
 , item_map{}
 , e_lists{}
+, user_neighbor_datas{}
 {}
 
 InducedGraph::InducedGraph(const Graph& g, uint user1, uint user2, uint item1, uint item2)
@@ -19,6 +20,7 @@ InducedGraph::InducedGraph(const Graph& g, uint user1, uint user2, uint item1, u
 , user_map{std::min(user1, user2), std::max(user1, user2)}
 , item_map{std::min(item1, item2), std::max(item1, item2)}
 , e_lists{{user1, item1}, {user1, item2}, {user2, item1}, {user2, item2}}
+, user_neighbor_datas{}
 {}
 
 InducedGraph::InducedGraph(InducedGraph& g1, InducedGraph& g2, bool is_union)
@@ -94,6 +96,37 @@ InducedGraph::InducedGraph(
                 e_lists.push_back(std::pair(user, neighbor_item));
             }
         }
+
+        // std::vector<UserData*> user_data = g.GetNeighborUserData(user);
+
+        // for (UserData* user_data_p : user_data)
+        // {
+        //     if (std::binary_search(user_map_.begin(), user_map_.end(), user_data_p->user_id))
+        //     {
+        //         // std::vector<uint> common_neighbors(
+        //         //     item_map_.size() +
+        //         //     user_data_p->wedge_item_list.size()
+        //         // );
+        //         // std::vector<uint>::iterator it = std::set_intersection(
+        //         //     item_map_.begin(),
+        //         //     item_map_.end(),
+        //         //     user_data_p->wedge_item_list.begin(),
+        //         //     user_data_p->wedge_item_list.end(),
+        //         //     common_neighbors.begin()
+        //         // );
+        //         // common_neighbors.resize(it - common_neighbors.begin());
+        //         for (uint item: user_data_p->wedge_item_list)
+        //         {
+        //             if (std::binary_search(item_map_.begin(), item_map_.end(), item))
+        //             {
+        //                 e_lists.push_back(std::pair(user, item));
+
+
+        //             }
+        //         }
+        //     }
+        // }
+
         e_lists.resize(e_lists.size());
     }
 }
