@@ -237,6 +237,7 @@ int main(int argc, char *argv[])
     std::cout << "------------ Start snapshot query ------------" << std::endl;
     for (auto query_keywords: query_keywords_list)
     {
+        Graph* temp_graph = new Graph(*data_graph);
         statistic->query_keywords = query_keywords;
         for (size_t i=0; i < query_keywords.size(); i++)
         {
@@ -245,9 +246,8 @@ int main(int argc, char *argv[])
         std::cout << "\n";
 
         std::vector<InducedGraph*> result_list(0);
-        // Load snapshot result from file ()
-
-        if (!statistic->LoadSnapshotResultExist(result_list, *data_graph))
+        // Try loading snapshot result from file ()
+        if (!statistic->LoadSnapshotResultExist(result_list, *temp_graph))
         // if (true)
         {
             // 4.1. find the answer for the snapshot query
@@ -256,16 +256,16 @@ int main(int argc, char *argv[])
                 query_support_threshold,
                 query_radius,
                 query_score_threshold,
-                data_graph,
+                temp_graph,
                 syn
             );
             start = Get_Time();
             snapshot_query->ExecuteQuery(statistic, result_list);
             statistic->snapshot_query_processing_time = Duration(start);
 
-            // statistic->user_node_num = data_graph->UserVerticesNum();
-            // statistic->item_node_num = data_graph->ItemVerticesNum();
-            // statistic->edge_num = data_graph->NumEdges();
+            // statistic->user_node_num = temp_graph->UserVerticesNum();
+            // statistic->item_node_num = temp_graph->ItemVerticesNum();
+            // statistic->edge_num = temp_graph->NumEdges();
             // std::cout << std::endl << statistic->GenerateStatisticResult() << std::endl;
 
             // if (statistic->SaveStatisticResult())
@@ -293,7 +293,7 @@ int main(int argc, char *argv[])
             query_support_threshold,
             query_radius,
             query_score_threshold,
-            data_graph,
+            temp_graph,
             syn
         );
         std::chrono::high_resolution_clock::time_point continuous_turn_start;
@@ -307,8 +307,9 @@ int main(int argc, char *argv[])
         statistic->continuous_inserted_refine_time = 0.0;
 
         start = Get_Time();
-        size_t start_idx = 0, end_idx = 0;
-        std::vector<InsertUnit> update_stream = data_graph->GetUpdateStream();
+        // Initialize the sliding window (from 0 to initial graph size)
+        size_t start_idx = 0, end_idx = temp_graph->GetGraphTimestamp();
+        std::vector<InsertUnit> update_stream = temp_graph->GetUpdateStream();
         while (end_idx < update_stream.size())
         {
             continuous_turn_start = Get_Time();
@@ -322,10 +323,10 @@ int main(int argc, char *argv[])
                 insert_edge_user_id = update_stream[end_idx].user_id;
                 insert_edge_item_id = update_stream[end_idx].item_id;
                 // (1) insert edge
-                std::cout << "Insert edge (" << insert_edge_user_id << "," << insert_edge_item_id << ")";
-                std::cout << " at " << update_stream[end_idx].timestamp << std::endl;
+                // std::cout << "Insert edge (" << insert_edge_user_id << "," << insert_edge_item_id << ")";
+                // std::cout << " at " << update_stream[end_idx].timestamp << std::endl;
                 edge_maintain_start = Get_Time();
-                isInserted = data_graph->InsertEdge(
+                isInserted = temp_graph->InsertEdge(
                     insert_edge_user_id,
                     insert_edge_item_id
                 );
@@ -333,7 +334,7 @@ int main(int argc, char *argv[])
                 // Print_Time_Now("[Insert] in ",  edge_maintain_start);
                 // (2) maintain grpah
                 graph_maintain_start = Get_Time();
-                insert_related_user_list = data_graph->MaintainAfterInsertion(
+                insert_related_user_list = temp_graph->MaintainAfterInsertion(
                     insert_edge_user_id,
                     insert_edge_item_id,
                     isInserted
@@ -349,11 +350,11 @@ int main(int argc, char *argv[])
             {
                 expire_edge_user_id = update_stream[start_idx].user_id;
                 expire_edge_item_id = update_stream[start_idx].item_id;
-                std::cout << "Expire edge (" << update_stream[start_idx].user_id << "," << update_stream[start_idx].item_id << ")";
-                std::cout << " at " << update_stream[start_idx].timestamp << std::endl;
+                // std::cout << "Expire edge (" << update_stream[start_idx].user_id << "," << update_stream[start_idx].item_id << ")";
+                // std::cout << " at " << update_stream[start_idx].timestamp << std::endl;
                 // (1) maintain grpah
                 graph_maintain_start = Get_Time();
-                data_graph->MaintainBVBeforeExpiration(
+                temp_graph->MaintainBeforeExpiration(
                     update_stream[start_idx].user_id,
                     update_stream[start_idx].item_id
                 );
@@ -361,7 +362,7 @@ int main(int argc, char *argv[])
                 // Print_Time_Now("[Maintain] in ",  graph_maintain_start);
                 // (2) expire edge
                 edge_maintain_start = Get_Time();
-                isRemoved = data_graph->ExpireEdge(
+                isRemoved = temp_graph->ExpireEdge(
                     update_stream[start_idx].user_id,
                     update_stream[start_idx].item_id
                 );
@@ -375,7 +376,8 @@ int main(int argc, char *argv[])
                     insert_edge_user_id, insert_related_user_list
                 );
                 // statistic
-                statistic->average_continuous_query_time = (statistic->average_continuous_query_time * (end_idx) + Duration(continuous_turn_start)) / (end_idx + 1);
+                uint count = end_idx - temp_graph->GetGraphTimestamp() + 1;
+                statistic->average_continuous_query_time = (statistic->average_continuous_query_time * (count) + Duration(continuous_turn_start)) / (count + 1);
                 Print_Time_Now("Continuous Turn Time: ", continuous_turn_start);
                 std::cout << "Continuous Result: [" << result_list.size() << "]" << " at " << update_stream[end_idx].timestamp << std::endl;
                 Print_Time("Average Continuous Turn Time: ", statistic->average_continuous_query_time);
@@ -400,9 +402,9 @@ int main(int argc, char *argv[])
         //     subgraph->PrintMetaData();
         //     std::cout << std::endl;
         // }
-        statistic->user_node_num = data_graph->UserVerticesNum();
-        statistic->item_node_num = data_graph->ItemVerticesNum();
-        statistic->edge_num = data_graph->NumEdges();
+        statistic->user_node_num = temp_graph->UserVerticesNum();
+        statistic->item_node_num = temp_graph->ItemVerticesNum();
+        statistic->edge_num = temp_graph->NumEdges();
 
         std::cout << std::endl << statistic->GenerateStatisticResult() << std::endl;
 
@@ -418,6 +420,8 @@ int main(int argc, char *argv[])
             delete result_subgraph;
         }
         statistic->solver_result.clear();
+
+        delete temp_graph;
     }
     
     delete statistic;
