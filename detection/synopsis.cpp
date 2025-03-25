@@ -54,10 +54,9 @@ SynopsisNode::SynopsisNode(
 }
 
 /// @brief Vertex entry construction
-/// @param bv_r_ 
-/// @param ub_sup_M_ 
-/// @param ub_score_ 
-/// @param vertex_entry 
+/// @param level_ 
+/// @param data_ 
+/// @param user_id 
 SynopsisNode::SynopsisNode(
     uint level_,
     std::shared_ptr<SynopsisData> data_[],

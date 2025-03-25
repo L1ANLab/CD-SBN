@@ -116,7 +116,7 @@ uint ContinuousHandle::ExecuteQuery(
         std::cout << "Delete some subgraphs" << std::endl;
     }
     Print_Time("Expire Recompute Community: ", expire_community_time);
-    Print_Time("Expire Refine Set: ", expire_refine_time);
+    // Print_Time("Expire Refine Set: ", expire_refine_time);
     stat->continuous_expired_recompute_community_time += expire_community_time;
     stat->continuous_expired_refine_time += expire_refine_time;
 
@@ -228,8 +228,8 @@ uint ContinuousHandle::ExecuteQuery(
     stat->continuous_inserted_compute_community_time += (insert_community_time)/THREADS_NUM;
     stat->continuous_inserted_refine_time += (insert_refine_time)/THREADS_NUM;
     Print_Time("Insert Recompute 2r-hop: ", insert_2r_hop_time);
-    Print_Time("Insert Recompute Community: ", insert_community_time);
-    Print_Time("Insert Refine Set: ", insert_refine_time);
+    // Print_Time("Insert Recompute Community: ", insert_community_time);
+    // Print_Time("Insert Refine Set: ", insert_refine_time);
     // std::cout << "[" << user_computed_counter << "] Computed User" << std::endl;
 
     // 5. refine the candidate set
