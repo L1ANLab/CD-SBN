@@ -310,6 +310,7 @@ int main(int argc, char *argv[])
         // Initialize the sliding window (from 0 to initial graph size)
         size_t start_idx = 0, end_idx = temp_graph->GetGraphTimestamp();
         std::vector<InsertUnit> update_stream = temp_graph->GetUpdateStream();
+        end_idx++;
         while (end_idx < update_stream.size())
         {
             continuous_turn_start = Get_Time();
@@ -318,7 +319,7 @@ int main(int argc, char *argv[])
             uint insert_edge_item_id = UINT_MAX;
             std::vector<uint> insert_related_user_list(0);
             uint isInserted = 0;
-            if (end_idx < update_stream.size())
+            if (end_idx <= update_stream.size())
             {
                 insert_edge_user_id = update_stream[end_idx].user_id;
                 insert_edge_item_id = update_stream[end_idx].item_id;
@@ -331,7 +332,7 @@ int main(int argc, char *argv[])
                     insert_edge_item_id
                 );
                 statistic->continuous_edge_maintain_time += Duration(edge_maintain_start);
-                // Print_Time_Now("[Insert] in ",  edge_maintain_start);
+                // Print_Time_Now("[Insert Edge] in ",  edge_maintain_start);
                 // (2) maintain grpah
                 graph_maintain_start = Get_Time();
                 insert_related_user_list = temp_graph->MaintainAfterInsertion(
@@ -340,8 +341,8 @@ int main(int argc, char *argv[])
                     isInserted
                 );
                 statistic->continuous_graph_maintain_time += Duration(graph_maintain_start);
+                // Print_Time_Now("[Insertion Maintain] in ",  graph_maintain_start);
             }
-            // Print_Time_Now("[Maintain] in ",  graph_maintain_start);
             // 4.2.2. Expiration maintanance
             uint expire_edge_user_id = UINT_MAX;
             uint expire_edge_item_id = UINT_MAX;
@@ -359,7 +360,7 @@ int main(int argc, char *argv[])
                     update_stream[start_idx].item_id
                 );
                 statistic->continuous_graph_maintain_time += Duration(graph_maintain_start);
-                // Print_Time_Now("[Maintain] in ",  graph_maintain_start);
+                // Print_Time_Now("[Expiration Maintain] in ",  graph_maintain_start);
                 // (2) expire edge
                 edge_maintain_start = Get_Time();
                 isRemoved = temp_graph->ExpireEdge(
@@ -367,6 +368,7 @@ int main(int argc, char *argv[])
                     update_stream[start_idx].item_id
                 );
                 statistic->continuous_edge_maintain_time += Duration(edge_maintain_start);
+                // Print_Time_Now("[Expire Edge] in ",  edge_maintain_start);
 
                 // 4.3. find the answer for the continuous query
                 continuous_query->ExecuteQuery(
@@ -381,6 +383,7 @@ int main(int argc, char *argv[])
                 Print_Time_Now("Continuous Turn Time: ", continuous_turn_start);
                 std::cout << "Continuous Result: [" << result_list.size() << "]" << " at " << update_stream[end_idx].timestamp << std::endl;
                 Print_Time("Average Continuous Turn Time: ", statistic->average_continuous_query_time);
+                std::cout << std::endl;
                 start_idx += 1;
             }
             // move to next edge
