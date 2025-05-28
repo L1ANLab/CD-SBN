@@ -119,12 +119,15 @@ uint SnapshotHandle::ExecuteQuery(Statistic* stat, std::vector<InducedGraph*>& r
                                 std::chrono::high_resolution_clock::time_point compute_2r_hop_start_timestamp = Get_Time();
                                 uint center_user_id = current_node->GetUserSet().front();
                                 std::vector<uint> user_list, item_list;
-                                std::tie(user_list, item_list) = data_graph->Get2rHopOfUserByBV(
+                                std::vector<std::pair<uint, uint>> edge_list;
+                                std::tie(user_list, item_list, edge_list) = data_graph->Get2rHopOfUserByBV(
                                     center_user_id,
                                     query_radius,
                                     query_BV
                                 );
-                                std::unique_ptr<InducedGraph> r_hop_subgraph(new InducedGraph(*data_graph, user_list, item_list));
+                                std::unique_ptr<InducedGraph> r_hop_subgraph(
+                                    new InducedGraph(*data_graph, user_list, item_list, edge_list, {})
+                                );
                                 
                                 stat->snapshot_compute_2r_hop_time += Duration(compute_2r_hop_start_timestamp);
                                 // vertex_pruning_counter += 1;

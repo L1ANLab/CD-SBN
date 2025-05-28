@@ -81,7 +81,7 @@ public:
     const UserData *GetNeighborUserData(uint user_id, uint n_user_id) const;
     size_t InsertNeighborUserData(uint user_id, uint n_user_id, uint item_id);
     std::tuple<std::vector<uint>, std::vector<uint>> Get2rHopOfUser(uint center_user_id, uint r);
-    std::tuple<std::vector<uint>, std::vector<uint>> Get2rHopOfUserByBV(
+    std::tuple<std::vector<uint>, std::vector<uint>, std::vector<std::pair<uint, uint>>>Get2rHopOfUserByBV(
         uint center_user_id,
         uint r,
         const std::shared_ptr<std::bitset<MAX_LABEL>> &bv);

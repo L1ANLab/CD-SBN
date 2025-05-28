@@ -160,20 +160,21 @@ std::vector<uint> Graph::MaintainAfterInsertion(uint user_id, uint item_id, uint
         // 1.1. make sure new user neighbor has data
         size_t n_user_data_index = InsertNeighborUserData(user_id, n_user_id, item_id);
         size_t user_data_index = InsertNeighborUserData(n_user_id, user_id, item_id);
-        uint wedge_score = GetEdgeData(n_user_id, item_id)->weight;
-        if (inserted_edge->weight <= wedge_score)
+        uint old_wedge_score = GetEdgeData(n_user_id, item_id)->weight;
+        if (inserted_edge->weight <= old_wedge_score)
         {
             uint lambda = 1;
-            wedge_score = inserted_edge->weight - 1;
+            old_wedge_score = inserted_edge->weight - 1;
 
             // 1.2. apply the increment
             user_neighbor_datas[user_id][n_user_data_index]->x_data += lambda;
-            user_neighbor_datas[user_id][n_user_data_index]->y_data += (2*lambda*wedge_score+lambda*lambda);
+            user_neighbor_datas[user_id][n_user_data_index]->y_data += (2*lambda*old_wedge_score+lambda*lambda);
         
             user_neighbor_datas[n_user_id][user_data_index]->x_data += lambda;
-            user_neighbor_datas[n_user_id][user_data_index]->y_data += (2*lambda*wedge_score+lambda*lambda);
+            user_neighbor_datas[n_user_id][user_data_index]->y_data += (2*lambda*old_wedge_score+lambda*lambda);
             
             // 1.3. apply the increment
+            uint new_wedge_score = old_wedge_score + 1;
             auto lower = std::lower_bound(
                 user_neighbor_datas[user_id][n_user_data_index]->wedge_item_list.begin(),
                 user_neighbor_datas[user_id][n_user_data_index]->wedge_item_list.end(),
@@ -183,15 +184,18 @@ std::vector<uint> Graph::MaintainAfterInsertion(uint user_id, uint item_id, uint
             // if 
             if (lower != user_neighbor_datas[user_id][n_user_data_index]->wedge_item_list.end() && *lower == item_id)
             {
-                user_neighbor_datas[user_id][n_user_data_index]->wedge_score_list[dis] = wedge_score;
-                user_neighbor_datas[n_user_id][user_data_index]->wedge_score_list[dis] = wedge_score;
+                user_neighbor_datas[user_id][n_user_data_index]->wedge_score_list[dis] = new_wedge_score;
+                user_neighbor_datas[n_user_id][user_data_index]->wedge_score_list[dis] = new_wedge_score;
             }
             else
             {
-                user_neighbor_datas[user_id][n_user_data_index]->wedge_item_list.emplace(lower, item_id);
+                user_neighbor_datas[user_id][n_user_data_index]->wedge_item_list.emplace(
+                    user_neighbor_datas[user_id][n_user_data_index]->wedge_item_list.begin() + dis,
+                    item_id
+                );
                 user_neighbor_datas[user_id][n_user_data_index]->wedge_score_list.emplace(
                     user_neighbor_datas[user_id][n_user_data_index]->wedge_score_list.begin() + dis,
-                    wedge_score
+                    new_wedge_score
                 );
 
                 user_neighbor_datas[n_user_id][user_data_index]->wedge_item_list.emplace(
@@ -200,7 +204,7 @@ std::vector<uint> Graph::MaintainAfterInsertion(uint user_id, uint item_id, uint
                 );
                 user_neighbor_datas[n_user_id][user_data_index]->wedge_score_list.emplace(
                     user_neighbor_datas[n_user_id][user_data_index]->wedge_score_list.begin() + dis,
-                    wedge_score
+                    new_wedge_score
                 );
             }
 
@@ -368,22 +372,23 @@ void Graph::MaintainBeforeExpiration(uint user_id, uint item_id)
         // 1.1. make sure new user neighbor has data
         size_t n_user_data_index = InsertNeighborUserData(user_id, n_user_id, item_id);
         size_t user_data_index = InsertNeighborUserData(n_user_id, user_id, item_id);
-        uint wedge_score = GetEdgeData(n_user_id, item_id)->weight;
-        if (expired_edge->weight - 1 < wedge_score)
+        uint old_wedge_score = GetEdgeData(n_user_id, item_id)->weight;
+        if (expired_edge->weight - 1 < old_wedge_score)
         {
             uint lambda = 1;
-            wedge_score = expired_edge->weight - 1;
+            old_wedge_score = expired_edge->weight; // use the wedge score before expired
 
             // 1.2. apply the increment
             user_neighbor_datas[user_id][n_user_data_index]->x_data -= lambda;
-            user_neighbor_datas[user_id][n_user_data_index]->y_data -= (2*lambda*wedge_score+lambda*lambda);
+            user_neighbor_datas[user_id][n_user_data_index]->y_data -= (2*lambda*old_wedge_score-lambda*lambda);
             // user_neighbor_datas[user_id][n_user_data_index]->wedge_item_list.remove(item_id);
 
             user_neighbor_datas[n_user_id][user_data_index]->x_data -= lambda;
-            user_neighbor_datas[n_user_id][user_data_index]->y_data -= (2*lambda*wedge_score+lambda*lambda);
+            user_neighbor_datas[n_user_id][user_data_index]->y_data -= (2*lambda*old_wedge_score-lambda*lambda);
             // user_neighbor_datas[user_id][n_user_data_index]->wedge_item_list.remove(item_id);
 
             // 1.3. update the wedge score
+            uint wedge_score = old_wedge_score - 1;
             auto lower = std::lower_bound(
                 user_neighbor_datas[user_id][n_user_data_index]->wedge_item_list.begin(),
                 user_neighbor_datas[user_id][n_user_data_index]->wedge_item_list.end(),
@@ -714,65 +719,122 @@ std::tuple<std::vector<uint>, std::vector<uint>>  Graph::Get2rHopOfUser(uint cen
     return {user_map_, item_map_};
 }
 
-std::tuple<std::vector<uint>, std::vector<uint>>  Graph::Get2rHopOfUserByBV(
+std::tuple<std::vector<uint>, std::vector<uint>, std::vector<std::pair<uint, uint>>>  Graph::Get2rHopOfUserByBV(
     uint center_user_id,
     uint r,
     const std::shared_ptr<std::bitset<MAX_LABEL>>& bv
 )
 {
-    std::queue<uint> to_visit_users;
+    std::set<uint> to_visit_users;
     std::set<uint> visited_users;
     // std::set<uint> qualified_user_set;
-    std::queue<uint> to_visit_items;
+    std::set<uint> to_visit_items;
     std::set<uint> visited_items;
     // std::set<uint> qualified_item_set;
+    // std::vector<std::vector<UserData *>> local_user_neighbor_data(center_user_id+1);
+    
+    std::set<std::pair<uint, uint>> edge_set;
 
     to_visit_users.emplace(center_user_id);
     for (uint i=0;i < r; i++)
     {
-        while (!to_visit_users.empty())
+        for (uint visit_user: to_visit_users)
         {
-            uint visit_user = to_visit_users.front();
-            to_visit_users.pop();
-            for (size_t j = 0; j < user_neighbors[visit_user].size(); j++)
+            for (uint item_neighbor: user_neighbors[visit_user])
             {
-                if (visited_items.find(user_neighbors[visit_user][j]) != visited_items.end()) continue;
-                if ((*bv & *(this->GetItemBv(user_neighbors[visit_user][j]))).none()) continue;
-                to_visit_items.push(user_neighbors[visit_user][j]);
-                visited_items.emplace(user_neighbors[visit_user][j]);
+                // (1) filtering by bv
+                if ((*bv & *(this->GetItemBv(item_neighbor))).none()) continue;
+                // (2) add edge if not an item on the upper traversal 
+                if (visited_items.find(item_neighbor) != visited_items.end()) continue;
+                edge_set.emplace(visit_user, item_neighbor);
+                to_visit_items.emplace(item_neighbor);
             }
             visited_users.emplace(visit_user);
         }
 
-        while (!to_visit_items.empty())
+        for (uint visit_item: to_visit_items)
         {
-            uint visit_item = to_visit_items.front();
-            to_visit_items.pop();            
             for (size_t j = 0; j < item_neighbors[visit_item].size(); j++)
             {
-                if (visited_users.find(item_neighbors[visit_item][j]) != visited_users.end()) continue;
+                // (1) filtering by bv
                 if ((*bv & *(this->GetUserBv(item_neighbors[visit_item][j]))).none()) continue;
-                to_visit_users.push(item_neighbors[visit_item][j]);
-                visited_users.emplace(item_neighbors[visit_item][j]);
+                // // (2) compute the score between each pair of user neighbors
+                // for (size_t k = j+1; k < item_neighbors[visit_item].size(); k++)
+                // {
+                //     uint wedge_score = std::min(
+                //         GetEdgeData(item_neighbors[visit_item][j], visit_item)->weight,
+                //         GetEdgeData(item_neighbors[visit_item][k], visit_item)->weight
+                //     );
+                //     if (local_user_neighbor_data.size() <= item_neighbors[visit_item][j])
+                //     {
+                //         local_user_neighbor_data.resize(item_neighbors[visit_item][j] + 1);
+                //         local_user_neighbor_data[item_neighbors[visit_item][j]].emplace_back(
+                //             new UserData(
+                //                 item_neighbors[visit_item][k],
+                //                 0,
+                //                 0,
+                //                 std::vector<uint>{visit_item},
+                //                 std::vector<uint>{wedge_score}
+                //             )
+                //         );
+                //     }
+                        
+                // }
+                // (3) add edge if not a user on the upper traversal
+                if (visited_users.find(item_neighbors[visit_item][j]) != visited_users.end()) continue;
+                edge_set.emplace(item_neighbors[visit_item][j], visit_item);
+                to_visit_users.emplace(item_neighbors[visit_item][j]);
+
             }
+
             visited_items.emplace(visit_item);
         }
+        // while (!to_visit_users.empty())
+        // {
+        //     uint visit_user = to_visit_users.front();
+        //     to_visit_users.pop();
+        //     for (size_t j = 0; j < user_neighbors[visit_user].size(); j++)
+        //     {
+        //         // (1) filtering by bv
+        //         if ((*bv & *(this->GetItemBv(user_neighbors[visit_user][j]))).none()) continue;
+        //         // (2) add edge
+        //         edge_lists.emplace_back(visit_user, user_neighbors[visit_user][j]);
+        //         if (visited_items.find(user_neighbors[visit_user][j]) != visited_items.end()) continue;
+        //         to_visit_items.push(user_neighbors[visit_user][j]);
+        //         visited_items.emplace(user_neighbors[visit_user][j]);
+        //     }
+        //     visited_users.emplace(visit_user);
+        // }
+
+        // while (!to_visit_items.empty())
+        // {
+        //     uint visit_item = to_visit_items.front();
+        //     to_visit_items.pop();            
+        //     for (size_t j = 0; j < item_neighbors[visit_item].size(); j++)
+        //     {
+        //         if ((*bv & *(this->GetUserBv(item_neighbors[visit_item][j]))).none()) continue;
+        //         // (2) add edge
+        //         edge_lists.emplace_back(item_neighbors[visit_item][j], visit_item);
+        //         if (visited_users.find(item_neighbors[visit_item][j]) != visited_users.end()) continue;
+        //         to_visit_users.push(item_neighbors[visit_item][j]);
+        //         visited_users.emplace(item_neighbors[visit_item][j]);
+        //     }
+        //     visited_items.emplace(visit_item);
+        // }
     }
-    while (!to_visit_users.empty())
-    {
-        uint visit_user = to_visit_users.front();
-        to_visit_users.pop();
-        if ((*bv & *(this->GetUserBv(visit_user))).any()) continue;
+
+    for (uint visit_user: to_visit_users)
         visited_users.emplace(visit_user);
-    }
 
 
     std::vector<uint> user_map_;
     user_map_.assign(visited_users.begin(), visited_users.end());
     std::vector<uint> item_map_;
     item_map_.assign(visited_items.begin(), visited_items.end());
+    std::vector<std::pair<uint, uint>> edge_list(0);
+    edge_list.assign(edge_set.begin(), edge_set.end());
 
-    return {user_map_, item_map_};
+    return {user_map_, item_map_, edge_list};
 }
 
 std::vector<InsertUnit> Graph::GetUpdateStream() const { return this->updates_; }
