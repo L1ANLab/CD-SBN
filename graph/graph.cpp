@@ -14,8 +14,8 @@
 Graph::Graph()
 : graph_timestamp(0)
 , user_neighbors{}
-, user_bvs(1)
-, user_ub_sups{}
+// , user_bvs(1)
+// , user_ub_sups{}
 , user_neighbor_datas{}
 , label_size(0)
 , item_neighbors{}
@@ -24,7 +24,7 @@ Graph::Graph()
 , edges_{}
 , updates_{}
 {
-    user_bvs[0].reset(new std::bitset<MAX_LABEL>(0));
+    // user_bvs[0].reset(new std::bitset<MAX_LABEL>(0));
 }
 
 Graph::Graph(const Graph& g)
@@ -35,9 +35,9 @@ Graph::Graph(const Graph& g)
     {
         user_neighbors[i] = g.user_neighbors[i];
     }
-    user_bvs.resize(g.user_bvs.size());
-    user_bvs = g.user_bvs;
-    user_ub_sups = g.user_ub_sups;
+    // user_bvs.resize(g.user_bvs.size());
+    // user_bvs = g.user_bvs;
+    // user_ub_sups = g.user_ub_sups;
 
     user_neighbor_datas.resize(g.user_neighbor_datas.size());
     for (uint i=0;i<user_neighbor_datas.size();i++)
@@ -121,13 +121,13 @@ void Graph::AddUserVertex(uint user_id)
     {
         user_neighbors.resize(user_id + 1);
         edges_.resize(user_id + 1);
-        user_bvs.resize(user_id + 1);
-        user_ub_sups.resize(user_id + 1);
+        // user_bvs.resize(user_id + 1);
+        // user_ub_sups.resize(user_id + 1);
         user_neighbor_datas.resize(user_id + 1);
     }
-    for (uint idx = 0;idx< user_bvs.size();idx++)
-        if (user_bvs[idx] == nullptr)
-            user_bvs[idx].reset(new std::bitset<MAX_LABEL>(0));
+    // for (uint idx = 0;idx< user_bvs.size();idx++)
+    //     if (user_bvs[idx] == nullptr)
+    //         user_bvs[idx].reset(new std::bitset<MAX_LABEL>(0));
 }
 
 /// @brief add a new item vertex into graph
@@ -220,7 +220,7 @@ std::vector<uint> Graph::MaintainAfterInsertion(uint user_id, uint item_id, uint
             item_bvs.size() <= item_id,
             "Item Entity Error: No such item BV."
         );
-        *user_bvs[user_id] |= *item_bvs[item_id];
+        // *user_bvs[user_id] |= *item_bvs[item_id];
         
         // 2.2. re-compute the support 
         for(size_t i = 0;i < item_neighbors[item_id].size();i++)
@@ -293,7 +293,7 @@ std::vector<uint> Graph::MaintainBVAfterInsertion(uint user_id, uint item_id, ui
             item_bvs.size() <= item_id,
             "Item Entity Error: No such item BV."
         );
-        *user_bvs[user_id] |= *item_bvs[item_id];
+        // *user_bvs[user_id] |= *item_bvs[item_id];
         
         // 2.2. re-compute the support 
         for(size_t i = 0;i < item_neighbors[item_id].size();i++)
@@ -429,12 +429,12 @@ void Graph::MaintainBeforeExpiration(uint user_id, uint item_id)
             item_bvs.size() <= item_id,
             "Item Entity Error: No such item BV."
         );
-        user_bvs[user_id]->reset();
-        for (uint n_item_id : user_neighbors[user_id])
-        {
-            if (n_item_id == item_id) continue;
-            (*user_bvs[user_id]) |= (*item_bvs[n_item_id]);
-        }
+        // user_bvs[user_id]->reset();
+        // for (uint n_item_id : user_neighbors[user_id])
+        // {
+        //     if (n_item_id == item_id) continue;
+        //     (*user_bvs[user_id]) |= (*item_bvs[n_item_id]);
+        // }
         
         // 2.2. re-compute the support 
         expired_edge->ub_sup = 0;
@@ -488,12 +488,12 @@ void Graph::MaintainBVBeforeExpiration(uint user_id, uint item_id)
             item_bvs.size() <= item_id,
             "Item Entity Error: No such item BV."
         );
-        user_bvs[user_id]->reset();
-        for (uint n_item_id : user_neighbors[user_id])
-        {
-            if (n_item_id == item_id) continue;
-            (*user_bvs[user_id]) |= (*item_bvs[n_item_id]);
-        }
+        // user_bvs[user_id]->reset();
+        // for (uint n_item_id : user_neighbors[user_id])
+        // {
+        //     if (n_item_id == item_id) continue;
+        //     (*user_bvs[user_id]) |= (*item_bvs[n_item_id]);
+        // }
     }
 }
 
@@ -565,10 +565,10 @@ uint Graph::GetUserDegree(uint user_id) const
     return user_neighbors[user_id].size();
 }
 
-const std::shared_ptr<std::bitset<MAX_LABEL>>& Graph::GetUserBv(uint user_id) const
-{
-    return user_bvs[user_id];
-}
+// const std::shared_ptr<std::bitset<MAX_LABEL>>& Graph::GetUserBv(uint user_id) const
+// {
+//     return user_bvs[user_id];
+// }
 const std::shared_ptr<std::bitset<MAX_LABEL>>& Graph::GetItemBv(uint item_id) const
 {
     return item_bvs[item_id];
@@ -735,96 +735,61 @@ std::tuple<std::vector<uint>, std::vector<uint>, std::vector<std::pair<uint, uin
     
     std::set<std::pair<uint, uint>> edge_set;
 
-    to_visit_users.emplace(center_user_id);
+    // 1. check whether the center user has a related 
+    bool HasRelatedItem = false;
+    for (uint center_user_neighbored_item: user_neighbors[center_user_id])
+    {
+        // (1) filtering by bv
+        if ((*bv & *(this->GetItemBv(center_user_neighbored_item))).any())
+        {
+            HasRelatedItem = true;
+            // (2) add edge if not an item visited in the upper traversal 
+            if (visited_items.find(center_user_neighbored_item) == visited_items.end())
+            {
+                edge_set.emplace(center_user_id, center_user_neighbored_item);
+                to_visit_items.emplace(center_user_neighbored_item);
+            }
+        }
+    }
+
+    // 1.1. return empty if the center user is irrelevant
+    if (!HasRelatedItem) return {std::vector<uint>(), std::vector<uint>(), std::vector<std::pair<uint, uint>>()};
+    else visited_users.emplace(center_user_id);
+
+
     for (uint i=0;i < r; i++)
     {
-        for (uint visit_user: to_visit_users)
-        {
-            for (uint item_neighbor: user_neighbors[visit_user])
-            {
-                // (1) filtering by bv
-                if ((*bv & *(this->GetItemBv(item_neighbor))).none()) continue;
-                // (2) add edge if not an item on the upper traversal 
-                if (visited_items.find(item_neighbor) != visited_items.end()) continue;
-                edge_set.emplace(visit_user, item_neighbor);
-                to_visit_items.emplace(item_neighbor);
-            }
-            visited_users.emplace(visit_user);
-        }
-
         for (uint visit_item: to_visit_items)
         {
             for (size_t j = 0; j < item_neighbors[visit_item].size(); j++)
             {
-                // (1) filtering by bv
-                if ((*bv & *(this->GetUserBv(item_neighbors[visit_item][j]))).none()) continue;
-                // // (2) compute the score between each pair of user neighbors
-                // for (size_t k = j+1; k < item_neighbors[visit_item].size(); k++)
-                // {
-                //     uint wedge_score = std::min(
-                //         GetEdgeData(item_neighbors[visit_item][j], visit_item)->weight,
-                //         GetEdgeData(item_neighbors[visit_item][k], visit_item)->weight
-                //     );
-                //     if (local_user_neighbor_data.size() <= item_neighbors[visit_item][j])
-                //     {
-                //         local_user_neighbor_data.resize(item_neighbors[visit_item][j] + 1);
-                //         local_user_neighbor_data[item_neighbors[visit_item][j]].emplace_back(
-                //             new UserData(
-                //                 item_neighbors[visit_item][k],
-                //                 0,
-                //                 0,
-                //                 std::vector<uint>{visit_item},
-                //                 std::vector<uint>{wedge_score}
-                //             )
-                //         );
-                //     }
-                        
-                // }
-                // (3) add edge if not a user on the upper traversal
+                // (1) add edge if not a user visited in the upper traversal 
                 if (visited_users.find(item_neighbors[visit_item][j]) != visited_users.end()) continue;
                 edge_set.emplace(item_neighbors[visit_item][j], visit_item);
                 to_visit_users.emplace(item_neighbors[visit_item][j]);
-
             }
 
             visited_items.emplace(visit_item);
         }
-        // while (!to_visit_users.empty())
-        // {
-        //     uint visit_user = to_visit_users.front();
-        //     to_visit_users.pop();
-        //     for (size_t j = 0; j < user_neighbors[visit_user].size(); j++)
-        //     {
-        //         // (1) filtering by bv
-        //         if ((*bv & *(this->GetItemBv(user_neighbors[visit_user][j]))).none()) continue;
-        //         // (2) add edge
-        //         edge_lists.emplace_back(visit_user, user_neighbors[visit_user][j]);
-        //         if (visited_items.find(user_neighbors[visit_user][j]) != visited_items.end()) continue;
-        //         to_visit_items.push(user_neighbors[visit_user][j]);
-        //         visited_items.emplace(user_neighbors[visit_user][j]);
-        //     }
-        //     visited_users.emplace(visit_user);
-        // }
 
-        // while (!to_visit_items.empty())
-        // {
-        //     uint visit_item = to_visit_items.front();
-        //     to_visit_items.pop();            
-        //     for (size_t j = 0; j < item_neighbors[visit_item].size(); j++)
-        //     {
-        //         if ((*bv & *(this->GetUserBv(item_neighbors[visit_item][j]))).none()) continue;
-        //         // (2) add edge
-        //         edge_lists.emplace_back(item_neighbors[visit_item][j], visit_item);
-        //         if (visited_users.find(item_neighbors[visit_item][j]) != visited_users.end()) continue;
-        //         to_visit_users.push(item_neighbors[visit_item][j]);
-        //         visited_users.emplace(item_neighbors[visit_item][j]);
-        //     }
-        //     visited_items.emplace(visit_item);
-        // }
+
+        for (uint visit_user: to_visit_users)
+        {
+            if (i < r-1)
+            {
+                for (uint item_neighbor: user_neighbors[visit_user])
+                {
+                    // (1) filtering by bv
+                    if ((*bv & *(this->GetItemBv(item_neighbor))).none()) continue;
+                    // (2) add edge if not an item visited in the upper traversal 
+                    if (visited_items.find(item_neighbor) != visited_items.end()) continue;
+                    edge_set.emplace(visit_user, item_neighbor);
+                    to_visit_items.emplace(item_neighbor);
+                }
+            }
+            visited_users.emplace(visit_user);
+        }
     }
-
-    for (uint visit_user: to_visit_users)
-        visited_users.emplace(visit_user);
 
 
     std::vector<uint> user_map_;

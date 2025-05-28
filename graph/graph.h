@@ -32,8 +32,8 @@ protected:
 
     // user
     std::vector<std::vector<uint>> user_neighbors;                 // Each item is a list of user neighbors
-    std::vector<std::shared_ptr<std::bitset<MAX_LABEL>>> user_bvs; // The list of support upper bound bu_sup for each user
-    std::vector<uint> user_ub_sups;                                // The list of support upper bound ub_sup for each user
+    // std::vector<std::shared_ptr<std::bitset<MAX_LABEL>>> user_bvs; // The list of support upper bound bu_sup for each user
+    // std::vector<uint> user_ub_sups;                                // The list of support upper bound ub_sup for each user
     std::vector<std::vector<UserData *>> user_neighbor_datas;      // The list of X and Y data for each user
 
     // item
@@ -74,7 +74,7 @@ public:
     const std::vector<uint> &GetUserNeighbors(uint user_id) const;
     const std::vector<uint> &GetItemNeighbors(uint item_id) const;
     uint GetUserDegree(uint v) const;
-    const std::shared_ptr<std::bitset<MAX_LABEL>> &GetUserBv(uint user_id) const;
+    // const std::shared_ptr<std::bitset<MAX_LABEL>> &GetUserBv(uint user_id) const;
     const std::shared_ptr<std::bitset<MAX_LABEL>> &GetItemBv(uint item_id) const;
     std::shared_ptr<EdgeData> GetEdgeData(uint user_id, uint item_id) const;
     const std::vector<UserData *> &GetNeighborUserData(uint user_id) const;

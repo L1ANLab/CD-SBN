@@ -275,7 +275,7 @@ bool Synopsis::UpdateSynopsisAfterInsertion(uint user_id, uint item_id, uint add
         InsertVertexEntry(user_id, node_pointer);
     }
 
-    const std::shared_ptr<std::bitset<MAX_LABEL>>& u_i_BV = graph->GetUserBv(user_id);
+    const std::shared_ptr<std::bitset<MAX_LABEL>>& v_i_BV = graph->GetItemBv(item_id);
     // 1. for all possible radii r
     for (uint r=0; r<R_MAX; r++)
     {
@@ -293,7 +293,7 @@ bool Synopsis::UpdateSynopsisAfterInsertion(uint user_id, uint item_id, uint add
                 if (addition_flag == 1)
                 {
                     // 3.1. compute BV_r
-                    std::shared_ptr<std::bitset<MAX_LABEL>> new_BV_r(new std::bitset<MAX_LABEL>(*(affected_node->GetBvR(r)) | *u_i_BV));
+                    std::shared_ptr<std::bitset<MAX_LABEL>> new_BV_r(new std::bitset<MAX_LABEL>(*(affected_node->GetBvR(r)) | *v_i_BV));
                     if (*(affected_node->GetBvR(r)) != *new_BV_r)
                     {
                         affected_node->SetBvR(new_BV_r, r);
@@ -377,8 +377,8 @@ bool Synopsis::UpdateSynopsisAfterInsertion(uint user_id, uint item_id, uint add
 bool Synopsis::UpdateSynopsisAfterExpiration(uint user_id, uint item_id, uint removal_flag, Graph* graph)
 {
     // EdgeData* inserted_edge = graph->GetEdgeData(user_id, item_id);
-    const std::vector<uint> item_v_a_neighbor_list = graph->GetItemNeighbors(item_id);
-    const std::vector<uint> user_u_x_neighbor_list = graph->GetUserNeighbors(user_id);
+    // const std::vector<uint> item_v_a_neighbor_list = graph->GetItemNeighbors(item_id);
+    // const std::vector<uint> user_u_x_neighbor_list = graph->GetUserNeighbors(user_id);
 
     // 0. insert the new user into synopsis node
     if (inv_list.size() <= user_id) inv_list.resize(user_id + 1);
@@ -411,9 +411,9 @@ bool Synopsis::UpdateSynopsisAfterExpiration(uint user_id, uint item_id, uint re
                     // 3.1. compute BV_r
                     // std::bitset<MAX_LABEL> new_BV_r;
                     std::shared_ptr<std::bitset<MAX_LABEL>> new_BV_r(new std::bitset<MAX_LABEL>(0));
-                    for(uint affect_hop_user_id: affected_user_2r_list)
+                    for(uint affect_hop_item_id: affected_item_2r_list)
                     {
-                        *new_BV_r |= *(graph->GetUserBv(affect_hop_user_id));
+                        *new_BV_r |= *(graph->GetItemBv(affect_hop_item_id));
                     }
                     if (*(affected_node->GetBvR(r)) != *new_BV_r)
                     {
@@ -492,9 +492,9 @@ SynopsisNode* Synopsis::CreateVertexEntry(uint user_id, Graph* graph)
         if (user_list.size() == 0) continue;
         // 0.1. compute BV_r
         std::shared_ptr<std::bitset<MAX_LABEL>> bv_r_(new std::bitset<MAX_LABEL>(0));
-        for(uint hop_user_id: user_list)
+        for(uint hop_item_id: item_list)
         {
-            *bv_r_ = *bv_r_ | *(graph->GetUserBv(hop_user_id));
+            *bv_r_ = *bv_r_ | *(graph->GetItemBv(hop_item_id));
         }
         // 0.2. compute ub_sup_M
         uint ub_sup_M_ = 0;

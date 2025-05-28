@@ -64,7 +64,17 @@ uint ContinuousHandle::ExecuteQuery(
             // (1) recompute k-bitruss if edge is removed
             if (isRemoved > 0)
             {
-                if ((*(this->query_BV) & *(data_graph->GetUserBv(expire_edge_user_id))).none())
+                bool HasRelatedItem = false;
+                for (uint center_user_neighbored_item: this->data_graph->GetUserNeighbors(expire_edge_user_id))
+                {
+                    // check whether the expire user has another related item.
+                    if ((*(this->query_BV) & *(this->data_graph->GetItemBv(center_user_neighbored_item))).any())
+                    {
+                        HasRelatedItem = true;
+                    }
+                }
+
+                if (!HasRelatedItem)
                 { // unqualified user so remove all edges
                     auto remove_iter = std::remove_if(
                         result_list[idx]->e_lists.begin(),
