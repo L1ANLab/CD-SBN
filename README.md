@@ -105,11 +105,11 @@ build/cdsbn <-c> -i <initial-graph-path> -l <item-label-list-path> -u <update-st
 For example,
 
 ```bash
-build/cdsbn -i dataset/realworld/BS/initial_graph.txt -l dataset/realworld/BS/label_list.txt -u dataset/realworld/BS/update_stream.txt -q dataset/realworld/BS/query_keywords_list-5.txt -t 599996400 -w 100 -k 4 -r 2 -s 2
+build/cdsbn -i dataset/test/initial_graph.txt -l dataset/test/label_list.txt -u dataset/test/update_stream.txt -q dataset/test/query_keywords_list-5.txt -t 599996400 -w 100 -k 4 -r 2 -s 2
 
-build/cdsbn -i dataset/realworld/BS/initial_graph.txt -l dataset/realworld/BS/label_list.txt -u dataset/realworld/BS/update_stream.txt -q dataset/realworld/BS/query_keywords_list-10.txt -t 599996400 -w 100 -k 4 -r 2 -s 2
+build/cdsbn -i dataset/test/initial_graph.txt -l dataset/test/label_list.txt -u dataset/test/update_stream.txt -q dataset/test/query_keywords_list-10.txt -t 599996400 -w 100 -k 4 -r 2 -s 2
 
-build/cdsbn -i dataset/realworld/BS/initial_graph.txt -l dataset/realworld/BS/label_list.txt -u dataset/realworld/BS/update_stream.txt -q dataset/realworld/BS/query_keywords_list-20.txt -t 599996400 -w 100 -k 4 -r 2 -s 2
+build/cdsbn -i dataset/test/initial_graph.txt -l dataset/test/label_list.txt -u dataset/test/update_stream.txt -q dataset/test/query_keywords_list-20.txt -t 599996400 -w 100 -k 4 -r 2 -s 2
 ```
 
 ## 5. Performance test
@@ -117,7 +117,7 @@ build/cdsbn -i dataset/realworld/BS/initial_graph.txt -l dataset/realworld/BS/la
 ```bash
 gprof -b -p -q build/cdsbn gmon.out > report.txt
 
-valgrind --log-file=valReport --leak-check=full --show-reachable=yes --leak-resolution=low build/cdsbn -i dataset/realworld/BS/initial_graph.txt -l dataset/realworld/BS/label_list.txt -u dataset/realworld/BS/update_stream.txt -q dataset/realworld/BS/query_keywords_list-1.txt -t 0 -w 100 -k 4 -r 2 -s 2
+valgrind --log-file=valReport --leak-check=full --show-reachable=yes --leak-resolution=low build/cdsbn -i dataset/test/initial_graph.txt -l dataset/test/label_list.txt -u dataset/test/update_stream.txt -q dataset/test/query_keywords_list-5.txt -t 0 -w 13 -k 4 -r 2 -s 3
 
 ```
 
