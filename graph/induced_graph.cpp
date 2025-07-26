@@ -77,34 +77,6 @@ InducedGraph::InducedGraph(InducedGraph& g1, InducedGraph& g2, bool is_union)
     }
 }
 
-// InducedGraph::InducedGraph(
-//     const Graph& g,
-//     std::vector<uint> user_map_,
-//     std::vector<uint> item_map_,
-//     std::vector<std::pair<uint, uint>> e_lists_,
-//     std::vector<std::vector<WedgeData *>> user_neighbor_datas_
-// ): graph(g)
-// , user_map(user_map_)
-// , item_map(item_map_)
-// , e_lists(e_lists_)
-// , user_neighbor_datas{}
-// {
-//     // for(uint user: user_map_)
-//     // {
-//     //     std::vector<uint> user_neighbors = g.GetUserNeighbors(user);
-//     //     for (uint neighbor_item: user_neighbors)
-//     //     {
-//     //         if (std::binary_search(item_map_.begin(), item_map_.end(), neighbor_item))
-//     //         {
-//     //             e_lists.push_back(std::pair(user, neighbor_item));
-//     //         }
-//     //     }
-//     //     e_lists.resize(e_lists.size());
-//     // }
-// }
-
-
-
 InducedGraph::InducedGraph(
     const Graph& g,
     std::vector<uint> user_map_,
@@ -117,50 +89,78 @@ InducedGraph::InducedGraph(
 , e_lists(e_lists_)
 , user_neighbor_datas{}
 {
-    // 0. initialize the edge list set and neighbor data
-    user_neighbor_datas.resize(user_map_.back()+1);
-    // 1. find the item neighbors (1-hop) and user neighbors (2-hop) for each subgraph user
-    // uint count = 0;
-    for(uint user: user_map_)
-    {
-        std::vector<UserData*> user_data = g.GetNeighborUserData(user);
-
-        for (UserData* user_data_p : user_data)
-        {
-            if (user >= user_data_p->user_id) continue; // avoid double counting
-            if (std::binary_search(user_map_.begin(), user_map_.end(), user_data_p->user_id))
-            {
-                // 3. if the 2-hop user neighbor in the whole graph is also in the subgraph
-                std::vector<uint> common_wedge_item_list(0);
-
-                // 3.1. find the common items between the user and the 2-hop user
-                common_wedge_item_list.resize(
-                    item_map_.size() +
-                    user_data_p->wedge_score_list.size()
-                );
-                std::vector<uint>::iterator it = std::set_intersection(
-                    item_map_.begin(),
-                    item_map_.end(),
-                    user_data_p->wedge_score_list.begin(),
-                    user_data_p->wedge_score_list.end(),
-                    common_wedge_item_list.begin()
-                );
-                common_wedge_item_list.resize(it - common_wedge_item_list.begin());
-
-                if (common_wedge_item_list.size() < 1) continue;
-                // if (common_wedge_item_list.size() >= 2) count += (common_wedge_item_list.size()-1);
-                // 3.2. create a new UserData object and add it
-                user_neighbor_datas[user].emplace_back(
-                    new WedgeData(
-                        user_data_p->user_id,
-                        common_wedge_item_list
-                    )
-                );
-            }
-        }
-    }
-    // std::cout << "Support Count: " << count << std::endl;
+    // for(uint user: user_map_)
+    // {
+    //     std::vector<uint> user_neighbors = g.GetUserNeighbors(user);
+    //     for (uint neighbor_item: user_neighbors)
+    //     {
+    //         if (std::binary_search(item_map_.begin(), item_map_.end(), neighbor_item))
+    //         {
+    //             e_lists.push_back(std::pair(user, neighbor_item));
+    //         }
+    //     }
+    //     e_lists.resize(e_lists.size());
+    // }
 }
+
+
+
+// InducedGraph::InducedGraph(
+//     const Graph& g,
+//     std::vector<uint> user_map_,
+//     std::vector<uint> item_map_,
+//     std::vector<std::pair<uint, uint>> e_lists_,
+//     std::vector<std::vector<WedgeData *>> user_neighbor_datas_
+// ): graph(g)
+// , user_map(user_map_)
+// , item_map(item_map_)
+// , e_lists(e_lists_)
+// , user_neighbor_datas{}
+// {
+//     // 0. initialize the edge list set and neighbor data
+//     user_neighbor_datas.resize(user_map_.back()+1);
+//     // 1. find the item neighbors (1-hop) and user neighbors (2-hop) for each subgraph user
+//     // uint count = 0;
+//     for(uint user: user_map_)
+//     {
+//         std::vector<UserData*> user_data = g.GetNeighborUserData(user);
+
+//         for (UserData* user_data_p : user_data)
+//         {
+//             if (user >= user_data_p->user_id) continue; // avoid double counting
+//             if (std::binary_search(user_map_.begin(), user_map_.end(), user_data_p->user_id))
+//             {
+//                 // 3. if the 2-hop user neighbor in the whole graph is also in the subgraph
+//                 std::vector<uint> common_wedge_item_list(0);
+
+//                 // 3.1. find the common items between the user and the 2-hop user
+//                 common_wedge_item_list.resize(
+//                     item_map_.size() +
+//                     user_data_p->wedge_score_list.size()
+//                 );
+//                 std::vector<uint>::iterator it = std::set_intersection(
+//                     item_map_.begin(),
+//                     item_map_.end(),
+//                     user_data_p->wedge_score_list.begin(),
+//                     user_data_p->wedge_score_list.end(),
+//                     common_wedge_item_list.begin()
+//                 );
+//                 common_wedge_item_list.resize(it - common_wedge_item_list.begin());
+
+//                 if (common_wedge_item_list.size() < 1) continue;
+//                 // if (common_wedge_item_list.size() >= 2) count += (common_wedge_item_list.size()-1);
+//                 // 3.2. create a new UserData object and add it
+//                 user_neighbor_datas[user].emplace_back(
+//                     new WedgeData(
+//                         user_data_p->user_id,
+//                         common_wedge_item_list
+//                     )
+//                 );
+//             }
+//         }
+//     }
+//     // std::cout << "Support Count: " << count << std::endl;
+// }
 
 InducedGraph::InducedGraph(
     const Graph& g,
@@ -672,7 +672,7 @@ InducedGraph* InducedGraph::ComputeKRSigmaBitrussSimple(uint k, uint sigma, floa
     // std::cout << "Support Count: " << count << std::endl;
 
     float compute_time = Duration(start);
-    Print_Time("Score Compute: ", compute_time);
+    // Print_Time("Score Compute: ", compute_time);
     data_compute_time += compute_time;
 
 
@@ -757,6 +757,8 @@ InducedGraph* InducedGraph::ComputeKRSigmaBitrussSimple(uint k, uint sigma, floa
             if (new_edge_list[user][item_idx].second == 0)
                 continue;
             uint item = new_edge_list[user][item_idx].first;
+
+            // std::cout << "Edge(" << user << "," << item << ")" << " got " << new_edge_list[user][item_idx].second << std::endl;
             // (2) find butterflies containing drop_edge
             for (size_t i = 0; i< new_edge_list[user].size(); i++)
             {
@@ -890,7 +892,7 @@ InducedGraph* InducedGraph::ComputeKRSigmaBitrussSimple(uint k, uint sigma, floa
 
     }
     float filter_time = Duration(start);
-    Print_Time("Edge Filter: ", filter_time);
+    // Print_Time("Edge Filter: ", filter_time);
     edge_filter_time += filter_time;
 
     std::set<uint> user_set;
@@ -1085,7 +1087,7 @@ InducedGraph* InducedGraph::ComputeKRSigmaBitruss(uint k, uint sigma, float& dat
     // std::cout << "Support Count: " << count << std::endl;
 
     float compute_time = Duration(start);
-    Print_Time("Score Compute: ", compute_time);
+    // Print_Time("Score Compute: ", compute_time);
     data_compute_time += compute_time;
 
     // 2. compute the (k,r,sigma)-bitruss
@@ -1314,7 +1316,7 @@ InducedGraph* InducedGraph::ComputeKRSigmaBitruss(uint k, uint sigma, float& dat
 
     }
     float filter_time = Duration(start);
-    Print_Time("Edge Filter: ", filter_time);
+    // Print_Time("Edge Filter: ", filter_time);
     edge_filter_time += filter_time;
 
 

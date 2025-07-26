@@ -753,7 +753,7 @@ std::tuple<std::vector<uint>, std::vector<uint>, std::vector<std::pair<uint, uin
     }
 
     // 1.1. return empty if the center user is irrelevant
-    if (!HasRelatedItem) return {std::vector<uint>(), std::vector<uint>(), std::vector<std::pair<uint, uint>>()};
+    if (!HasRelatedItem) return {std::vector<uint>{center_user_id}, std::vector<uint>(), std::vector<std::pair<uint, uint>>()};
     else visited_users.emplace(center_user_id);
 
 

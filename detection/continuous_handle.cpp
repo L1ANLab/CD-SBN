@@ -158,7 +158,7 @@ uint ContinuousHandle::ExecuteQuery(
     );
     Print_Time_Now("Create New Induced Subgraph Time: ", influenced_subgraph_start_timestamp);
     std::unique_ptr<InducedGraph> influenced_k_r_sigma_bitruss_subgraph(
-        influenced_subgraph->ComputeKRSigmaBitruss(
+        influenced_subgraph->ComputeKRSigmaBitrussSimple(
             query_support_threshold,
             query_score_threshold,
             stat->continuous_inserted_compute_data_time,
@@ -232,7 +232,7 @@ uint ContinuousHandle::ExecuteQuery(
         // 4.3. compute the (k,r,σ)-bitruss
         inserted_compute_community_start_timestamp = Get_Time();
         std::unique_ptr<InducedGraph> k_r_sigma_bitruss_subgraph(
-            r_hop_subgraph->ComputeKRSigmaBitruss(
+            r_hop_subgraph->ComputeKRSigmaBitrussSimple(
                 query_support_threshold,
                 query_score_threshold,
                 stat->continuous_inserted_compute_data_time,
