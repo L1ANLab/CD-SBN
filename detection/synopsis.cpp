@@ -4,6 +4,7 @@
 #include <fstream>
 #include <cmath>
 #include <iomanip>
+#include <map>
 
 #include "detection/synopsis.h"
 
@@ -136,6 +137,7 @@ uint Synopsis::CountLeafNodes(SynopsisNode* now_node) const
 /// @return a vector of vertex entries
 bool Synopsis::LoadSynopsisEntries(
     std::string synopsis_file_path,
+    std::string synopsis_statistics_file_path,
     std::vector<SynopsisNode*>& vertex_entry_list
 )
 {
@@ -152,6 +154,9 @@ bool Synopsis::LoadSynopsisEntries(
     ifs >> list_size;
     // int counter = 0;
     this->inv_list.resize(list_size);
+
+    std::vector<std::map<uint, uint>> sup_statistics(R_MAX);
+    std::vector<std::map<uint, uint>> score_statistics(R_MAX);
     while (!ifs.eof())
     {
         uint user_id;
@@ -165,6 +170,19 @@ bool Synopsis::LoadSynopsisEntries(
             std::shared_ptr<std::bitset<MAX_LABEL>> bv_r(new std::bitset<MAX_LABEL>(bv_str));
             std::shared_ptr<SynopsisData> data_r(new SynopsisData(std::move(bv_r), ub_sup_M, ub_score));
             data[r] = std::move(data_r);
+
+            if (sup_statistics[r].find(ub_sup_M) != sup_statistics[r].end())
+            {
+                sup_statistics[r][ub_sup_M] += 1;
+            } else {
+                sup_statistics[r].insert(std::pair(ub_sup_M, 1));
+            }
+            if (score_statistics[r].find(ub_score) != score_statistics[r].end())
+            {
+                score_statistics[r][ub_score] += 1;
+            } else {
+                score_statistics[r].insert(std::pair(ub_score, 1));
+            }
         }
         
         SynopsisNode* node_pointer = new SynopsisNode(
@@ -176,6 +194,24 @@ bool Synopsis::LoadSynopsisEntries(
         this->inv_list[user_id].emplace_back(node_pointer);
     }
     ifs.close();
+
+    std::ofstream of_stat(synopsis_statistics_file_path.c_str(), std::ios::out);
+    for (uint r=0; r<R_MAX; r++)
+    {
+        of_stat << "----r=" << r+1 << "----" << std::endl;
+        of_stat << "UB Support Statistic:" << std::endl;
+        for (auto pair: sup_statistics[r])
+        {
+            of_stat << std::setw(6) << std::fixed << std::setprecision(2) << pair.first << " " << pair.second << " " <<  (float)pair.second*100/list_size << std::endl;
+        }
+
+        of_stat << "UB Score Statistic:" << std::endl;
+        for (auto pair: score_statistics[r])
+        {
+            of_stat << std::setw(6) << std::fixed << std::setprecision(2) << pair.first << " " << pair.second << " " <<  (float)pair.second*100/list_size << std::endl;
+        }
+    }
+    of_stat.close();
     return true;
 }
 
@@ -183,7 +219,11 @@ bool Synopsis::LoadSynopsisEntries(
 /// @brief save the synopsis from root to file
 /// @param synopsis_file_path 
 /// @return true if file successfully saved, otherwise false
-bool Synopsis::SaveSynopsisEntries(std::string synopsis_file_path, std::vector<SynopsisNode*> vertex_entry_list)
+bool Synopsis::SaveSynopsisEntries(
+    std::string synopsis_file_path,
+    std::string synopsis_statistics_file_path,
+    std::vector<SynopsisNode*> vertex_entry_list
+)
 {
     ErrorControl::assert_error(
         io::file_exists(synopsis_file_path.c_str()),
@@ -195,6 +235,10 @@ bool Synopsis::SaveSynopsisEntries(std::string synopsis_file_path, std::vector<S
         "File Stream Error: The output file stream open failed"
     );
 
+
+    std::vector<std::map<uint, uint>> sup_statistics(R_MAX);
+    std::vector<std::map<uint, uint>> score_statistics(R_MAX);
+
     of << vertex_entry_list.size() << std::endl;
     for (SynopsisNode* vertex_entry : vertex_entry_list)
     {
@@ -204,10 +248,43 @@ bool Synopsis::SaveSynopsisEntries(std::string synopsis_file_path, std::vector<S
             of << *(vertex_entry->GetBvR(r)) << ' ';
             of << vertex_entry->GetUbSupM(r) << ' ';
             of << vertex_entry->GetUbScore(r) << ' ';
+
+            if (sup_statistics[r].find(vertex_entry->GetUbSupM(r)) != sup_statistics[r].end())
+            {
+                sup_statistics[r][vertex_entry->GetUbSupM(r)] += 1;
+            } else {
+                sup_statistics[r].insert(std::pair(vertex_entry->GetUbSupM(r), 1));
+            }
+            if (score_statistics[r].find(vertex_entry->GetUbScore(r)) != score_statistics[r].end())
+            {
+                score_statistics[r][vertex_entry->GetUbScore(r)] += 1;
+            } else {
+                score_statistics[r].insert(std::pair(vertex_entry->GetUbScore(r), 1));
+            }
         }
         of << std::endl;
     }
     of.close();
+
+    
+    std::ofstream of_stat(synopsis_statistics_file_path.c_str(), std::ios::out);
+    for (uint r=0; r<R_MAX; r++)
+    {
+        of_stat << "----r=" << r+1 << "----" << std::endl;
+        of_stat << "UB Support Statistic:" << std::endl;
+        for (auto pair: sup_statistics[r])
+        {
+            of_stat << std::setw(6) << std::fixed << std::setprecision(2) << pair.first << " " << pair.second << " " <<  (float)pair.second*100/vertex_entry_list.size() << std::endl;
+        }
+
+        of_stat << "UB Score Statistic:" << std::endl;
+        for (auto pair: score_statistics[r])
+        {
+            of_stat << std::setw(6) << std::fixed << std::setprecision(2) << pair.first << " " << pair.second << " " <<  (float)pair.second*100/vertex_entry_list.size() << std::endl;
+        }
+        of_stat << std::endl;
+    }
+    of_stat.close();
     return true;
 }
 
@@ -523,6 +600,23 @@ SynopsisNode* Synopsis::CreateVertexEntry(uint user_id, Graph* graph)
                 - neighbor_datas[idx]->y_data)/2;
                 ub_score = std::max(ub_score, now_score);
             }
+            
+            // for (uint idx = 0; idx < neighbor_datas.size();idx++)
+            // {
+            //     if (!std::binary_search(user_list.begin(), user_list.end(), neighbor_datas[idx]->user_id))
+            //         continue; // skip if the user neighbor of <user_id> is not contained in the 2r-hop.
+            //     uint now_x_data = 0;
+            //     uint now_y_data = 0;
+            //     for (uint item_idx = 0; item_idx < neighbor_datas[idx]->wedge_item_list.size();item_idx++)
+            //     {
+            //         if (!std::binary_search(item_list.begin(), item_list.end(),neighbor_datas[idx]->wedge_item_list[item_idx]))
+            //             continue;
+            //         now_x_data += neighbor_datas[idx]->wedge_score_list[item_idx];
+            //         now_y_data += neighbor_datas[idx]->wedge_score_list[item_idx] * neighbor_datas[idx]->wedge_score_list[item_idx];
+            //     }
+            //     uint now_score = (now_x_data*now_x_data - now_y_data)/2;
+            //     ub_score = std::max(ub_score, now_score);
+            // }
         }
         // 0.4. package a synopsis node
         std::shared_ptr<SynopsisData> data(new SynopsisData(std::move(bv_r_), ub_sup_M_, ub_score));

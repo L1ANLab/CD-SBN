@@ -94,11 +94,16 @@ public:
     bool PrecomputeSynopsisEntries(Graph* graph, std::vector<SynopsisNode*>& vertex_entry_list);
     bool LoadSynopsisEntries(
         std::string synopsis_file_path,
+        std::string synopsis_statistics_file_path,
         std::vector<SynopsisNode*>& vertex_entry_list
     );
     SynopsisNode* BuildSynopsis(Graph* graph, std::vector<SynopsisNode*>& vertex_entry_list);
 
-    bool SaveSynopsisEntries(std::string synopsis_file_path, std::vector<SynopsisNode*> vertex_entry_list);
+    bool SaveSynopsisEntries(
+        std::string synopsis_file_path,
+        std::string synopsis_statistics_file_path,
+        std::vector<SynopsisNode*> vertex_entry_list
+    );
 
     bool UpdateSynopsisAfterInsertion(uint user_id, uint item_id, uint addition_flag, Graph* Graph);
     bool UpdateSynopsisAfterExpiration(uint user_id, uint item_id, uint removal_flag, Graph* Graph);

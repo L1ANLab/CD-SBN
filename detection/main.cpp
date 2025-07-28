@@ -48,6 +48,7 @@ int main(int argc, char *argv[])
     std::chrono::high_resolution_clock::time_point start;
     fs::path initial_graph_folder = fs::path(initial_graph_path).parent_path();
     fs::path synopsis_entries_file_path = initial_graph_folder / fs::path("synopsis_entries.txt");
+    fs::path synopsis_statistics_file_path = initial_graph_folder / fs::path("synopsis_statistics.txt");
     Statistic* statistic = new Statistic(
         initial_graph_path,
         item_label_list_path,
@@ -115,13 +116,13 @@ int main(int argc, char *argv[])
     std::vector<SynopsisNode*> vertex_entry_list(0);
     if (io::file_exists(synopsis_entries_file_path.c_str()))
     { // load from file if exists
-        syn->LoadSynopsisEntries(synopsis_entries_file_path, vertex_entry_list);
+        syn->LoadSynopsisEntries(synopsis_entries_file_path, synopsis_statistics_file_path, vertex_entry_list);
         Print_Time_Now("Load part takes: ", start);
     }
     else
     { // precompute
         syn->PrecomputeSynopsisEntries(data_graph, vertex_entry_list);
-        syn->SaveSynopsisEntries(synopsis_entries_file_path, vertex_entry_list);
+        syn->SaveSynopsisEntries(synopsis_entries_file_path ,synopsis_statistics_file_path, vertex_entry_list);
         Print_Time_Now("Compute part takes: ", start);
     }
     // 2.3. precompute or load synopsis entries 
