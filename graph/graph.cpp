@@ -60,9 +60,14 @@ Graph::Graph(const Graph& g)
     edge_count_ = g.edge_count_;
 
     edges_.resize(g.edges_.size());
-    for (uint i=0;i<edges_.size();i++)
+    for (uint i=0;i<g.edges_.size();i++)
     {
-        edges_[i] = g.edges_[i];
+        edges_[i].resize(g.edges_[i].size());
+        for (uint j=0;j < edges_[i].size();j++)
+        {
+            edges_[i][j].reset(new EdgeData(g.edges_[i][j]->weight, g.edges_[i][j]->ub_sup));
+            // edges_[i].emplace(edges_[i].begin() + j, new EdgeData(g.edges_[i][j]->weight, g.edges_[i][j]->ub_sup));
+        }
     }
     updates_ = g.updates_;
 }
