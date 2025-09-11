@@ -353,7 +353,7 @@ int main(int argc, char *argv[])
             uint expire_edge_user_id = UINT_MAX;
             uint expire_edge_item_id = UINT_MAX;
             uint isRemoved = 0;
-            if (end_idx - start_idx + 1 > sliding_window_size)
+            if (end_idx - start_idx + 1 > sliding_window_size + edge_number)
             {
                 expire_edge_user_id = update_stream[start_idx].user_id;
                 expire_edge_item_id = update_stream[start_idx].item_id;
