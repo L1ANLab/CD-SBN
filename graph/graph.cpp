@@ -997,7 +997,10 @@ void Graph::ComputeTrussnessReplaceSupport()
     }
 }
 
-void Graph::LoadInitialGraph(const std::string &path)
+/// @brief Load inital Graph from file and return the edge number of
+/// @param path 
+/// @return edge numbers
+uint Graph::LoadInitialGraph(const std::string &path)
 {
     ErrorControl::assert_error(
         !io::file_exists(path.c_str()),
@@ -1008,7 +1011,7 @@ void Graph::LoadInitialGraph(const std::string &path)
         !ifs,
         "File Stream Error: The input file stream open failed"
     );
-    uint from_id=0, to_id=0, now_timestamp=0;
+    uint from_id=0, to_id=0, now_timestamp=0, edge_number = 0;
     while (!ifs.eof())
     {
         ifs >> from_id >> to_id >> now_timestamp;
@@ -1023,10 +1026,12 @@ void Graph::LoadInitialGraph(const std::string &path)
         // }
         MaintainAfterInsertion(from_id, to_id, addition_flag);
         updates_.emplace_back(from_id, to_id, now_timestamp);
+        edge_number ++;
     }
     ifs.close();
     updates_.shrink_to_fit();
     this->graph_timestamp = now_timestamp;
+    return edge_number;
 }
 
 void Graph::LoadItemLabel(const std::string &path)

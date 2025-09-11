@@ -36,6 +36,7 @@ bool hasSameElement(std::vector<uint> vec1, std::vector<uint> vec2)
 uint ContinuousHandle::ExecuteQuery(
     Statistic* stat,
     std::vector<InducedGraph*>& result_list,
+    std::vector<SynopsisNode*>& vertex_entry_list,
     uint isRemoved, uint expire_edge_user_id, uint expire_edge_item_id,
     uint insert_edge_user_id, std::vector<uint> insert_related_user_list
 )
@@ -172,11 +173,17 @@ uint ContinuousHandle::ExecuteQuery(
 #pragma omp parallel for num_threads(THREADS_NUM)
     for(uint user_id: influenced_k_r_sigma_bitruss_subgraph->user_map)
     {
-        inserted_compute_2r_hop_start_timestamp = Get_Time();
         // 4.1. get the vertex
         uint candidate_user_id = user_id;
-        
+        // If the vertex can be pruned, skip
+        if (!CheckPruningConditions(vertex_entry_list[candidate_user_id]))
+        {
+            continue;
+        }
+
         // 4.2. compute the 2r-hop of user
+        inserted_compute_2r_hop_start_timestamp = Get_Time();
+
         std::vector<uint> raw_user_list, raw_item_list;
         std::vector<std::pair<uint, uint>> raw_edge_list;
         std::tie(raw_user_list, raw_item_list, raw_edge_list) = data_graph->Get2rHopOfUserByBV(

@@ -89,7 +89,7 @@ public:
 
     void ComputeTrussnessReplaceSupport();
 
-    void LoadInitialGraph(const std::string &path);
+    uint LoadInitialGraph(const std::string &path);
     void LoadItemLabel(const std::string &path);
     void LoadUpdateStream(const std::string &path);
     void PrintMetaData() const;

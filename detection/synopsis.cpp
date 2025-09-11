@@ -154,6 +154,7 @@ bool Synopsis::LoadSynopsisEntries(
     ifs >> list_size;
     // int counter = 0;
     this->inv_list.resize(list_size);
+    vertex_entry_list.resize(list_size);
 
     std::vector<std::map<uint, uint>> sup_statistics(R_MAX);
     std::vector<std::map<uint, uint>> score_statistics(R_MAX);
@@ -190,7 +191,7 @@ bool Synopsis::LoadSynopsisEntries(
             data,
             user_id
         );
-        vertex_entry_list.emplace_back(node_pointer);
+        vertex_entry_list[user_id] = node_pointer;
         this->inv_list[user_id].emplace_back(node_pointer);
     }
     ifs.close();
@@ -296,6 +297,7 @@ bool Synopsis::PrecomputeSynopsisEntries(Graph* graph, std::vector<SynopsisNode*
 {
     // 0. initialize a inverted list to store the node index for each vertex
     inv_list.resize(graph->UserVerticesNum());
+    vertex_entry_list.resize(graph->UserVerticesNum());
     // 1. package the vertex into synopsis vertex entry
     uint vertices_num = graph->UserVerticesNum();
     #pragma omp parallel for num_threads(THREADS_NUM)
@@ -306,7 +308,7 @@ bool Synopsis::PrecomputeSynopsisEntries(Graph* graph, std::vector<SynopsisNode*
 
         #pragma omp critical
         {
-            vertex_entry_list.push_back(node_pointer);
+            vertex_entry_list[i] = node_pointer;
             if (i%100 == 0)
             {
                 std::cout << "\r" << i+1 << "/" << vertices_num;
@@ -592,31 +594,31 @@ SynopsisNode* Synopsis::CreateVertexEntry(uint user_id, Graph* graph)
         for (uint hop_user_id: user_list)
         {
             const std::vector<UserData*>& neighbor_datas = graph->GetNeighborUserData(hop_user_id);
-            for (uint idx = 0; idx < neighbor_datas.size();idx++)
-            {
-                if (!std::binary_search(user_list.begin(), user_list.end(), neighbor_datas[idx]->user_id))
-                    continue; // skip if the user neighbor of <user_id> is not contained in the 2r-hop.
-                uint now_score = (neighbor_datas[idx]->x_data*neighbor_datas[idx]->x_data
-                - neighbor_datas[idx]->y_data)/2;
-                ub_score = std::max(ub_score, now_score);
-            }
-            
             // for (uint idx = 0; idx < neighbor_datas.size();idx++)
             // {
             //     if (!std::binary_search(user_list.begin(), user_list.end(), neighbor_datas[idx]->user_id))
             //         continue; // skip if the user neighbor of <user_id> is not contained in the 2r-hop.
-            //     uint now_x_data = 0;
-            //     uint now_y_data = 0;
-            //     for (uint item_idx = 0; item_idx < neighbor_datas[idx]->wedge_item_list.size();item_idx++)
-            //     {
-            //         if (!std::binary_search(item_list.begin(), item_list.end(),neighbor_datas[idx]->wedge_item_list[item_idx]))
-            //             continue;
-            //         now_x_data += neighbor_datas[idx]->wedge_score_list[item_idx];
-            //         now_y_data += neighbor_datas[idx]->wedge_score_list[item_idx] * neighbor_datas[idx]->wedge_score_list[item_idx];
-            //     }
-            //     uint now_score = (now_x_data*now_x_data - now_y_data)/2;
+            //     uint now_score = (neighbor_datas[idx]->x_data*neighbor_datas[idx]->x_data
+            //     - neighbor_datas[idx]->y_data)/2;
             //     ub_score = std::max(ub_score, now_score);
             // }
+            
+            for (uint idx = 0; idx < neighbor_datas.size();idx++)
+            {
+                if (!std::binary_search(user_list.begin(), user_list.end(), neighbor_datas[idx]->user_id))
+                    continue; // skip if the user neighbor of <user_id> is not contained in the 2r-hop.
+                uint now_x_data = 0;
+                uint now_y_data = 0;
+                for (uint item_idx = 0; item_idx < neighbor_datas[idx]->wedge_item_list.size();item_idx++)
+                {
+                    if (!std::binary_search(item_list.begin(), item_list.end(),neighbor_datas[idx]->wedge_item_list[item_idx]))
+                        continue;
+                    now_x_data += neighbor_datas[idx]->wedge_score_list[item_idx];
+                    now_y_data += neighbor_datas[idx]->wedge_score_list[item_idx] * neighbor_datas[idx]->wedge_score_list[item_idx];
+                }
+                uint now_score = (now_x_data*now_x_data - now_y_data)/2;
+                ub_score = std::max(ub_score, now_score);
+            }
         }
         // 0.4. package a synopsis node
         std::shared_ptr<SynopsisData> data(new SynopsisData(std::move(bv_r_), ub_sup_M_, ub_score));
