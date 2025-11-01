@@ -21,6 +21,7 @@ public:
     uint ExecuteQuery(
         Statistic* stat,
         std::vector<InducedGraph*>& result_list,
+        std::vector<SynopsisNode*>& vertex_entry_list,
         uint isRemoved, uint expire_edge_user_id, uint expire_edge_item_id,
         uint insert_edge_user_id, std::vector<uint> insert_related_user_list
     );

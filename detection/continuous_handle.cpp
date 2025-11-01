@@ -36,6 +36,7 @@ bool hasSameElement(std::vector<uint> vec1, std::vector<uint> vec2)
 uint ContinuousHandle::ExecuteQuery(
     Statistic* stat,
     std::vector<InducedGraph*>& result_list,
+    std::vector<SynopsisNode*>& vertex_entry_list,
     uint isRemoved, uint expire_edge_user_id, uint expire_edge_item_id,
     uint insert_edge_user_id, std::vector<uint> insert_related_user_list
 )
@@ -64,7 +65,17 @@ uint ContinuousHandle::ExecuteQuery(
             // (1) recompute k-bitruss if edge is removed
             if (isRemoved > 0)
             {
-                if ((*(this->query_BV) & *(data_graph->GetUserBv(expire_edge_user_id))).none())
+                bool HasRelatedItem = false;
+                for (uint center_user_neighbored_item: this->data_graph->GetUserNeighbors(expire_edge_user_id))
+                {
+                    // check whether the expire user has another related item.
+                    if ((*(this->query_BV) & *(this->data_graph->GetItemBv(center_user_neighbored_item))).any())
+                    {
+                        HasRelatedItem = true;
+                    }
+                }
+
+                if (!HasRelatedItem)
                 { // unqualified user so remove all edges
                     auto remove_iter = std::remove_if(
                         result_list[idx]->e_lists.begin(),
@@ -148,7 +159,7 @@ uint ContinuousHandle::ExecuteQuery(
     );
     Print_Time_Now("Create New Induced Subgraph Time: ", influenced_subgraph_start_timestamp);
     std::unique_ptr<InducedGraph> influenced_k_r_sigma_bitruss_subgraph(
-        influenced_subgraph->ComputeKRSigmaBitruss(
+        influenced_subgraph->ComputeKRSigmaBitrussSimple(
             query_support_threshold,
             query_score_threshold,
             stat->continuous_inserted_compute_data_time,
@@ -162,11 +173,17 @@ uint ContinuousHandle::ExecuteQuery(
 #pragma omp parallel for num_threads(THREADS_NUM)
     for(uint user_id: influenced_k_r_sigma_bitruss_subgraph->user_map)
     {
-        inserted_compute_2r_hop_start_timestamp = Get_Time();
         // 4.1. get the vertex
         uint candidate_user_id = user_id;
-        
+        // If the vertex can be pruned, skip
+        if (!CheckPruningConditions(vertex_entry_list[candidate_user_id]))
+        {
+            continue;
+        }
+
         // 4.2. compute the 2r-hop of user
+        inserted_compute_2r_hop_start_timestamp = Get_Time();
+
         std::vector<uint> raw_user_list, raw_item_list;
         std::vector<std::pair<uint, uint>> raw_edge_list;
         std::tie(raw_user_list, raw_item_list, raw_edge_list) = data_graph->Get2rHopOfUserByBV(
@@ -222,7 +239,7 @@ uint ContinuousHandle::ExecuteQuery(
         // 4.3. compute the (k,r,σ)-bitruss
         inserted_compute_community_start_timestamp = Get_Time();
         std::unique_ptr<InducedGraph> k_r_sigma_bitruss_subgraph(
-            r_hop_subgraph->ComputeKRSigmaBitruss(
+            r_hop_subgraph->ComputeKRSigmaBitrussSimple(
                 query_support_threshold,
                 query_score_threshold,
                 stat->continuous_inserted_compute_data_time,

@@ -73,8 +73,6 @@ private:
     std::vector<std::vector<SynopsisNode*>> inv_list;  
     // Store a list of synopsis pointer which contains the vertex whose ID is index (from bottom to top)
 
-    SynopsisNode* CreateVertexEntry(uint user_id, Graph* graph);
-
     SynopsisNode* BuildSynopsisRecursively(
         std::vector<SynopsisNode*> vertex_entry_list,
         uint level
@@ -91,14 +89,20 @@ public:
     SynopsisNode* GetRoot() const;
     uint CountLeafNodes(SynopsisNode* now_node) const;
 
+    SynopsisNode* CreateVertexEntry(uint user_id, Graph* graph);
     bool PrecomputeSynopsisEntries(Graph* graph, std::vector<SynopsisNode*>& vertex_entry_list);
     bool LoadSynopsisEntries(
         std::string synopsis_file_path,
+        std::string synopsis_statistics_file_path,
         std::vector<SynopsisNode*>& vertex_entry_list
     );
     SynopsisNode* BuildSynopsis(Graph* graph, std::vector<SynopsisNode*>& vertex_entry_list);
 
-    bool SaveSynopsisEntries(std::string synopsis_file_path, std::vector<SynopsisNode*> vertex_entry_list);
+    bool SaveSynopsisEntries(
+        std::string synopsis_file_path,
+        std::string synopsis_statistics_file_path,
+        std::vector<SynopsisNode*> vertex_entry_list
+    );
 
     bool UpdateSynopsisAfterInsertion(uint user_id, uint item_id, uint addition_flag, Graph* Graph);
     bool UpdateSynopsisAfterExpiration(uint user_id, uint item_id, uint removal_flag, Graph* Graph);

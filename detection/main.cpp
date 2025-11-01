@@ -31,6 +31,7 @@ int main(int argc, char *argv[])
     update_stream_path = "", query_keywords_list_path = "";
     uint query_timestamp = 0, sliding_window_size = 0;
     uint query_support_threshold = 0, query_radius = 0, query_score_threshold = 0;
+    uint edge_number = 0;
 
     app.add_flag("-b,--baseline", is_baseline_flag, "whether using baseline");
     app.add_option("-i,--initial", initial_graph_path, "initial graph path")->required();
@@ -48,6 +49,7 @@ int main(int argc, char *argv[])
     std::chrono::high_resolution_clock::time_point start;
     fs::path initial_graph_folder = fs::path(initial_graph_path).parent_path();
     fs::path synopsis_entries_file_path = initial_graph_folder / fs::path("synopsis_entries.txt");
+    fs::path synopsis_statistics_file_path = initial_graph_folder / fs::path("synopsis_statistics.txt");
     Statistic* statistic = new Statistic(
         initial_graph_path,
         item_label_list_path,
@@ -73,7 +75,7 @@ int main(int argc, char *argv[])
     Print_Time("Load Label List Time Cost: ", statistic->label_list_load_time);
     // 1.2. Load initial graph
     std::cout << "----------- Loading initial graph -----------" << std::endl;
-    data_graph->LoadInitialGraph(initial_graph_path);
+    edge_number = data_graph->LoadInitialGraph(initial_graph_path);
     statistic->initial_graph_load_time = Duration(start);
     Print_Time("Load Initial Graph Time Cost: ", statistic->initial_graph_load_time);
     // 1.3. Load update stream
@@ -115,13 +117,13 @@ int main(int argc, char *argv[])
     std::vector<SynopsisNode*> vertex_entry_list(0);
     if (io::file_exists(synopsis_entries_file_path.c_str()))
     { // load from file if exists
-        syn->LoadSynopsisEntries(synopsis_entries_file_path, vertex_entry_list);
+        syn->LoadSynopsisEntries(synopsis_entries_file_path, synopsis_statistics_file_path, vertex_entry_list);
         Print_Time_Now("Load part takes: ", start);
     }
     else
     { // precompute
         syn->PrecomputeSynopsisEntries(data_graph, vertex_entry_list);
-        syn->SaveSynopsisEntries(synopsis_entries_file_path, vertex_entry_list);
+        syn->SaveSynopsisEntries(synopsis_entries_file_path ,synopsis_statistics_file_path, vertex_entry_list);
         Print_Time_Now("Compute part takes: ", start);
     }
     // 2.3. precompute or load synopsis entries 
@@ -284,7 +286,14 @@ int main(int argc, char *argv[])
             }
             
             delete snapshot_query;
+        } else {
+            
+            start = Get_Time();
+            statistic->snapshot_query_processing_time = Duration(start);
+            std::vector<InducedGraph*>().swap(statistic->solver_result);
         }
+        
+        
         // /*
         // 4.2. maintain the answer for the continuous query
         std::cout << "------------ Start continuous query ------------" << std::endl;
@@ -308,12 +317,12 @@ int main(int argc, char *argv[])
 
         start = Get_Time();
         // Initialize the sliding window (from 0 to initial graph size)
-        size_t start_idx = 0, end_idx = temp_graph->GetGraphTimestamp();
+        size_t start_idx = 0, end_idx = edge_number, continuous_count = 0;
         std::vector<InsertUnit> update_stream = temp_graph->GetUpdateStream();
-        end_idx++;
         while (end_idx < update_stream.size())
         {
             continuous_turn_start = Get_Time();
+            continuous_count ++;
             // 4.2.1. Insertion maintanance
             uint insert_edge_user_id = UINT_MAX;
             uint insert_edge_item_id = UINT_MAX;
@@ -340,6 +349,11 @@ int main(int argc, char *argv[])
                     insert_edge_item_id,
                     isInserted
                 );
+                if (insert_edge_user_id >= vertex_entry_list.size())
+                {
+                    vertex_entry_list.resize(insert_edge_user_id+1);
+                    vertex_entry_list[insert_edge_user_id] = syn->CreateVertexEntry(insert_edge_user_id, temp_graph);
+                }
                 statistic->continuous_graph_maintain_time += Duration(graph_maintain_start);
                 // Print_Time_Now("[Insertion Maintain] in ",  graph_maintain_start);
             }
@@ -347,7 +361,7 @@ int main(int argc, char *argv[])
             uint expire_edge_user_id = UINT_MAX;
             uint expire_edge_item_id = UINT_MAX;
             uint isRemoved = 0;
-            if (end_idx - start_idx + 1 > sliding_window_size)
+            if (end_idx - start_idx + 1 > sliding_window_size + edge_number)
             {
                 expire_edge_user_id = update_stream[start_idx].user_id;
                 expire_edge_item_id = update_stream[start_idx].item_id;
@@ -374,12 +388,11 @@ int main(int argc, char *argv[])
                 continuous_query->ExecuteQuery(
                     statistic,
                     result_list,
+                    vertex_entry_list,
                     isRemoved, expire_edge_user_id, expire_edge_item_id,
                     insert_edge_user_id, insert_related_user_list
                 );
-                // statistic
-                uint count = end_idx - temp_graph->GetGraphTimestamp() + 1;
-                statistic->average_continuous_query_time = (statistic->average_continuous_query_time * (count) + Duration(continuous_turn_start)) / (count + 1);
+                statistic->average_continuous_query_time = (statistic->average_continuous_query_time * (continuous_count) + Duration(continuous_turn_start)) / (continuous_count + 1);
                 Print_Time_Now("Continuous Turn Time: ", continuous_turn_start);
                 std::cout << "Continuous Result: [" << result_list.size() << "]" << " at " << update_stream[end_idx].timestamp << std::endl;
                 Print_Time("Average Continuous Turn Time: ", statistic->average_continuous_query_time);
