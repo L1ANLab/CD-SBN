@@ -52,7 +52,7 @@
 # synthetic
 /dataset/synthetic-s/
 /dataset/synthetic-s-backup/
-/dataset/synthetic-thread-num/
+/dataset/synthetic-thread-*/
 /dataset/baseline/
 /dataset/ablation/
 /dataset/*/*/*/experiment*

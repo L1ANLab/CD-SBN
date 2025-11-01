@@ -286,7 +286,14 @@ int main(int argc, char *argv[])
             }
             
             delete snapshot_query;
+        } else {
+            
+            start = Get_Time();
+            statistic->snapshot_query_processing_time = Duration(start);
+            std::vector<InducedGraph*>().swap(statistic->solver_result);
         }
+        
+        
         // /*
         // 4.2. maintain the answer for the continuous query
         std::cout << "------------ Start continuous query ------------" << std::endl;
@@ -310,11 +317,12 @@ int main(int argc, char *argv[])
 
         start = Get_Time();
         // Initialize the sliding window (from 0 to initial graph size)
-        size_t start_idx = 0, end_idx = edge_number;
+        size_t start_idx = 0, end_idx = edge_number, continuous_count = 0;
         std::vector<InsertUnit> update_stream = temp_graph->GetUpdateStream();
         while (end_idx < update_stream.size())
         {
             continuous_turn_start = Get_Time();
+            continuous_count ++;
             // 4.2.1. Insertion maintanance
             uint insert_edge_user_id = UINT_MAX;
             uint insert_edge_item_id = UINT_MAX;
@@ -384,9 +392,7 @@ int main(int argc, char *argv[])
                     isRemoved, expire_edge_user_id, expire_edge_item_id,
                     insert_edge_user_id, insert_related_user_list
                 );
-                // statistic
-                uint count = end_idx - temp_graph->GetGraphTimestamp() + 1;
-                statistic->average_continuous_query_time = (statistic->average_continuous_query_time * (count) + Duration(continuous_turn_start)) / (count + 1);
+                statistic->average_continuous_query_time = (statistic->average_continuous_query_time * (continuous_count) + Duration(continuous_turn_start)) / (continuous_count + 1);
                 Print_Time_Now("Continuous Turn Time: ", continuous_turn_start);
                 std::cout << "Continuous Result: [" << result_list.size() << "]" << " at " << update_stream[end_idx].timestamp << std::endl;
                 Print_Time("Average Continuous Turn Time: ", statistic->average_continuous_query_time);
