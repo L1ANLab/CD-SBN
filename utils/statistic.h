@@ -32,10 +32,9 @@ public:
         uint query_radius_,
         uint query_score_threshold_,
         uint query_timestamp_,
-        uint sliding_window_size_
-    );
+        uint sliding_window_size_);
     std::vector<uint> query_keywords;
-    std::vector<InducedGraph*> solver_result;
+    std::vector<InducedGraph *> solver_result;
     uint user_node_num;
     uint item_node_num;
     uint edge_num;
@@ -85,17 +84,16 @@ public:
     float modify_result_set_time;
     float average_continuous_query_time;
 
-
     uint vertex_pruning_counter;
     uint entry_pruning_counter;
     uint leaf_node_counter;
     uint leaf_node_visit_counter;
+    size_t synopsis_memory_usage;
 
     std::string GenerateStatisticResult();
     bool SaveStatisticResult();
     bool SaveSnapshotResult();
-    bool LoadSnapshotResultExist(std::vector<InducedGraph*>& result_list, const Graph& graph);
+    bool LoadSnapshotResultExist(std::vector<InducedGraph *> &result_list, const Graph &graph);
 };
-
 
 #endif // STATISTIC_H

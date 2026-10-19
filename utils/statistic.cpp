@@ -8,7 +8,7 @@
 #include "utils/types.h"
 #include "utils/statistic.h"
 
-namespace fs=std::filesystem;
+namespace fs = std::filesystem;
 
 Statistic::Statistic(
     std::string initial_graph_path_str_,
@@ -20,29 +20,18 @@ Statistic::Statistic(
     uint query_radius_,
     uint query_score_threshold_,
     uint query_timestamp_,
-    uint sliding_window_size_
-)
-: initial_graph_path_str(initial_graph_path_str_)
-, item_label_list_path_str(item_label_list_path_str_)
-, update_stream_path_str(update_stream_path_str_)
-, synopsis_entries_file_path_str(synopsis_entries_file_path_str_)
-, query_keywords_list_file_path_str(query_keywords_list_file_path_str_)
-, query_support_threshold(query_support_threshold_)
-, query_radius(query_radius_)
-, query_score_threshold(query_score_threshold_)
-, query_timestamp(query_timestamp_)
-, sliding_window_size(sliding_window_size_)
+    uint sliding_window_size_)
+    : initial_graph_path_str(initial_graph_path_str_), item_label_list_path_str(item_label_list_path_str_), update_stream_path_str(update_stream_path_str_), synopsis_entries_file_path_str(synopsis_entries_file_path_str_), query_keywords_list_file_path_str(query_keywords_list_file_path_str_), query_support_threshold(query_support_threshold_), query_radius(query_radius_), query_score_threshold(query_score_threshold_), query_timestamp(query_timestamp_), sliding_window_size(sliding_window_size_)
 {
     // create_timestamp_folder_str
     std::chrono::high_resolution_clock::time_point now_time = Get_Time();
     std::stringstream ss;
     time_t t = std::chrono::system_clock::to_time_t(now_time);
     ss << std::put_time(localtime(&t), "%m%d-%H%M%S");
-    std::string time_str = ss.str() +  "-" + GetUnixTimestamp(now_time);
+    std::string time_str = ss.str() + "-" + GetUnixTimestamp(now_time);
     this->create_timestamp_folder_str = "experiment-" + time_str;
     fs::path initial_graph_folder = fs::path(initial_graph_path_str_).parent_path();
     fs::create_directory(initial_graph_folder / fs::path(create_timestamp_folder_str));
-
 
     std::vector<uint> query_keywords(0);
     std::vector<std::unique_ptr<InducedGraph>> solver_result(0);
@@ -95,11 +84,11 @@ Statistic::Statistic(
     this->modify_result_set_time = 0.0;
     this->average_continuous_query_time = 0.0;
 
-
     this->vertex_pruning_counter = 0;
     this->entry_pruning_counter = 0;
     this->leaf_node_counter = 0;
     this->leaf_node_visit_counter = 0;
+    this->synopsis_memory_usage = 0;
 }
 
 std::string Statistic::GenerateStatisticResult()
@@ -113,24 +102,25 @@ std::string Statistic::GenerateStatisticResult()
     std::string query_keywords_size;
     std::getline(ss, query_keywords_size, '-');
 
-    std:: string result = "";
+    std::string result = "";
     result += "STATISTIC RESULT\n";
     result += "-------------FILE INFO-------------\n";
-    result += ("Initial Graph File: "+ initial_graph_path_str + "\n");
+    result += ("Initial Graph File: " + initial_graph_path_str + "\n");
     result += "Query Keywords File: " + query_keywords_list_file_path_str + "\n";
     result += "\n";
     result += "-------------SOLVER INFO-------------\n";
-    result += "Result["+ std::to_string(solver_result.size()) +"]\n";
+    result += "Result[" + std::to_string(solver_result.size()) + "]\n";
     result += "Total User Nodes: " + std::to_string(user_node_num) + "\n";
     result += "Total Item Nodes: " + std::to_string(item_node_num) + "\n";
     result += "Total Edges: " + std::to_string(edge_num) + "\n";
     result += "All Keywords: " + std::to_string(all_keyword_num) + "\n";
     result += "Distribution: " + distribution + "\n";
     result += "Thread Num: " + std::to_string(THREADS_NUM) + "\n";
+    result += "Synopsis Node Size: " + std::to_string(SYNOPSIS_SIZE) + "\n";
     result += "\n";
     result += "-------------QUERY INFO-------------\n";
     std::string query_keywords_str = "";
-    for (uint keyword: query_keywords)
+    for (uint keyword : query_keywords)
     {
         query_keywords_str += (std::to_string(keyword) + " ");
     }
@@ -157,6 +147,8 @@ std::string Statistic::GenerateStatisticResult()
     result += "Update Stream Load time: " + std::to_string(update_stream_load_time) + "\n";
     result += "Query Keywords List Load time: " + std::to_string(query_keyword_load_time) + "\n";
     result += "Synopsis Building time: " + std::to_string(synopsis_building_time) + "\n";
+    result += "synopsis_memory_usage: " + std::to_string(synopsis_memory_usage) + " Bytes (";
+    result += std::to_string(synopsis_memory_usage / 1024.0) + " KB / " + std::to_string(synopsis_memory_usage / 1024.0 / 1024.0) + " MB)" + "\n";
     float total_online_time = Duration(offline_finish_timestamp) - Duration(finish_timestamp);
     result += "Total Online time: " + std::to_string(total_online_time) + "\n";
     result += "Maintenance time: " + std::to_string(graph_synopsis_maintain_time) + "\n";
@@ -196,31 +188,29 @@ std::string Statistic::GenerateStatisticResult()
 bool Statistic::SaveStatisticResult()
 {
     fs::path initial_graph_folder = fs::path(initial_graph_path_str).parent_path();
-    
+
     std::chrono::high_resolution_clock::time_point now_time = Get_Time();
     std::stringstream ss;
     time_t t = std::chrono::system_clock::to_time_t(now_time);
     ss << std::put_time(localtime(&t), "%m%d-%H%M%S");
-    std::string time_str = ss.str() +  "-" + GetUnixTimestamp(now_time);
+    std::string time_str = ss.str() + "-" + GetUnixTimestamp(now_time);
     std::string stat_file_name = "statistic-" + time_str + ".txt";
     std::string result_file_name = "result-" + time_str + ".txt";
 
-    fs::path stat_file_path = initial_graph_folder / fs::path(create_timestamp_folder_str) /fs::path(stat_file_name);
-    fs::path result_file_path = initial_graph_folder/ fs::path(create_timestamp_folder_str)  / fs::path(result_file_name);
-    
+    fs::path stat_file_path = initial_graph_folder / fs::path(create_timestamp_folder_str) / fs::path(stat_file_name);
+    fs::path result_file_path = initial_graph_folder / fs::path(create_timestamp_folder_str) / fs::path(result_file_name);
+
     std::ofstream stat_of(stat_file_path.string(), std::ios::out);
     ErrorControl::assert_error(
         !stat_of,
-        "File Stream Error: The statistic output file stream open failed"
-    );
+        "File Stream Error: The statistic output file stream open failed");
     stat_of << GenerateStatisticResult();
     stat_of.close();
 
     std::ofstream result_of(result_file_path.string(), std::ios::out);
     ErrorControl::assert_error(
         !result_of,
-        "File Stream Error: The result output file stream open failed"
-    );
+        "File Stream Error: The result output file stream open failed");
     for (uint result_idx = 0; result_idx < this->solver_result.size(); result_idx++)
     {
         result_of << solver_result[result_idx]->PrintMetaData() << '\n';
@@ -231,13 +221,12 @@ bool Statistic::SaveStatisticResult()
     return true;
 }
 
-
 bool Statistic::SaveSnapshotResult()
 {
     fs::path initial_graph_folder = fs::path(initial_graph_path_str).parent_path();
 
     std::string query_keywords_str = "";
-    for (uint i=0; i<query_keywords.size(); i++)
+    for (uint i = 0; i < query_keywords.size(); i++)
     {
         query_keywords_str += (std::to_string(query_keywords[i]));
         if (i < query_keywords.size() - 1)
@@ -257,12 +246,11 @@ bool Statistic::SaveSnapshotResult()
         fs::create_directory(initial_graph_folder / snapshot_result_folder);
 
     // Save result
-    fs::path result_file_path = initial_graph_folder/ snapshot_result_folder / fs::path(snapshot_result_file_name);
+    fs::path result_file_path = initial_graph_folder / snapshot_result_folder / fs::path(snapshot_result_file_name);
     std::ofstream result_of(result_file_path.string(), std::ios::out);
     ErrorControl::assert_error(
         !result_of,
-        "File Stream Error: The result output file stream open failed"
-    );
+        "File Stream Error: The result output file stream open failed");
     for (uint result_idx = 0; result_idx < this->solver_result.size(); result_idx++)
     {
         result_of << solver_result[result_idx]->PrintMetaData() << '\n';
@@ -273,12 +261,12 @@ bool Statistic::SaveSnapshotResult()
     return true;
 }
 
-bool Statistic::LoadSnapshotResultExist(std::vector<InducedGraph*>& result_list, const Graph& graph)
+bool Statistic::LoadSnapshotResultExist(std::vector<InducedGraph *> &result_list, const Graph &graph)
 {
     fs::path initial_graph_folder = fs::path(initial_graph_path_str).parent_path();
     // Construct query keyword string
     std::string query_keywords_str = "";
-    for (uint i=0; i<query_keywords.size(); i++)
+    for (uint i = 0; i < query_keywords.size(); i++)
     {
         query_keywords_str += (std::to_string(query_keywords[i]));
         if (i < query_keywords.size() - 1)
@@ -298,17 +286,16 @@ bool Statistic::LoadSnapshotResultExist(std::vector<InducedGraph*>& result_list,
     {
         ErrorControl::assert_error(
             !io::file_exists(result_file_path.string().c_str()),
-            "File Error: The input <" + result_file_path.string()  + "> file does not exists"
-        );
+            "File Error: The input <" + result_file_path.string() + "> file does not exists");
         std::ifstream ifs(result_file_path.string());
         ErrorControl::assert_error(
             !ifs,
-            "File Stream Error: The input file stream open failed"
-        );
+            "File Stream Error: The input file stream open failed");
         std::string line_str;
         while (std::getline(ifs, line_str))
         {
-            if (line_str.size() == 0) continue;
+            if (line_str.size() == 0)
+                continue;
             std::string header1, header2, user_id_str, item_id_str, edge_str, edge_user_id_str, edge_item_id_str;
             std::vector<uint> user_list(0), item_list(0);
             std::vector<std::pair<uint, uint>> edge_list(0);
@@ -318,7 +305,8 @@ bool Statistic::LoadSnapshotResultExist(std::vector<InducedGraph*>& result_list,
             ss >> header1 >> header2;
             while (std::getline(ss, user_id_str, ' '))
             {
-                if (user_id_str.size() == 0) continue;
+                if (user_id_str.size() == 0)
+                    continue;
                 std::stringstream trans(user_id_str);
                 uint user_id = 0;
                 trans >> user_id;
@@ -332,7 +320,8 @@ bool Statistic::LoadSnapshotResultExist(std::vector<InducedGraph*>& result_list,
             ss >> header1 >> header2;
             while (std::getline(ss, item_id_str, ' '))
             {
-                if (item_id_str.size() == 0) continue;
+                if (item_id_str.size() == 0)
+                    continue;
                 std::stringstream trans(item_id_str);
                 uint item_id;
                 trans >> item_id;
@@ -347,9 +336,10 @@ bool Statistic::LoadSnapshotResultExist(std::vector<InducedGraph*>& result_list,
             // Split the line into multiple edge strings (user_id, item_id)
             while (std::getline(ss, edge_str, ' '))
             {
-                if (edge_str.size() == 0) continue;
+                if (edge_str.size() == 0)
+                    continue;
                 // Extract the id pair of each edge string
-                std::stringstream pair_split(edge_str.substr(1, edge_str.size()-2));
+                std::stringstream pair_split(edge_str.substr(1, edge_str.size() - 2));
                 // Get user_id
                 std::getline(pair_split, edge_user_id_str, ',');
                 std::stringstream trans1(edge_user_id_str);
@@ -369,10 +359,7 @@ bool Statistic::LoadSnapshotResultExist(std::vector<InducedGraph*>& result_list,
                     graph,
                     user_list,
                     item_list,
-                    edge_list
-                )
-            );
-
+                    edge_list));
         }
         ifs.close();
         return true;
