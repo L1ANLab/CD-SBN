@@ -89,6 +89,7 @@ Statistic::Statistic(
     this->leaf_node_counter = 0;
     this->leaf_node_visit_counter = 0;
     this->synopsis_memory_usage = 0;
+    this->synopsis_height = 0;
 }
 
 std::string Statistic::GenerateStatisticResult()
@@ -117,6 +118,7 @@ std::string Statistic::GenerateStatisticResult()
     result += "Distribution: " + distribution + "\n";
     result += "Thread Num: " + std::to_string(THREADS_NUM) + "\n";
     result += "Synopsis Node Size: " + std::to_string(SYNOPSIS_SIZE) + "\n";
+    result += "Index Height: " + std::to_string(synopsis_height) + "\n";
     result += "\n";
     result += "-------------QUERY INFO-------------\n";
     std::string query_keywords_str = "";

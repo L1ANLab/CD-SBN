@@ -89,6 +89,7 @@ public:
     uint leaf_node_counter;
     uint leaf_node_visit_counter;
     size_t synopsis_memory_usage;
+    uint synopsis_height;
 
     std::string GenerateStatisticResult();
     bool SaveStatisticResult();

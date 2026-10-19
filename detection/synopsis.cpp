@@ -113,6 +113,9 @@ Synopsis::~Synopsis()
 
 SynopsisNode *Synopsis::GetRoot() const { return root; }
 
+/// @brief Maximum root-to-leaf distance in edges, excluding vertex entries.
+uint Synopsis::GetHeight() const { return synopsis_height; }
+
 uint Synopsis::CountLeafNodes(SynopsisNode *now_node) const
 {
     if (now_node->GetChildren().size() == 0)
@@ -315,6 +318,7 @@ bool Synopsis::PrecomputeSynopsisEntries(Graph *graph, std::vector<SynopsisNode 
 /// @return a pointer to the root node of synopsis
 SynopsisNode *Synopsis::BuildSynopsis(Graph *graph, std::vector<SynopsisNode *> &vertex_entry_list)
 {
+    synopsis_height = 0;
     // 1. recusively call function to split and merge the synopsis nodes
     this->root = BuildSynopsisRecursively(vertex_entry_list, 0);
     // 2. return the root node pointer
@@ -631,6 +635,7 @@ SynopsisNode *Synopsis::BuildSynopsisRecursively(
 {
     if (vertex_entry_list.size() <= SYNOPSIS_SIZE)
     {
+        synopsis_height = std::max(synopsis_height, level);
         SynopsisNode *leaf_node_pointer = new SynopsisNode(level, vertex_entry_list);
         for (auto user_id : leaf_node_pointer->GetUserSet())
         {

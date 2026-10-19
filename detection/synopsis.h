@@ -68,6 +68,7 @@ class Synopsis
 private:
     SynopsisNode *root;
     std::vector<std::vector<SynopsisNode *>> inv_list;
+    uint synopsis_height = 0;
     // Store a list of synopsis pointer which contains the vertex whose ID is index (from bottom to top)
 
     SynopsisNode *BuildSynopsisRecursively(
@@ -104,6 +105,7 @@ public:
     uint GetInvListSize();
     std::vector<SynopsisNode *> GetInvListByUser(uint user_id);
     size_t GetTreeMemoryUsage() const;
+    uint GetHeight() const;
 };
 
 #endif // CDSBN_SYNOPSIS_H
