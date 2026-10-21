@@ -138,10 +138,6 @@ int main(int argc, char *argv[])
     // std::cout << "synopsis_height" << " " << statistic->synopsis_height << std::endl;
     // std::cout << "synopsis_memory_usage" << " " << statistic->synopsis_memory_usage << std::endl;
 
-    delete statistic;
-    delete syn;
-    delete data_graph;
-    return 0;
     // print time cost of Building Synopsis
     Print_Time("Building Synopsis Time Cost: ", statistic->synopsis_building_time);
     std::cout << "*********** Preprocessing complete ***********" << std::endl;

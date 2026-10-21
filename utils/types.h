@@ -16,7 +16,7 @@ const uint THREADS_NUM = 100;
 // const uint MAX_LABEL = 160000; // CU
 // const uint MAX_LABEL = 210000; // BS
 const uint MAX_LABEL = 1000;
-const uint SYNOPSIS_SIZE = 8;
+const uint SYNOPSIS_SIZE = 32;
 // $\gamma \in \{8, 16, 32, 64, 128\}$
 const uint R_MAX = 3;
 
