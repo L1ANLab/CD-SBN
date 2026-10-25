@@ -9,6 +9,7 @@ Before setting up your environment, make sure you have anaconda and the g++ comp
 Run the following command to install the python environment:
 
 ```bash
+sudo apt-get install g++-11
 conda env create -f environment.yaml
 ```
 
@@ -105,11 +106,14 @@ build/cdsbn <-c> -i <initial-graph-path> -l <item-label-list-path> -u <update-st
 For example,
 
 ```bash
-build/cdsbn -i dataset/test/initial_graph.txt -l dataset/test/label_list.txt -u dataset/test/update_stream.txt -q dataset/test/query_keywords_list-5.txt -t 599996400 -w 100 -k 4 -r 2 -s 2
+build/cdsbn -i dataset/test/initial_graph.txt -l dataset/test/label_list.txt -u dataset/test/update_stream.txt -q dataset/test/query_keywords_list-5.txt -t 599996400 -w 100 -k 4 -r 2 -s 3
 
-build/cdsbn -i dataset/test/initial_graph.txt -l dataset/test/label_list.txt -u dataset/test/update_stream.txt -q dataset/test/query_keywords_list-10.txt -t 599996400 -w 100 -k 4 -r 2 -s 2
+build/cdsbn -i dataset/test/initial_graph.txt -l dataset/test/label_list.txt -u dataset/test/update_stream.txt -q dataset/test/query_keywords_list-10.txt -t 599996400 -w 100 -k 4 -r 2 -s 3
 
-build/cdsbn -i dataset/test/initial_graph.txt -l dataset/test/label_list.txt -u dataset/test/update_stream.txt -q dataset/test/query_keywords_list-20.txt -t 599996400 -w 100 -k 4 -r 2 -s 2
+build/cdsbn -i dataset/test/initial_graph.txt -l dataset/test/label_list.txt -u dataset/test/update_stream.txt -q dataset/test/query_keywords_list-20.txt -t 599996400 -w 100 -k 4 -r 2 -s 3
+
+build/cdsbn -i dataset/synthetic-gamma/dP/dPkP/initial_graph.txt -l dataset/synthetic-gamma/dP/dPkP/label_list.txt -u dataset/synthetic-gamma/dP/dPkP/update_stream.txt -q dataset/synthetic-gamma/dP/dPkP/query_keywords_list-5.txt -t 0 -w 500 -k 4 -r 2 -s 3
+
 ```
 
 ## 5. Performance test

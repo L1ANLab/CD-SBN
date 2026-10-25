@@ -1,6 +1,6 @@
-CC = g++ -fopenmp -fdiagnostics-color=always
-FLAGS = -std=c++17 -g -Wall -I. -O3
-LIBS = -pthread
+CC = g++-11 -fopenmp -fdiagnostics-color=always
+FLAGS = -fopenmp -std=c++17 -g -Wall -I. -O3
+LIBS = -fopenmp -pthread
 
 BUILD = build
 OBJ = build/obj
