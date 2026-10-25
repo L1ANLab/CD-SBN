@@ -184,6 +184,19 @@ std::string Statistic::GenerateStatisticResult()
     result += "Insertion Filter Edge time: " + std::to_string(continuous_inserted_filter_edge_time) + "\n";
     result += "Refine Result Set time: " + std::to_string(modify_result_set_time) + "\n";
     result += "Average Query Process Time: " + std::to_string(average_continuous_query_time) + "\n";
+    if (update_batch_size > 1)
+    {
+        result += "\n-------------BATCH INFO-------------\n";
+        result += "Update Batch Size: " + std::to_string(update_batch_size) + "\n";
+        result += "Processed Update Count: " + std::to_string(continuous_update_count) + "\n";
+        result += "Expired Record Count: " + std::to_string(continuous_expiration_count) + "\n";
+        result += "Result Refresh Count: " + std::to_string(continuous_batch_count) + "\n";
+        result += "Batch Processing Total time: " + std::to_string(batch_processing_time) + "\n";
+        result += "Batch Result Maintain Total time: " + std::to_string(batch_result_maintain_time) + "\n";
+        const float average_batch_ms = continuous_batch_count ?
+            batch_processing_time / continuous_batch_count : 0;
+        result += "Average Batch Process Time: " + std::to_string(average_batch_ms) + "\n";
+    }
     return result;
 }
 

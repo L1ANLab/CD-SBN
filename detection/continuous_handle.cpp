@@ -2,8 +2,66 @@
 #include <vector>
 #include <algorithm>
 #include <omp.h>
+#include <stdexcept>
 
 #include "detection/continuous_handle.h"
+
+namespace
+{
+// A multi-source traversal shares overlapping searches. Unfiltered neighborhoods
+// conservatively include centers whose keyword-filtered neighborhood may change.
+std::vector<uint> batch_neighborhood_users(
+    const Graph& graph, const std::vector<uint>& seeds, uint radius)
+{
+    std::set<uint> visited_users, visited_items;
+    std::vector<uint> frontier;
+    for (uint user : seeds)
+        if (user < graph.UserVerticesNum() && visited_users.emplace(user).second)
+            frontier.push_back(user);
+    for (uint depth = 0; depth < radius && !frontier.empty(); ++depth)
+    {
+        std::vector<uint> next;
+        for (uint user : frontier)
+            for (uint item : graph.GetUserNeighbors(user))
+                if (visited_items.emplace(item).second)
+                    for (uint neighbor : graph.GetItemNeighbors(item))
+                        if (visited_users.emplace(neighbor).second)
+                            next.push_back(neighbor);
+        frontier.swap(next);
+    }
+    return {visited_users.begin(), visited_users.end()};
+}
+
+void batch_union_users(std::vector<uint>& users, const std::vector<uint>& other)
+{
+    std::vector<uint> merged;
+    merged.reserve(users.size() + other.size());
+    std::set_union(users.begin(), users.end(), other.begin(), other.end(),
+                   std::back_inserter(merged));
+    users.swap(merged);
+}
+
+// Apply the existing user-set inclusion rule while releasing discarded graphs.
+void batch_insert_community(std::set<InducedGraph*>& candidates,
+                            std::unique_ptr<InducedGraph> community)
+{
+    if (!community || community->e_lists.empty()) return;
+    for (auto iter = candidates.begin(); iter != candidates.end(); )
+    {
+        const auto& old_users = (*iter)->user_map;
+        const auto& new_users = community->user_map;
+        if (std::includes(old_users.begin(), old_users.end(), new_users.begin(), new_users.end()))
+            return;
+        if (std::includes(new_users.begin(), new_users.end(), old_users.begin(), old_users.end()))
+        {
+            delete *iter;
+            iter = candidates.erase(iter);
+        }
+        else ++iter;
+    }
+    candidates.emplace(community.release());
+}
+} // namespace
 
 ContinuousHandle::ContinuousHandle(
     std::vector<uint> query_keywords_,
@@ -269,6 +327,162 @@ uint ContinuousHandle::ExecuteQuery(
     // 5. refine the candidate set
 
     result_list.assign(candidate_set_P.begin(), candidate_set_P.end());
+    return result_list.size();
+}
+
+ContinuousBatchStats ContinuousHandle::ExecuteBatch(
+    Statistic* stat,
+    std::vector<InducedGraph*>& result_list,
+    std::vector<SynopsisNode*>& vertex_entry_list,
+    const std::vector<InsertUnit>& stream,
+    size_t begin, size_t end, size_t& window_begin, size_t capacity)
+{
+    if (!stat || begin > end || end > stream.size() || window_begin > begin ||
+        begin - window_begin > capacity)
+        throw std::invalid_argument("ExecuteBatch: invalid stream range or window state");
+    ContinuousBatchStats summary;
+    if (begin == end) return summary;
+    const auto batch_start = Get_Time();
+
+    // Collect both insertions and expirations BEFORE mutating the graph. Do not
+    // cancel repeated records: multiplicities affect support and relationship scores.
+    auto phase_start = Get_Time();
+    std::vector<uint> changed_users;
+    size_t simulated_start = window_begin;
+    for (size_t index = begin; index < end; ++index)
+    {
+        changed_users.push_back(stream[index].user_id);
+        if (index - simulated_start + 1 > capacity)
+            changed_users.push_back(stream[simulated_start++].user_id);
+    }
+    auto batch = PrepareBatch(changed_users, result_list);
+    stat->influenced_subgraph_compute_time += Duration(phase_start);
+
+    for (size_t index = begin; index < end; ++index)
+    {
+        const auto& added = stream[index];
+        phase_start = Get_Time();
+        const uint inserted = data_graph->InsertEdge(added.user_id, added.item_id);
+        stat->continuous_edge_maintain_time += Duration(phase_start);
+
+        phase_start = Get_Time();
+        data_graph->MaintainAfterInsertion(added.user_id, added.item_id, inserted);
+        if (added.user_id >= vertex_entry_list.size())
+            vertex_entry_list.resize(static_cast<size_t>(added.user_id) + 1);
+        if (!vertex_entry_list[added.user_id])
+            vertex_entry_list[added.user_id] = syn->CreateVertexEntry(added.user_id, data_graph);
+        stat->continuous_graph_maintain_time += Duration(phase_start);
+
+        if (index - window_begin + 1 > capacity)
+        {
+            const auto& removed = stream[window_begin];
+            phase_start = Get_Time();
+            data_graph->MaintainBeforeExpiration(removed.user_id, removed.item_id);
+            stat->continuous_graph_maintain_time += Duration(phase_start);
+            phase_start = Get_Time();
+            data_graph->ExpireEdge(removed.user_id, removed.item_id);
+            stat->continuous_edge_maintain_time += Duration(phase_start);
+            ++window_begin;
+            ++summary.expirations;
+        }
+        ++summary.updates;
+    }
+
+    phase_start = Get_Time();
+    ExecuteBatchQuery(stat, result_list, batch);
+    summary.result_maintain_ms = Duration(phase_start);
+    summary.candidate_centers = batch.candidate_centers.size();
+    summary.recomputed_centers = batch.recomputed_centers;
+    summary.invalidated_communities = batch.invalidated_communities;
+    summary.total_ms = Duration(batch_start);
+    return summary;
+}
+
+ContinuousHandle::BatchContext ContinuousHandle::PrepareBatch(
+    const std::vector<uint>& updated_users,
+    const std::vector<InducedGraph*>& result_list)
+{
+    BatchContext batch;
+    batch.updated_users = updated_users;
+    std::sort(batch.updated_users.begin(), batch.updated_users.end());
+    batch.updated_users.erase(std::unique(batch.updated_users.begin(), batch.updated_users.end()),
+                             batch.updated_users.end());
+    batch.candidate_centers = batch_neighborhood_users(*data_graph, batch.updated_users, 2 * query_radius);
+    batch.invalid_results.resize(result_list.size(), false);
+    std::set<uint> invalid_users;
+    for (size_t index = 0; index < result_list.size(); ++index)
+        for (uint user : result_list[index]->user_map)
+            if (std::binary_search(batch.candidate_centers.begin(), batch.candidate_centers.end(), user))
+            {
+                batch.invalid_results[index] = true;
+                ++batch.invalidated_communities;
+                invalid_users.insert(result_list[index]->user_map.begin(), result_list[index]->user_map.end());
+                break;
+            }
+    // A smaller candidate previously hidden by a maximal community may become a
+    // result after expiration. Include every possible old center of such candidates,
+    // including centers that were themselves removed by community peeling.
+    const std::vector<uint> invalid_seeds(invalid_users.begin(), invalid_users.end());
+    batch_union_users(batch.candidate_centers,
+                      batch_neighborhood_users(*data_graph, invalid_seeds, query_radius));
+    return batch;
+}
+
+uint ContinuousHandle::ExecuteBatchQuery(
+    Statistic* stat, std::vector<InducedGraph*>& result_list, BatchContext& batch)
+{
+    auto start = Get_Time();
+    // Use both graph states: deleted paths are visible before the batch, and new
+    // structures formed jointly by several insertions are visible after it.
+    batch_union_users(batch.candidate_centers,
+                      batch_neighborhood_users(*data_graph, batch.updated_users, 2 * query_radius));
+    stat->influenced_subgraph_compute_time += Duration(start);
+
+    std::vector<std::unique_ptr<InducedGraph>> computed(batch.candidate_centers.size());
+    double hop_ms = 0, community_ms = 0;
+    float data_ms = 0, filter_ms = 0;
+    size_t recomputed = 0;
+    const uint workers = std::max(1u, static_cast<uint>(
+        std::min<size_t>(THREADS_NUM, batch.candidate_centers.size())));
+#pragma omp parallel for num_threads(workers) reduction(+:hop_ms,community_ms,data_ms,filter_ms,recomputed)
+    for (size_t index = 0; index < batch.candidate_centers.size(); ++index)
+    {
+        auto local_start = Get_Time();
+        std::vector<uint> users, items;
+        std::vector<std::pair<uint, uint>> edges;
+        std::tie(users, items, edges) = data_graph->Get2rHopOfUserByBV(
+            batch.candidate_centers[index], query_radius, query_BV);
+        hop_ms += Duration(local_start);
+        if (edges.empty()) continue;
+        ++recomputed;
+        InducedGraph neighborhood(*data_graph, std::move(users), std::move(items), std::move(edges), {});
+        float local_data_ms = 0, local_filter_ms = 0;
+        local_start = Get_Time();
+        // Batch work deliberately avoids the unchanged single-update Synopsis
+        // entries: their upper bounds need not describe this batch's final graph.
+        computed[index].reset(neighborhood.ComputeKRSigmaBitrussSimple(
+            query_support_threshold, query_score_threshold, local_data_ms, local_filter_ms));
+        community_ms += Duration(local_start);
+        data_ms += local_data_ms;
+        filter_ms += local_filter_ms;
+    }
+    batch.recomputed_centers = recomputed;
+    stat->continuous_inserted_compute_2r_hop_time += hop_ms / workers;
+    stat->continuous_inserted_compute_community_time += community_ms / workers;
+    stat->continuous_inserted_compute_data_time += data_ms / workers;
+    stat->continuous_inserted_filter_edge_time += filter_ms / workers;
+
+    start = Get_Time();
+    std::set<InducedGraph*> candidates;
+    for (size_t index = 0; index < result_list.size(); ++index)
+        if (batch.invalid_results[index]) delete result_list[index];
+        else candidates.emplace(result_list[index]);
+    result_list.clear();
+    // Stable center order makes refinement independent of OpenMP scheduling.
+    for (auto& community : computed)
+        batch_insert_community(candidates, std::move(community));
+    result_list.assign(candidates.begin(), candidates.end());
+    stat->continuous_inserted_refine_time += Duration(start);
     return result_list.size();
 }
 

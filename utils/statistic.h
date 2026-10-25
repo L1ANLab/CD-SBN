@@ -84,6 +84,14 @@ public:
     float modify_result_set_time;
     float average_continuous_query_time;
 
+    // Populated only by the opt-in batched driver; legacy output stays unchanged.
+    size_t update_batch_size = 1;
+    size_t continuous_update_count = 0;
+    size_t continuous_expiration_count = 0;
+    size_t continuous_batch_count = 0;
+    float batch_processing_time = 0;
+    float batch_result_maintain_time = 0;
+
     uint vertex_pruning_counter;
     uint entry_pruning_counter;
     uint leaf_node_counter;

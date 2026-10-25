@@ -30,7 +30,11 @@ int main(int argc, char *argv[])
     uint query_timestamp = 0, sliding_window_size = 0;
     uint query_support_threshold = 0, query_radius = 0, query_score_threshold = 0;
     uint edge_number = 0;
+    size_t update_batch_size = 1;
 
+    app.add_option("--update-batch-size", update_batch_size,
+                   "updates per result refresh (1 keeps the original single-edge path)")
+        ->check(CLI::PositiveNumber)->capture_default_str();
     app.add_flag("-b,--baseline", is_baseline_flag, "whether using baseline");
     app.add_option("-i,--initial", initial_graph_path, "initial graph path")->required();
     app.add_option("-l,--labels", item_label_list_path, "initial data graph path")->required();
@@ -316,6 +320,14 @@ int main(int argc, char *argv[])
         // Initialize the sliding window (from 0 to initial graph size)
         size_t start_idx = 0, end_idx = edge_number, continuous_count = 0;
         std::vector<InsertUnit> update_stream = temp_graph->GetUpdateStream();
+        statistic->update_batch_size = update_batch_size;
+        statistic->continuous_update_count = 0;
+        statistic->continuous_expiration_count = 0;
+        statistic->continuous_batch_count = 0;
+        statistic->batch_processing_time = 0;
+        statistic->batch_result_maintain_time = 0;
+        if (update_batch_size == 1)
+        {
         while (end_idx < update_stream.size())
         {
             continuous_turn_start = Get_Time();
@@ -393,6 +405,34 @@ int main(int argc, char *argv[])
             }
             // move to next edge
             end_idx += 1;
+        }
+        }
+        else
+        {
+            // Match ver0's record window: initial record count plus -w.
+            const size_t capacity = static_cast<size_t>(sliding_window_size) + edge_number;
+            while (end_idx < update_stream.size())
+            {
+                const size_t batch_end = end_idx + std::min(update_batch_size, update_stream.size() - end_idx);
+                const auto batch = continuous_query->ExecuteBatch(
+                    statistic, result_list, vertex_entry_list, update_stream,
+                    end_idx, batch_end, start_idx, capacity);
+                statistic->continuous_update_count += batch.updates;
+                statistic->continuous_expiration_count += batch.expirations;
+                ++statistic->continuous_batch_count;
+                statistic->batch_processing_time += batch.total_ms;
+                statistic->batch_result_maintain_time += batch.result_maintain_ms;
+                statistic->average_continuous_query_time = statistic->batch_processing_time /
+                    statistic->continuous_update_count;
+                std::cout << "Continuous Batch: [" << batch.updates << "] updates, ["
+                          << batch.expirations << "] expirations, [" << batch.candidate_centers
+                          << "] candidate centers, [" << batch.recomputed_centers
+                          << "] recomputed centers, [" << result_list.size() << "] results at "
+                          << update_stream[batch_end - 1].timestamp << std::endl;
+                Print_Time("Continuous Batch Time: ", batch.total_ms);
+                Print_Time("Batch Result Maintain Time: ", batch.result_maintain_ms);
+                end_idx = batch_end;
+            }
         }
 
         statistic->solver_result = result_list;
